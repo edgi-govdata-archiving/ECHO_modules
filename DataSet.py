@@ -1,3 +1,18 @@
+import urllib.parse
+import pandas as pd
+
+# This is the global function that can run an SQL query against
+# the database and return the resulting Pandas DataFrame.
+def get_data( sql, index_field=None ):
+    url='http://apps.tlt.stonybrook.edu/echoepa/?query='
+    data_location=url+urllib.parse.quote(sql)
+    # print( data_location )
+    ds = pd.read_csv(data_location,encoding='iso-8859-1')
+    if ( index_field is not None ):
+        ds.set_index( index_field, inplace=True)
+    return ds
+
+
 # This class represents the data set and the fields and methods it requires 
 # to retrieve data from the database.
 class DataSet:
