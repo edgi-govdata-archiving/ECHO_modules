@@ -6,10 +6,12 @@ import pandas as pd
 def get_data( sql, index_field=None ):
     url='http://apps.tlt.stonybrook.edu/echoepa/?query='
     data_location=url+urllib.parse.quote(sql)
-    # print( data_location )
     ds = pd.read_csv(data_location,encoding='iso-8859-1')
     if ( index_field is not None ):
-        ds.set_index( index_field, inplace=True)
+        try:
+            ds.set_index( index_field, inplace=True)
+        except KeyError:
+            pass
     return ds
 
 
@@ -35,7 +37,7 @@ class DataSet:
         
         if ( len( ee_ids ) == 0 ):
             return None
-              
+         
         for pos,row in enumerate( ee_ids ):
             id_string = id_string + "'"+str(row)+"',"
             if ( pos % 50 == 0 ):
