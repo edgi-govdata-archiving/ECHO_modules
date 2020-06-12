@@ -12,14 +12,15 @@ def get_data( sql, index_field=None ):
             ds.set_index( index_field, inplace=True)
         except KeyError:
             pass
+    # print( "get_data() returning {} records.".format( len(ds) ))
     return ds
 
 
 # This class represents the data set and the fields and methods it requires 
 # to retrieve data from the database.
 class DataSet:
-    def __init__( self, name, table_name, echo_type,
-                 idx_field, date_field, date_format, sql = None ):
+    def __init__( self, name, table_name, echo_type=None,
+                 idx_field=None, date_field=None, date_format=None, sql=None ):
         self.name = name                    #Friendly name 
         self.table_name = table_name        #Database table name
         self.echo_type = echo_type          #AIR, NPDES, RCRA, SDWA
@@ -28,7 +29,7 @@ class DataSet:
         self.date_format = date_format
         self.sql = sql                      #The SQL query to retrieve the data 
         
-    def get_data( self, ee_ids ):
+    def get_data( self, ee_ids, int_flag=False ):
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.  Get the data in batches of 50 ids.
 
@@ -39,7 +40,12 @@ class DataSet:
             return None
          
         for pos,row in enumerate( ee_ids ):
-            id_string = id_string + "'"+str(row)+"',"
+            if ( not int_flag ):
+                id_string += "'"
+            id_string += str(row)
+            if ( not int_flag ):
+                id_string += "'"
+            id_string +=  ","
             if ( pos % 50 == 0 ):
                 id_string=id_string[:-1] # removes trailing comma
                 data = self._try_get_data( id_string )   
@@ -76,6 +82,8 @@ class DataSet:
         return this_data
     
     def get_echo_ids( self, echo_data ):
+        if ( self.echo_type is None ):
+            return None
         echo_id = self.echo_type + '_IDS'
         if ( self.echo_type == 'SDWA' ):
             echo_flag = 'SDWIS_FLAG'
