@@ -6,6 +6,8 @@ import pandas as pd
 def get_data( sql, index_field=None ):
     url='http://apps.tlt.stonybrook.edu/echoepa/?query='
     data_location=url+urllib.parse.quote(sql)
+    # print( sql )
+    # print( data_location )
     ds = pd.read_csv(data_location,encoding='iso-8859-1')
     if ( index_field is not None ):
         try:
@@ -21,9 +23,12 @@ def get_data( sql, index_field=None ):
 class DataSet:
     def __init__( self, name, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None, sql=None ):
+        # the echo_type can be a single string--AIR, NPDES, RCRA, SDWA,
+        # or a list of multiple strings--['GHG','TRI']
+
         self.name = name                    #Friendly name 
         self.table_name = table_name        #Database table name
-        self.echo_type = echo_type          #AIR, NPDES, RCRA, SDWA
+        self.echo_type = echo_type          #AIR, NPDES, RCRA, SDWA or list
         self.idx_field = idx_field          #The table's index field
         self.date_field = date_field
         self.date_format = date_format
@@ -31,7 +36,8 @@ class DataSet:
         
     def get_data( self, ee_ids, int_flag=False ):
         # The id_string can get very long for a state or even a county.
-        # That can result in an error from too big URI.  Get the data in batches of 50 ids.
+        # That can result in an error from too big URI.
+        # Get the data in batches of 50 ids.
 
         id_string = ""
         program_data = None
@@ -65,6 +71,32 @@ class DataSet:
                 
         return program_data
                 
+    def get_echo_ids( self, echo_data ):
+        if ( self.echo_type is None ):
+            return None
+        if ( isinstance( self.echo_type, str )):
+            return self._get_echo_ids( self.echo_type, echo_data )
+        if ( isinstance( self.echo_type, list )):
+            my_echo_ids = []
+            [ my_echo_ids.append( _get_echo_ids( t ), echo_data ) \
+                 for t in self.echo_type ]
+            return my_echo_ids
+        return None
+        
+    def has_echo_flag( self, echo_data ):
+        if ( self.echo_type is None ):
+            return False
+        if ( isinstance( self.echo_type, str )):
+            return self._has_echo_flag( self.echo_type, echo_data )
+        if ( isinstance( self.echo_type, list )):
+            for t in self.echo_type:
+                if ( self._has_echo_flag( t, echo_data ) > 0 ):
+                    return True
+            return False
+        return False
+     
+    # Private methods of the class
+   
     def _try_get_data( self, id_list ):
         this_data = None
         try:
@@ -81,22 +113,21 @@ class DataSet:
             print( "..." )
         return this_data
     
-    def get_echo_ids( self, echo_data ):
-        if ( self.echo_type is None ):
-            return None
-        echo_id = self.echo_type + '_IDS'
+    def _get_echo_ids( self, echo_type, echo_data ):
+        # Return the ids for a single echo type.
+        echo_id = echo_type + '_IDS'
         if ( self.echo_type == 'SDWA' ):
             echo_flag = 'SDWIS_FLAG'
         else:
             echo_flag = self.echo_type + '_FLAG'
         my_echo_ids = echo_data[ echo_data[ echo_flag ] == 'Y' ][ echo_id ]
         return my_echo_ids
-        
-    def has_echo_flag( self, echo_data ):
-        if ( self.echo_type == 'SDWA' ):
+
+    def _has_echo_flag( self, echo_type, echo_data ):
+        # Return True if the single echo type flag is set
+        if ( echo_type == 'SDWA' ):
             echo_flag = 'SDWIS_FLAG'
         else:
-            echo_flag = self.echo_type + '_FLAG'
+            echo_flag = echo_type + '_FLAG'
         my_echo_data = echo_data[ echo_data[ echo_flag ] == 'Y' ]
         return len( my_echo_data ) > 0
-        
