@@ -1,4 +1,4 @@
-# ECHO-modules
+# ECHO_modules
 A repository for code modules that can supplement the Jupyter notebooks.
 
 A core goal of EEW is to open up the "black box" of EPA data and its analysis. That's why we've turned to Jupyter Notebooks, which expose both the ECHO database itself as well as the code we use to make sense of the data.
