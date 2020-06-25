@@ -8,7 +8,10 @@ def get_data( sql, index_field=None ):
     data_location=url+urllib.parse.quote(sql)
     # print( sql )
     # print( data_location )
-    ds = pd.read_csv(data_location,encoding='iso-8859-1')
+    if (index_field == "REGISTRY_ID"):
+        ds = pd.read_csv(data_location,encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    else:
+        ds = pd.read_csv(data_location,encoding='iso-8859-1')
     if ( index_field is not None ):
         try:
             ds.set_index( index_field, inplace=True)
