@@ -42,9 +42,12 @@ class DataSet:
         id_string = ""
         program_data = None
         
-        if ( len( ee_ids ) == 0 ):
+        ee_ids_len = len( ee_ids )
+
+        if ( ee_ids_len  == 0 ):
             return None
-         
+        breakpoint()
+ 
         for pos,row in enumerate( ee_ids ):
             if ( not int_flag ):
                 id_string += "'"
@@ -68,7 +71,9 @@ class DataSet:
                 program_data = data
             else:
                 program_data = pd.concat([ program_data, data ])
-                
+        
+        print( "{} ids were searched for".format( str( ee_ids_len )))
+        print( "{} program records were found".format( str( len( program_data ))))        
         return program_data
                 
     def get_echo_ids( self, echo_data ):
