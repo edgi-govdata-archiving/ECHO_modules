@@ -8,7 +8,11 @@ def get_data( sql, index_field=None ):
     data_location=url+urllib.parse.quote(sql)
     # print( sql )
     # print( data_location )
-    ds = pd.read_csv(data_location,encoding='iso-8859-1')
+    if ( index_field == "REGISTRY_ID" ):
+        ds = pd.read_csv(data_location,encoding='iso-8859-1', 
+                 dtype={"REGISTRY_ID": "Int64"})
+    else:
+        ds = pd.read_csv(data_location,encoding='iso-8859-1')
     if ( index_field is not None ):
         try:
             ds.set_index( index_field, inplace=True)
@@ -42,12 +46,11 @@ class DataSet:
         id_string = ""
         program_data = None
         
-        ee_ids_len = len( ee_ids )
-
-        if ( ee_ids_len  == 0 ):
+        if ( ee_ids is None ):
             return None
-        breakpoint()
- 
+        else:
+            ee_ids_len = len( ee_ids )
+
         for pos,row in enumerate( ee_ids ):
             if ( not int_flag ):
                 id_string += "'"
@@ -58,22 +61,27 @@ class DataSet:
             if ( pos % 50 == 0 ):
                 id_string=id_string[:-1] # removes trailing comma
                 data = self._try_get_data( id_string )   
-                if ( program_data is None ):
-                    program_data = data
-                else:
-                    program_data = pd.concat([ program_data, data ])
+                if ( data is not None ):
+                    if ( program_data is None ):
+                        program_data = data
+                    else:
+                        program_data = pd.concat([ program_data, data ])
                 id_string = ""
 
         if ( pos % 50 != 0 ):
             id_string=id_string[:-1] # removes trailing comma
             data = self._try_get_data( id_string )
-            if ( program_data is None ):
-                program_data = data
-            else:
-                program_data = pd.concat([ program_data, data ])
+            if ( data is not None ):
+                if ( program_data is None ):
+                    program_data = data
+                else:
+                    program_data = pd.concat([ program_data, data ])
         
         print( "{} ids were searched for".format( str( ee_ids_len )))
-        print( "{} program records were found".format( str( len( program_data ))))        
+        if ( program_data is None ):
+            print( "No program records were found." )
+        else:
+            print( "{} program records were found".format( str( len( program_data ))))        
         return program_data
                 
     def get_echo_ids( self, echo_data ):
@@ -105,7 +113,6 @@ class DataSet:
     def _try_get_data( self, id_list ):
         this_data = None
         try:
-            # breakpoint()
             if ( self.sql is None ):
                 x_sql = "select * from `" + self.table_name + "` where " \
                             + self.idx_field + " in (" \
@@ -113,7 +120,6 @@ class DataSet:
             else:
                 x_sql = self.sql + "(" + id_list + ")"
             this_data = get_data( x_sql, self.idx_field )
-            # print( "Data found from " + self.table_name )
         except pd.errors.EmptyDataError:
             print( "..." )
         return this_data
