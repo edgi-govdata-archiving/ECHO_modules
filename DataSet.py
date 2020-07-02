@@ -51,6 +51,7 @@ class DataSet:
         else:
             ee_ids_len = len( ee_ids )
 
+        pos = 0
         for pos,row in enumerate( ee_ids ):
             if ( not int_flag ):
                 id_string += "'"
