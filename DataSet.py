@@ -1,13 +1,14 @@
 import urllib.parse
 import pandas as pd
+from geographies import region_field, states
 
 # This is the global function that can run an SQL query against
 # the database and return the resulting Pandas DataFrame.
 def get_data( sql, index_field=None ):
     url='http://apps.tlt.stonybrook.edu/echoepa/?query='
-    data_location=url+urllib.parse.quote(sql)
-    # print( sql )
-    # print( data_location )
+    data_location=url+urllib.parse.quote_plus(sql) + '&pg'
+    print( sql )
+    print( data_location )
     if ( index_field == "REGISTRY_ID" ):
         ds = pd.read_csv(data_location,encoding='iso-8859-1', 
                  dtype={"REGISTRY_ID": "Int64"})
@@ -38,7 +39,36 @@ class DataSet:
         self.date_format = date_format
         self.sql = sql                      #The SQL query to retrieve the data 
         
-    def get_data( self, ee_ids, int_flag=False ):
+    def _set_facility_filter( self, region_type, region_value, state=None ):
+        if ( region_type == 'State' ):
+            region_value = state
+        filter = '"' + region_field[region_type]['field'] + '"'
+        if ( region_type == 'County' ):
+            filter += ' like \'' + str( region_value ) + '%\''
+        else:
+            filter += ' = \'' + str( region_value ) + '\''
+        if ( region_type == 'Congressional District' or region_type == 'County' ):
+            filter += ' and "FAC_STATE" = \'' + state + '\''
+        return filter
+
+    def get_data( self, region_type, region_value, state=None ):
+        program_data = None
+        filter = self._set_facility_filter( region_type, region_value, state )
+        try:
+            if ( self.sql is None ):
+                x_sql = 'select * from "' + self.table_name + '" where ' \
+                            + filter
+            else:
+                x_sql = self.sql + ' where ' + filter
+            program_data = get_data( x_sql, self.idx_field )
+        except pd.errors.EmptyDataError:
+            print( "No program records were found." )
+
+        if ( program_data is not None ):
+            print( "{} program records were found".format( str( len( program_data ))))        
+        return program_data
+
+    def get_data_by_ee_ids( self, ee_ids, int_flag=False ):
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
         # Get the data in batches of 50 ids.
