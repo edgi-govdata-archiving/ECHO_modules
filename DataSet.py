@@ -39,7 +39,7 @@ class DataSet:
         self.date_format = date_format
         self.sql = sql                      #The SQL query to retrieve the data 
         
-    def _set_facility_filter( self, region_type, region_value, state=None ):
+    def _set_facility_filter( self, region_type, region_value=None, state=None ):
         if ( region_type == 'State' ):
             region_value = state
         filter = '"' + region_field[region_type]['field'] + '"'

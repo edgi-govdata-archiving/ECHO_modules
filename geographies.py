@@ -2,7 +2,7 @@ region_field = {
     'State': { "field": 'FAC_STATE' },
     'Congressional District': { "field": 'FAC_DERIVED_CD113' },
     'County': { "field": 'FAC_COUNTY' },
-    'Zip Code': { "field": 'FAC_DERIVED_ZIP' }
+    'Zip Code': { "field": 'FAC_ZIP' }
 }
 
 states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
