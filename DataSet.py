@@ -27,7 +27,8 @@ def get_data( sql, index_field=None ):
 # to retrieve data from the database.
 class DataSet:
     def __init__( self, name, table_name, echo_type=None,
-                 idx_field=None, date_field=None, date_format=None, sql=None ):
+                 idx_field=None, date_field=None, date_format=None,
+                 sql=None, agg_type=None, agg_col=None, unit=None):
         # the echo_type can be a single string--AIR, NPDES, RCRA, SDWA,
         # or a list of multiple strings--['GHG','TRI']
 
@@ -37,6 +38,9 @@ class DataSet:
         self.idx_field = idx_field          #The table's index field
         self.date_field = date_field
         self.date_format = date_format
+        self.agg_type = agg_type            #The type of aggregation to be performed - summing emissions or counting violations, e.g.
+        self.agg_col = agg_col              #The field to aggregate by
+        self.unit = unit                    #Unit of measure
         self.sql = sql                      #The SQL query to retrieve the data 
         
     def _set_facility_filter( self, region_type, region_value=None, state=None ):
