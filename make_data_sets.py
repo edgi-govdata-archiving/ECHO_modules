@@ -24,13 +24,13 @@ def make_data_sets():
                     table_name='RCRA_EVALUATIONS_VIEW', echo_type="RCRA",
                     date_field='EVALUATION_START_DATE', date_format='%m/%d/%Y', 
                     agg_type = "count", agg_col="EVALUATION_AGENCY", 
-                    unit="inspections") )
+                    unit="inspections") 
                     # For possible later use in assessing state v federal )
     data_sets[ ds.name ] = ds
     ds = DataSet( name='RCRA Penalties',  echo_type="RCRA",
                     table_name='RCRA_ENFORCEMENTS_VIEW', idx_field='ID_NUMBER', 
                     date_field='EVALUATION_START_DATE', date_format='%m/%d/%Y', 
-                    agg_type = "sum", agg_col="Penalties", unit="dollars") )
+                    agg_type = "sum", agg_col="Penalties", unit="dollars") 
     data_sets[ ds.name ] = ds
     ds = DataSet( name='Air Inspections', echo_type="AIR",
                     table_name='AIR_INSPECTIONS_VIEW', idx_field='REGISTRY_ID', 
@@ -63,7 +63,7 @@ def make_data_sets():
                     idx_field='REGISTRY_ID', date_field='REPORTING_YEAR', 
                     date_format='%Y' )
     data_sets[ ds.name ] = ds
-    ds = DataSet( name='Greenhouse Gases', echo_type="GHG",
+    ds = DataSet( name='Greenhouse Gas Emissions', echo_type="GHG",
                     table_name='GREENHOUSE_GASES_VIEW', idx_field='REGISTRY_ID',
                     date_field='REPORTING_YEAR', date_format='%Y', 
                     agg_type = "sum", agg_col="ANNUAL_EMISSION", 
