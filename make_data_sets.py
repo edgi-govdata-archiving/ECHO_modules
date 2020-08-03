@@ -35,7 +35,11 @@ def make_data_sets( data_set_list = None ):
     if ( data_set_list is None or ds_name in data_set_list ):
         ds = DataSet( name=ds_name,  echo_type="RCRA",
                         table_name='RCRA_ENFORCEMENTS_VIEW', idx_field='ID_NUMBER', 
+<<<<<<< HEAD
                         date_field='ENFORCEMENT_ACTION_DATE', date_format='%m/%d/%Y', 
+=======
+                        date_field='EVALUATION_START_DATE', date_format='%m/%d/%Y', 
+>>>>>>> c631ed44c096625bca06a62047cd5d3f5f49ca95
                         agg_type = "sum", agg_col="Penalties", unit="dollars") 
         data_sets[ ds.name ] = ds
     ds_name = 'CAA Inspections'
@@ -65,7 +69,11 @@ def make_data_sets( data_set_list = None ):
                         table_name='AIR_FORMAL_ACTIONS_VIEW', idx_field='pgm_sys_id',
                         date_field='SETTLEMENT_ENTERED_DATE', date_format='%m/%d/%Y' )
         data_sets[ ds.name ] = ds
+<<<<<<< HEAD
     ds_name = 'CAA Compliance'
+=======
+    ds_name = 'CAA Inspections'
+>>>>>>> c631ed44c096625bca06a62047cd5d3f5f49ca95
     if ( data_set_list is None or ds_name in data_set_list ):
         ds = DataSet( name=ds_name, echo_type="AIR",
                         table_name='AIR_COMPLIANCE_VIEW', idx_field='PGM_SYS_ID',

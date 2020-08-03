@@ -152,7 +152,7 @@ class DataSet:
             return self._get_echo_ids( self.echo_type, echo_data )
         if ( isinstance( self.echo_type, list )):
             my_echo_ids = []
-            [ my_echo_ids.append( self._get_echo_ids( t , echo_data )) \
+            [ my_echo_ids.append( self._get_echo_ids( t, echo_data )) \
                  for t in self.echo_type ]
             return my_echo_ids
         return None
@@ -175,9 +175,9 @@ class DataSet:
         this_data = None
         try:
             if ( self.sql is None ):
-                x_sql = "select * from `" + self.table_name + "` where " \
-                            + self.idx_field + " in (" \
-                            + id_list + ")"
+                x_sql = 'select * from "' + self.table_name + '" where "' \
+                            + self.idx_field + '" in (' \
+                            + id_list + ')'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
             this_data = get_data( x_sql, self.idx_field )
