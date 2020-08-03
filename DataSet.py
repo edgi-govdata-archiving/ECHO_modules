@@ -1,6 +1,7 @@
 import urllib.parse
 import pandas as pd
 from geographies import region_field, states
+from DataSetResults import DataSetResults
 
 # This is the global function that can run an SQL query against
 # the database and return the resulting Pandas DataFrame.
@@ -22,10 +23,29 @@ def get_data( sql, index_field=None ):
     # print( "get_data() returning {} records.".format( len(ds) ))
     return ds
 
+# Development only - unless...?
+# Read stored data from a file rather than go to the database.
+def read_file( base, type, state, region ):
+    filename = base
+    if ( type != 'Zip Code' ):
+        filename += '-' + state
+    filename += '-' + type
+    if ( region is not None ):
+        filename += '-' + str(region)
+    filename += '.csv'
+    program_data = None
+    try:
+        f = open( filename )
+        f.close()
+        program_data = pd.read_csv( filename ) 
+    except FileNotFoundError:
+        pass
+    return program_data
 
 # This class represents the data set and the fields and methods it requires 
 # to retrieve data from the database.
 class DataSet:
+    
     def __init__( self, name, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None,
                  sql=None, agg_type=None, agg_col=None, unit=None):
@@ -42,21 +62,27 @@ class DataSet:
         self.agg_col = agg_col              #The field to aggregate by
         self.unit = unit                    #Unit of measure
         self.sql = sql                      #The SQL query to retrieve the data 
-        
-    def _set_facility_filter( self, region_type, region_value=None, state=None ):
-        if ( region_type == 'State' ):
-            region_value = state
-        filter = '"' + region_field[region_type]['field'] + '"'
-        if ( region_type == 'County' ):
-            filter += ' like \'' + str( region_value ) + '%\''
-        else:
-            filter += ' = \'' + str( region_value ) + '\''
-        if ( region_type == 'Congressional District' or region_type == 'County' ):
-            filter += ' and "FAC_STATE" = \'' + state + '\''
-        return filter
+        self.results = []                   #List of DataSetResults objects
 
+    def store_results( self, region_type, region_value, state=None ):
+        result = DataSetResults( self, region_type, region_value, state )
+        df = self.get_data( region_type, region_value, state )
+        result.store( df )
+        self.results.append( result )
+
+    def show_charts( self ):
+        for result in self.results:
+            result.show_chart()
+        
     def get_data( self, region_type, region_value, state=None ):
         program_data = None
+
+        # Development only
+        # # See if there is a local .csv with the data to use 
+        program_data = read_file( self.name, region_type, state, region_value )
+        if ( program_data is not None ):
+            return program_data
+        
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):
@@ -126,7 +152,7 @@ class DataSet:
             return self._get_echo_ids( self.echo_type, echo_data )
         if ( isinstance( self.echo_type, list )):
             my_echo_ids = []
-            [ my_echo_ids.append( _get_echo_ids( t ), echo_data ) \
+            [ my_echo_ids.append( self._get_echo_ids( t , echo_data )) \
                  for t in self.echo_type ]
             return my_echo_ids
         return None
@@ -177,3 +203,15 @@ class DataSet:
             echo_flag = echo_type + '_FLAG'
         my_echo_data = echo_data[ echo_data[ echo_flag ] == 'Y' ]
         return len( my_echo_data ) > 0
+
+    def _set_facility_filter( self, region_type, region_value=None, state=None ):
+        if ( region_type == 'State' ):
+            region_value = state
+        filter = '"' + region_field[region_type]['field'] + '"'
+        if ( region_type == 'County' ):
+            filter += ' like \'' + str( region_value ) + '%\''
+        else:
+            filter += ' = \'' + str( region_value ) + '\''
+        if ( region_type == 'Congressional District' or region_type == 'County' ):
+            filter += ' and "FAC_STATE" = \'' + state + '\''
+        return filter
