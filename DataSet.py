@@ -8,8 +8,8 @@ from DataSetResults import DataSetResults
 def get_data( sql, index_field=None ):
     url='http://apps.tlt.stonybrook.edu/echoepa/?query='
     data_location=url+urllib.parse.quote_plus(sql) + '&pg'
-    print( sql )
-    print( data_location )
+    # print( sql )
+    # print( data_location )
     if ( index_field == "REGISTRY_ID" ):
         ds = pd.read_csv(data_location,encoding='iso-8859-1', 
                  dtype={"REGISTRY_ID": "Int64"})
