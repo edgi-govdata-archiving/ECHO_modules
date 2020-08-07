@@ -62,16 +62,16 @@ class DataSet:
         self.agg_col = agg_col              #The field to aggregate by
         self.unit = unit                    #Unit of measure
         self.sql = sql                      #The SQL query to retrieve the data 
-        self.results = []                   #List of DataSetResults objects
+        self.results = {}                   #Dictionary of DataSetResults objects
 
     def store_results( self, region_type, region_value, state=None ):
         result = DataSetResults( self, region_type, region_value, state )
         df = self.get_data( region_type, region_value, state )
         result.store( df )
-        self.results.append( result )
+        self.results[ (region_type, region_value, state) ] = result
 
     def show_charts( self ):
-        for result in self.results:
+        for result in self.results.values():
             result.show_chart()
         
     def get_data( self, region_type, region_value, state=None ):
