@@ -42,7 +42,9 @@ def make_data_sets( data_set_list = None ):
     if ( data_set_list is None or ds_name in data_set_list ):
         ds = DataSet( name=ds_name, echo_type="AIR",
                         table_name='AIR_INSPECTIONS_MVIEW', idx_field='REGISTRY_ID', 
-                        date_field='ACTUAL_END_DATE', date_format='%m/%d/%Y' )
+                        date_field='ACTUAL_END_DATE', date_format='%m/%d/%Y', 
+                        agg_type = "count", agg_col="ACTIVITY_TYPE_DESC", 
+                        unit="inspections" )
         data_sets[ ds.name ] = ds
     ds_name = 'CAA Enforcements'
     if ( data_set_list is None or ds_name in data_set_list ):
