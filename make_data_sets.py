@@ -36,7 +36,7 @@ def make_data_sets( data_set_list = None ):
         ds = DataSet( name=ds_name,  echo_type="RCRA",
                         table_name='RCRA_ENFORCEMENTS_MVIEW', idx_field='ID_NUMBER', 
                         date_field='ENFORCEMENT_ACTION_DATE', date_format='%m/%d/%Y', 
-                        agg_type = "sum", agg_col="Penalties", unit="dollars") 
+                        agg_type = "sum", agg_col="FMP_AMOUNT", unit="dollars") 
         data_sets[ ds.name ] = ds
     ds_name = 'CAA Inspections'
     if ( data_set_list is None or ds_name in data_set_list ):
@@ -65,7 +65,8 @@ def make_data_sets( data_set_list = None ):
     if ( data_set_list is None or ds_name in data_set_list ):
         ds = DataSet( name=ds_name, echo_type="AIR",
                         table_name='AIR_FORMAL_ACTIONS_MVIEW', idx_field='pgm_sys_id',
-                        date_field='SETTLEMENT_ENTERED_DATE', date_format='%m/%d/%Y' )
+                        date_field='SETTLEMENT_ENTERED_DATE', date_format='%m/%d/%Y', 
+                        agg_type = "sum", agg_col="PENALTY_AMOUNT", unit="dollars") 
         data_sets[ ds.name ] = ds
     ds_name = 'CAA Compliance'
     if ( data_set_list is None or ds_name in data_set_list ):
@@ -120,7 +121,7 @@ def make_data_sets( data_set_list = None ):
                         table_name='CLEAN_WATER_ENFORCEMENT_ACTIONS_MVIEW', 
                         idx_field='NPDES_ID', date_field='SETTLEMENT_ENTERED_DATE', 
                         date_format='%m/%d/%Y', agg_type = "sum", 
-                        agg_col="Penalties", unit="dollars")
+                        agg_col="FED_PENALTY_ASSESSED_AMT", unit="dollars")
         data_sets[ ds.name ] = ds
     ds_name = 'SDWA Site Visits'
     if ( data_set_list is None or ds_name in data_set_list ):
