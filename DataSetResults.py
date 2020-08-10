@@ -22,9 +22,11 @@ class DataSetResults:
             print( "There is no data for {} to chart.".format( program.name ))
             return
         chart_title = program.name 
+        chart_title += ' - ' + self.region_type 
         if ( self.state is not None ):
             chart_title += ' - ' + self.state
-        chart_title += ' - ' + self.region_type + ': ' + str( self.region_value )
+        if ( self.region_value is not None ):
+            chart_title += ' - ' + str( self.region_value )
     
         # Handle NPDES_QNCR_HISTORY because there are multiple counts we need to sum
         data = self.dataframe
