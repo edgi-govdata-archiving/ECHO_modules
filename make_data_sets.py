@@ -55,7 +55,7 @@ def make_data_sets( data_set_list = None ):
     ds_name = 'CAA Violations'
     if ( data_set_list is None or ds_name in data_set_list ):
         ds = DataSet( name=ds_name,  echo_type="AIR",
-                        table_name='AIR_VIOLATIONS_MVIEW', idx_field='pgm_sys_id', 
+                        table_name='AIR_VIOLATIONS_MVIEW', idx_field='PGM_SYS_ID', 
                         date_field='HPV_DAYZERO_DATE', date_format='%m-%d-%Y', 
                         agg_type = "count", agg_col="AGENCY_TYPE_DESC", 
                         unit="violations") 
@@ -64,7 +64,7 @@ def make_data_sets( data_set_list = None ):
     ds_name = 'CAA Penalties'
     if ( data_set_list is None or ds_name in data_set_list ):
         ds = DataSet( name=ds_name, echo_type="AIR",
-                        table_name='AIR_FORMAL_ACTIONS_MVIEW', idx_field='pgm_sys_id',
+                        table_name='AIR_FORMAL_ACTIONS_MVIEW', idx_field='PGM_SYS_ID',
                         date_field='SETTLEMENT_ENTERED_DATE', date_format='%m/%d/%Y', 
                         agg_type = "sum", agg_col="PENALTY_AMOUNT", unit="dollars") 
         data_sets[ ds.name ] = ds
