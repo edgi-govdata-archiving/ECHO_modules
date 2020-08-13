@@ -26,7 +26,7 @@ def get_data( sql, index_field=None ):
 # Development only - unless...?
 # Read stored data from a file rather than go to the database.
 def read_file( base, type, state, region ):
-    filename = base
+    filename = 'CSVs' + base
     if ( type != 'Zip Code' ):
         filename += '-' + state
     filename += '-' + type
