@@ -13,7 +13,10 @@ class DataSetResults:
 
         self.dataframe = None
 
-    def store( self, df ):    
+    def store( self, df ): 
+        if ( self.dataset.name == 'CAA Violations' ):
+            df['Date'] = df['EARLIEST_FRV_DETERM_DATE'].fillna(
+                df['HPV_DAYZERO_DATE'] )   
         self.dataframe = df
 
     def show_chart( self ):

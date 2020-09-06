@@ -1,6 +1,7 @@
 import os
 import urllib.parse
 import pandas as pd
+from datetime import datetime
 from geographies import region_field, states
 from DataSetResults import DataSetResults
 
@@ -48,15 +49,16 @@ def read_file( base, type, state, region ):
 # This class represents the data set and the fields and methods it requires 
 # to retrieve data from the database.
 class DataSet:
-    
-    def __init__( self, name, table_name, echo_type=None,
+
+    def __init__( self, name, base_table, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None,
                  sql=None, agg_type=None, agg_col=None, unit=None):
         # the echo_type can be a single string--AIR, NPDES, RCRA, SDWA,
         # or a list of multiple strings--['GHG','TRI']
 
         self.name = name                    #Friendly name 
-        self.table_name = table_name        #Database table name
+        self.base_table = base_table        #Actual database table
+        self.table_name = table_name        #Database table (now material view) name
         self.echo_type = echo_type          #AIR, NPDES, RCRA, SDWA or list
         self.idx_field = idx_field          #The table's index field
         self.date_field = date_field
@@ -66,6 +68,8 @@ class DataSet:
         self.unit = unit                    #Unit of measure
         self.sql = sql                      #The SQL query to retrieve the data 
         self.results = {}                   #Dictionary of DataSetResults objects
+        self.last_modified_is_set = False
+        self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
 
     def store_results( self, region_type, region_value, state=None ):
         result = DataSetResults( self, region_type, region_value, state )
@@ -78,6 +82,13 @@ class DataSet:
             result.show_chart()
         
     def get_data( self, region_type, region_value, state=None ):
+        if ( not self.last_modified_is_set ):
+            sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
+                self.base_table )
+            ds = get_data( sql )
+            self.last_modified = datetime.strptime( ds.modified[0], '%Y-%m-%d' )
+            self.last_modified_is_set = True
+
         program_data = None
 
         # Development only
