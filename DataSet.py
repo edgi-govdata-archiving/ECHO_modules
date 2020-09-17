@@ -8,7 +8,7 @@ from DataSetResults import DataSetResults
 # This is the global function that can run an SQL query against
 # the database and return the resulting Pandas DataFrame.
 def get_data( sql, index_field=None ):
-    url='http://apps.tlt.stonybrook.edu/echoepa/?query='
+    url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
     data_location=url+urllib.parse.quote_plus(sql) + '&pg'
     # print( sql )
     # print( data_location )
