@@ -50,13 +50,6 @@ def make_data_sets( data_set_list = None ):
                         agg_type = "count", agg_col="ACTIVITY_TYPE_DESC", 
                         unit="inspections" )
         data_sets[ ds.name ] = ds
-    ds_name = 'CAA Enforcements'
-    if ( data_set_list is None or ds_name in data_set_list ):
-        ds = DataSet( name=ds_name,  echo_type="AIR",
-                        base_table='CASE_ENFORCEMENTS',
-                        table_name='AIR_ENFORCEMENTS_MVIEW', idx_field='REGISTRY_ID',
-                        date_field='FISCAL_YEAR', date_format='%Y' )
-        data_sets[ ds.name ] = ds
     ds_name = 'CAA Violations'
     if ( data_set_list is None or ds_name in data_set_list ):
         ds = DataSet( name=ds_name,  echo_type="AIR",
