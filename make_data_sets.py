@@ -41,7 +41,6 @@ PRESETS = {
         agg_type="count",
         agg_col="EVALUATION_AGENCY", 
         unit="inspections"
-        # For possible later use in assessing state v federal
     ),
 
     "RCRA Penalties": dict(
@@ -78,7 +77,6 @@ PRESETS = {
         agg_type="count",
         agg_col="AGENCY_TYPE_DESC", 
         unit="violations"
-        # For possible later use in assessing state v federal
     ),
 
     "CAA Penalties": dict(
@@ -103,7 +101,6 @@ PRESETS = {
         agg_type="count",
         agg_col="STATE_EPA_FLAG", 
         unit="inspections"
-        # For possible later use in assessing state v federal
     ),
 
     "Combined Air Emissions": dict(
@@ -158,7 +155,6 @@ PRESETS = {
         agg_type="count", 
         agg_col="STATE_EPA_FLAG",
         unit="inspections"
-        # For possible later use in assessing state v federal
     ),
 
     "CWA Penalties": dict(
