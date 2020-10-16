@@ -66,6 +66,23 @@ class DataSetResults:
             ax.set_xlabel( 'Reporting Year' )
             ax.set_ylabel( 'Pounds of Emissions')
             ax        
+        elif (program.name == "CAA Penalties" or program.name == "RCRA Penalties"  or program.name == "CWA Penalties" ):
+            data.rename( columns={ program.date_field: 'Date',
+                                   program.agg_col: 'Amount'}, inplace=True )
+            if ( program.name == "CWA Penalties" ):
+                data['Amount'] = data['Amount'].fillna(0) + \
+                      data['STATE_LOCAL_PENALTY_AMT'].fillna(0)
+            d = data.groupby( pd.to_datetime( data['Date'],
+                    format="%m/%d/%Y", errors='coerce')).agg({'Amount':'sum'})
+            d = d.resample('Y').sum()
+            d.index = d.index.strftime('%Y')
+            d = d[ d.index >= '2001' ]
+            if ( len(d) > 0 ):
+                ax = d.plot(kind='bar', title = chart_title, figsize=(20, 10), fontsize=16)
+                ax.set_xlabel( 'Reporting Year' )
+                ax.set_ylabel( 'Total penalties ($)' )
+                ax        
+
         # All other programs
         else:
             try:
@@ -77,6 +94,8 @@ class DataSetResults:
     
                 if ( len(d) > 0 ):
                     ax = d.plot(kind='bar', title = chart_title, figsize=(20, 10), legend=False, fontsize=16)
+                    ax.set_xlabel( 'Reporting Year' )
+                    ax.set_ylabel( 'Count' )
                     ax
                 else:
                     print( "There is no data for this program and region after 2000." )

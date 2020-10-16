@@ -76,6 +76,7 @@ class DataSet:
         df = self.get_data( region_type, region_value, state )
         result.store( df )
         self.results[ (region_type, region_value, state) ] = result
+        return result
 
     def show_charts( self ):
         for result in self.results.values():
@@ -109,7 +110,7 @@ class DataSet:
             print( "No program records were found." )
 
         if ( program_data is not None ):
-            print( "{} program records were found".format( str( len( program_data ))))        
+            print( "There were {} program records found".format( str( len( program_data ))))        
         return program_data
 
     def get_data_by_ee_ids( self, ee_ids, int_flag=False ):
