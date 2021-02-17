@@ -214,6 +214,15 @@ PRESETS = {
         date_format="%Y"
     ),
 
+    "2020 Discharge Monitoring": dict(
+        echo_type="NPDES",
+        base_table="NPDES_DMRS_FY2020",
+        table_name="DMR_FY2020_MVIEW",
+        idx_field="EXTERNAL_PERMIT_NMBR",
+        date_field="LIMIT_BEGIN_DATE",
+        date_format="%m/%d/%Y",
+    ),
+
     # "SDWA Return to Compliance": dict(
     #     echo_type="SDWA",
     #     table_name="SDWA_RETURN_TO_COMPLIANCE",
