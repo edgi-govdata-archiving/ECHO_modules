@@ -513,7 +513,7 @@ def chart_top_violators( ranked, state, cd, epa_pgm ):
         The graph that is generated
     '''
     sns.set(style='whitegrid')
-    fig, ax = plt.subplots(figsize=(20,10))
+    fig, ax = plt.subplots(figsize=(20,30))
     unit = ranked.index 
     values = ranked['noncomp_count'] 
     try:
