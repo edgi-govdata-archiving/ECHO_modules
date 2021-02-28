@@ -24,8 +24,8 @@ def get_data( sql, index_field=None ):
     '''    
     url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
     data_location=url+urllib.parse.quote_plus(sql) + '&pg'
-    # print( sql )
-    # print( data_location )
+    print( sql )
+    print( data_location )
     if ( index_field == "REGISTRY_ID" ):
         ds = pd.read_csv(data_location,encoding='iso-8859-1', 
                  dtype={"REGISTRY_ID": "Int64"})
@@ -134,10 +134,13 @@ class DataSet:
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
 
     def store_results( self, region_type, region_value, state=None ):
-        result = DataSetResults( self, region_type, region_value, state )
+        value = region_value
+        if ( type( value ) == list ):
+            value = ''.join( map( str, value ))
+        result = DataSetResults( self, region_type, value, state )
         df = self.get_data( region_type, region_value, state )
         result.store( df )
-        self.results[ (region_type, region_value, state) ] = result
+        self.results[ (region_type, value, state) ] = result
         return result
 
     def show_charts( self ):
@@ -287,6 +290,13 @@ class DataSet:
         filter = '"' + region_field[region_type]['field'] + '"'
         if ( region_type == 'County' ):
             filter += ' like \'' + str( region_value ) + '%\''
+        elif ( region_type == 'Watershed' ):
+            # region_value will be an array of huc8 values 
+            id_string = ""
+            for huc in region_value:
+                id_string += str(huc) + ','
+            # Remove trailing comma from id_string
+            filter += ' in (' + id_string[:-1] + ')'
         else:
             filter += ' = \'' + str( region_value ) + '\''
         if ( region_type == 'Congressional District' or region_type == 'County' ):
