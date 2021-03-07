@@ -5,13 +5,27 @@ from datetime import datetime
 from geographies import region_field, states
 from DataSetResults import DataSetResults
 
-# This is the global function that can run an SQL query against
-# the database and return the resulting Pandas DataFrame.
 def get_data( sql, index_field=None ):
+    '''
+    This is the global function that can run an SQL query against
+    the database and return the resulting Pandas DataFrame.
+
+    Parameters
+    ----------
+    sql : str
+        The SQL query to run
+    index_field : str
+        The field in the result set to set as the Dataframe's index
+
+    Results
+    -------
+    Dataframe
+        The results of the database query
+    '''    
     url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
     data_location=url+urllib.parse.quote_plus(sql) + '&pg'
-    # print( sql )
-    # print( data_location )
+    print( sql )
+    print( data_location )
     if ( index_field == "REGISTRY_ID" ):
         ds = pd.read_csv(data_location,encoding='iso-8859-1', 
                  dtype={"REGISTRY_ID": "Int64"})
@@ -25,9 +39,31 @@ def get_data( sql, index_field=None ):
     # print( "get_data() returning {} records.".format( len(ds) ))
     return ds
 
-# Development only - unless...?
 # Read stored data from a file rather than go to the database.
 def read_file( base, type, state, region ):
+    '''
+    Read stored data from a  file in the CSVs directory, rather
+    than the database.  (TBD: This should check the last_modified,
+    perhaps against a timestamp on the file name, to verify that
+    the file holds the latest data.)
+
+    Parameters
+    ----------
+    base : str
+        The base filename
+    type : {'State','County','Congressional District','Zipcode'}
+        The region type
+    state : str
+        The state two-letter abbreviation
+    region : str or int
+        The region
+
+    Returns
+    -------
+    Dataframe or None
+        The resulting data, if found
+    '''
+
     if ( not os.path.exists( 'CSVs' )):
         return None
     filename = 'CSVs/' + base
@@ -46,9 +82,35 @@ def read_file( base, type, state, region ):
         pass
     return program_data
 
-# This class represents the data set and the fields and methods it requires 
-# to retrieve data from the database.
 class DataSet:
+    '''
+    This class represents the data set and the fields and methods it requires 
+    to retrieve data from the database.
+    The database contains views (table_name) that are based on a data table
+    (base_table).  
+
+    Attributes
+    ----------
+    name : str
+        The name of the data set, e.g. 'CAA Violations'
+    base_table : str
+        The database table that is the basis for the data set
+    echo_type : {'AIR','NPDES','RCRA','SDWA','GHG','TRI'}
+        Or it can be a list of types, e.g.  ['GHG',TRI']
+        The EPA program type
+    idx_field : str
+        The index field
+    date_field : str
+        The name of the field in the table that gives the data's date
+    date_format : str
+        The format to expect the data in the date_field
+    agg_type : {'sum','count'}
+        How to aggregate the data
+    unit : str
+        The unit of measure for the data field
+    sql : str
+        The SQL query to use to retrieve the data
+    '''
 
     def __init__( self, name, base_table, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None,
@@ -72,10 +134,13 @@ class DataSet:
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
 
     def store_results( self, region_type, region_value, state=None ):
-        result = DataSetResults( self, region_type, region_value, state )
+        value = region_value
+        if ( type( value ) == list ):
+            value = ''.join( map( str, value ))
+        result = DataSetResults( self, region_type, value, state )
         df = self.get_data( region_type, region_value, state )
         result.store( df )
-        self.results[ (region_type, region_value, state) ] = result
+        self.results[ (region_type, value, state) ] = result
         return result
 
     def show_charts( self ):
@@ -225,6 +290,13 @@ class DataSet:
         filter = '"' + region_field[region_type]['field'] + '"'
         if ( region_type == 'County' ):
             filter += ' like \'' + str( region_value ) + '%\''
+        elif ( region_type == 'Watershed' ):
+            # region_value will be an array of huc8 values 
+            id_string = ""
+            for huc in region_value:
+                id_string += str(huc) + ','
+            # Remove trailing comma from id_string
+            filter += ' in (' + id_string[:-1] + ')'
         else:
             filter += ' = \'' + str( region_value ) + '\''
         if ( region_type == 'Congressional District' or region_type == 'County' ):
