@@ -135,8 +135,8 @@ def show_pick_region_widget( type, state_widget=None ):
         my_state = state_widget.value
     
     if ( type == 'Zip Code' ):
-        region_widget = widgets.IntText(
-            value=98225,
+        region_widget = widgets.Text(
+            value='98225',
             description='Zip Code:',
             disabled=False
         )
