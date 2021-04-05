@@ -224,7 +224,7 @@ PRESETS = {
         agg_type="sum",
         agg_col="LIMIT_VALUE_NMBR", #we need to take a closer look and think through how to summarize this info, since it addresses a vast array of chemicals and differing units of measure
         unit="units" #differing units of measure, which can be found in the LIMIT_UNIT_DESC field
-    )
+    ),
 
     "2020 Discharge Monitoring": dict(
         echo_type="NPDES",
