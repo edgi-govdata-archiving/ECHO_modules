@@ -258,7 +258,7 @@ def get_active_facilities( state, region_type, regions_selected ):
         The state, which could be None
     region_type : str
         The type of region:  'State', 'Congressional District', etc.
-    regions_selected : str
+    regions_selected : list
         The selected regions of the specified region_type
 
     Returns
@@ -285,19 +285,26 @@ def get_active_facilities( state, region_type, regions_selected ):
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( state, id_string )
         print( sql )
-        df_active = get_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'County' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
         sql += ' and "FAC_COUNTY" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( state, id_string )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Watershed' ):
+        sql = 'select * from "ECHO_EXPORTER" where '
+        sql += ' "FAC_DERIVED_HUC" in ({})'
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( id_string )
     else:  ## Zip code
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( id_string )
+    try:
         df_active = get_data( sql, 'REGISTRY_ID' )
-    return df_active
+        return df_active
+    except pd.errors.EmptyDataError:
+        print( 'No data found' )    
+    return None
 
 
 def marker_text( row, no_text ):

@@ -34,7 +34,7 @@ def get_data( sql, index_field=None ):
     if ( index_field is not None ):
         try:
             ds.set_index( index_field, inplace=True)
-        except KeyError:
+        except (KeyError, pd.errors.EmptyDataError):
             pass
     # print( "get_data() returning {} records.".format( len(ds) ))
     return ds
@@ -159,9 +159,9 @@ class DataSet:
 
         # Development only
         # # See if there is a local .csv with the data to use 
-        program_data = read_file( self.name, region_type, state, region_value )
-        if ( program_data is not None ):
-            return program_data
+        # program_data = read_file( self.name, region_type, state, region_value )
+        # if ( program_data is not None ):
+        #     return program_data
         
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
@@ -284,21 +284,26 @@ class DataSet:
         my_echo_data = echo_data[ echo_data[ echo_flag ] == 'Y' ]
         return len( my_echo_data ) > 0
 
-    def _set_facility_filter( self, region_type, region_value=None, state=None ):
-        if ( region_type == 'State' ):
-            region_value = state
-        filter = '"' + region_field[region_type]['field'] + '"'
+    def _set_facility_filter( self, region_type, region_value=None, 
+                              state=None ):
+        filter = ''
         if ( region_type == 'County' ):
-            filter += ' like \'' + str( region_value ) + '%\''
-        elif ( region_type == 'Watershed' ):
-            # region_value will be an array of huc8 values 
             id_string = ""
-            for huc in region_value:
-                id_string += str(huc) + ','
+            for county in region_value:
+                filter = '"' + region_field[region_type]['field'] + '"'
+                filter += ' like \'' + county + '%\' or '
+            filter = filter[:-3]
+        elif ( region_type == 'State' ) :
+            filter = '"' + region_field[region_type]['field'] + '"'
+            filter += ' = \'' + str( region_value ) + '\''
+        else:
+            filter = '"' + region_field[region_type]['field'] + '"'
+            # region_value will be an list of values 
+            id_string = ""
+            for region in region_value:
+                id_string += str( region ) + ','
             # Remove trailing comma from id_string
             filter += ' in (' + id_string[:-1] + ')'
-        else:
-            filter += ' = \'' + str( region_value ) + '\''
         if ( region_type == 'Congressional District' or region_type == 'County' ):
             filter += ' and "FAC_STATE" = \'' + state + '\''
         return filter
