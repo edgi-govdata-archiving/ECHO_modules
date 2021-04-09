@@ -288,20 +288,24 @@ class DataSet:
                               state=None ):
         filter = ''
         if ( region_type == 'County' ):
-            id_string = ""
+            filter = '('
             for county in region_value:
-                filter = '"' + region_field[region_type]['field'] + '"'
+                filter += '"' + region_field[region_type]['field'] + '"'
                 filter += ' like \'' + county + '%\' or '
             filter = filter[:-3]
+            filter += ')'
         elif ( region_type == 'State' ) :
             filter = '"' + region_field[region_type]['field'] + '"'
-            filter += ' = \'' + str( region_value ) + '\''
+            filter += ' = \'' + state + '\''
         else:
             filter = '"' + region_field[region_type]['field'] + '"'
             # region_value will be an list of values 
             id_string = ""
             for region in region_value:
-                id_string += str( region ) + ','
+                if ( region_type == 'Congressional District' ):
+                    id_string += str( region ) + ','
+                else:
+                    id_string += '\'' + str( region ) + '\','
             # Remove trailing comma from id_string
             filter += ' in (' + id_string[:-1] + ')'
         if ( region_type == 'Congressional District' or region_type == 'County' ):

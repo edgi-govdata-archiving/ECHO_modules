@@ -16,8 +16,8 @@ import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
-from ECHO_modules.DataSet import get_data
-from ECHO_modules.geographies import region_field, states
+from DataSet import get_data
+from geographies import region_field, states
 
 from IPython.display import display
 
@@ -236,7 +236,7 @@ def show_fac_widget( fac_series ):
     fac_list = fac_series.dropna().unique()
     fac_list.sort()
     style = {'description_width': 'initial'}
-    widget=widgets.Dropdown(
+    widget=widgets.SelectMultiple(
         options=fac_list,
         style=style,
         layout=Layout(width='70%'),
@@ -409,7 +409,7 @@ def mapper(df, bounds=None, no_text=False):
     return m
 
 
-def write_dataset( df, base, type, state, region ):
+def write_dataset( df, base, type, state, regions ):
     '''
     Write out a file of the Dataframe passed in.
 
@@ -423,8 +423,8 @@ def write_dataset( df, base, type, state, region ):
         The region type of the data
     state: str
         The state, or None
-    region: str
-        The region identifier, e.g. CD number, County, State, Zip code
+    regions: list
+        The region identifiers, e.g. CD number, County, State, Zip code
     '''
     if ( df is not None and len( df ) > 0 ):
         if ( not os.path.exists( 'CSVs' )):
@@ -433,8 +433,9 @@ def write_dataset( df, base, type, state, region ):
         if ( type != 'Zip Code' ):
             filename += '-' + state
         filename += '-' + type
-        if ( region is not None ):
-            filename += '-' + str(region)
+        if ( regions is not None ):
+            for region in regions:
+                filename += '-' + str(region)
         filename += '.csv'
         df.to_csv( filename ) 
         print( "Wrote " + filename )
