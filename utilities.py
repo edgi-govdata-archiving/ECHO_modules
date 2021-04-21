@@ -364,6 +364,77 @@ def mapper(df, bounds=None, no_text=False):
     # Show the map
     return m
 
+def point_mapper(df, aggcol, quartiles=False, other_fac=None):
+  '''
+  Display a point symbol map of the Dataframe passed in. A point symbol map represents 
+  each facility as a point, with the size of the point scaled to the data value 
+  (e.g. inspections, violations) proportionally or through quartiles.
+  Parameters
+  ----------
+  df : Dataframe
+      The facilities to map. They must have a FAC_LAT and FAC_LONG field.
+      This Dataframe should
+      already be aggregated by facility e.g.:
+      NPDES_ID  violations  FAC_LAT FAC_LONG
+      NY12345   13          43.03   -73.92
+      NY54321   2           42.15   -80.12
+      ...
+  aggcol : String
+      The name of the field in the Dataframe that has been aggregated. This is
+      used for the legend (pop-up window on the map)
+  quartiles : Boolean
+      False (default) returns a proportionally-scaled point symbol map, meaning
+      that the radius of each point is directly scaled to the value (e.g. 13 violations)
+      True returns a graduated point symbol map, meaning that the radius of each 
+      point is a function of the splitting the Dataframe into quartiles. 
+  other_fac : Dataframe
+      Other regulated facilities without violations, inspections,
+      penalties, etc. - whatever the value being mapped is. This is an optional 
+      variable enabling further context to the map. They must have a FAC_LAT and FAC_LONG field.
+  Returns
+  -------
+  folium.Map
+  '''
+  if ( df is not None ):
+
+    map_of_facilities = folium.Map()
+   
+    if quartiles == True:
+      df['quantile'] = pd.qcut(df[aggcol], 4, labels=False, duplicates="drop")
+      scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
+
+    # Add a clickable marker for each facility
+    for index, row in df.iterrows():
+      if quartiles == True:
+        r = scale[row["quantile"]]
+      else:
+        r = row[aggcol]
+      map_of_facilities.add_child(folium.CircleMarker(
+          location = [row["FAC_LAT"], row["FAC_LONG"]],
+          popup = aggcol+": "+str(row[aggcol]),
+          radius = r * 4, # arbitrary scalar
+          color = "black",
+          weight = 1,
+          fill_color = "orange",
+          fill_opacity= .4
+      ))
+    
+    if ( other_fac is not None ):
+      for index, row in other_fac.iterrows():
+        map_of_facilities.add_child(folium.CircleMarker(
+            location = [row["FAC_LAT"], row["FAC_LONG"]],
+            popup = "other facility",
+            radius = 4,
+            color = "black",
+            weight = 1,
+            fill_color = "black",
+            fill_opacity= 1
+        ))
+
+    return map_of_facilities
+
+  else:
+    print( "There are no facilities to map." ) 
 
 def write_dataset( df, base, type, state, region ):
     '''
