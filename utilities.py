@@ -288,8 +288,9 @@ def marker_text( row, no_text ):
             text = row["FAC_NAME"] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
-        text += " - <p><a href='"+row["DFR_URL"]
-        text += "' target='_blank'>Link to ECHO detailed report</a></p>"
+        #text += " - <p><a href='"+row["DFR_URL"]
+        #text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
+	#Somehow DFR_URL got dropped from the views, so asking for it here ^ is breaking def mapper() 
     return text
 
 
