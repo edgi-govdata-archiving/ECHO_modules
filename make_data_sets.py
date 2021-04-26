@@ -213,18 +213,18 @@ PRESETS = {
         date_field="FISCAL_YEAR",
         date_format="%Y"
     ),
-    
-    "DMRs": dict(
-        echo_type="NPDES",
-        base_table="NPDES_DMRS_FY2020",
-        table_name="DMRS_FY2020_MVIEW",
-        idx_field="EXTERNAL_PERMIT_NMBR",
-        date_field="MONITORING_PERIOD_END_DATE",
-        date_format="%m/%d/%Y", 
-        agg_type="sum",
-        agg_col="LIMIT_VALUE_NMBR", #we need to take a closer look and think through how to summarize this info, since it addresses a vast array of chemicals and differing units of measure
-        unit="units" #differing units of measure, which can be found in the LIMIT_UNIT_DESC field
-    ),
+   
+#    "DMRs": dict(
+#        echo_type="NPDES",
+#        base_table="NPDES_DMRS_FY2020",
+#        table_name="DMRS_FY2020_MVIEW",
+#        idx_field="EXTERNAL_PERMIT_NMBR",
+#        date_field="MONITORING_PERIOD_END_DATE",
+#        date_format="%m/%d/%Y", 
+#        agg_type="sum",
+#        agg_col="LIMIT_VALUE_NMBR", #we need to take a closer look and think through how to summarize this info, since it addresses a vast array of chemicals and differing units of measure
+#        unit="units" #differing units of measure, which can be found in the LIMIT_UNIT_DESC field
+#    ),
 
     "2020 Discharge Monitoring": dict(
         echo_type="NPDES",
