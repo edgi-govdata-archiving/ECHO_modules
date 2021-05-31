@@ -85,7 +85,7 @@ def show_region_type_widget(region_field):
     select_region_widget = widgets.Dropdown(
         options=region_field.keys(),
         style=style,
-        value='Zip Codes',
+        #value='Zip Codes', # No Default
         description='Region of interest:',
         disabled=False
     )
