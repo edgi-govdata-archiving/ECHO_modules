@@ -64,7 +64,7 @@ def fix_county_names( in_counties ):
 
     counties = []
     for county in in_counties:
-        if (county.endswith( ' COUNTY' )):
+        if (county.endswith( ' COUNTY' )): # TBD: or parish...
             county = county[:-7]
         counties.append( county.strip() )
     counties = np.unique( counties )
@@ -85,7 +85,7 @@ def show_region_type_widget():
     select_region_widget = widgets.Dropdown(
         options=region_field.keys(),
         style=style,
-        value='County',
+        value='Zip Codes',
         description='Region of interest:',
         disabled=False
     )
@@ -145,10 +145,10 @@ def show_pick_region_widget( type, state_widget=None ):
             description='Zip Code:',
             disabled=False
         )
-    elif ( type == 'County' ):
+    elif ( type == 'County' ): 
         df = pd.read_csv( 'ECHO_modules/state_counties.csv' )
         counties = df[df['FAC_STATE'] == my_state]['FAC_COUNTY']
-        region_widget=widgets.Dropdown(
+        region_widget=widgets.SelectMultiple(
             options=fix_county_names( counties ),
             description='County:',
             disabled=False
@@ -156,7 +156,7 @@ def show_pick_region_widget( type, state_widget=None ):
     elif ( type == 'Congressional District' ):
         df = pd.read_csv( 'ECHO_modules/state_cd.csv' )
         cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
-        region_widget=widgets.Dropdown(
+        region_widget=widgets.SelectMultiple(
             options=cds.to_list(),
             description='District:',
             disabled=False
@@ -184,7 +184,7 @@ def show_data_set_widget( data_sets ):
     
     data_set_choices = list( data_sets.keys() )
     
-    data_set_widget=widgets.Dropdown(
+    data_set_widget=widgets.SelectMultiple(
         options=list(data_set_choices),
         description='Data sets:',
         disabled=False,
@@ -212,7 +212,7 @@ def show_fac_widget( fac_series ):
     fac_list = fac_series.dropna().unique()
     fac_list.sort()
     style = {'description_width': 'initial'}
-    widget=widgets.Dropdown(
+    widget=widgets.SelectMultiple(
         options=fac_list,
         style=style,
         layout=Layout(width='70%'),
