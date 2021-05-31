@@ -71,7 +71,7 @@ def fix_county_names( in_counties ):
     return counties
 
 
-def show_region_type_widget():
+def show_region_type_widget(region_field):
     '''
     Create and return a dropdown list of types of regions
 
@@ -89,11 +89,11 @@ def show_region_type_widget():
         description='Region of interest:',
         disabled=False
     )
-    display( select_region_widget )
+    #display( select_region_widget )
     return select_region_widget
 
 
-def show_state_widget():
+def show_state_widget(states):
     '''
     Create and return a dropdown list of states
 
@@ -109,7 +109,7 @@ def show_state_widget():
         disabled=False,
     )
     
-    display( dropdown_state )
+    #display( dropdown_state )
     return dropdown_state
 
 
@@ -133,15 +133,21 @@ def show_pick_region_widget( type, state_widget=None ):
 
     region_widget = None
     
-    if ( type != 'Zip Code' ):
-        if ( state_widget is None ):
-            print( "You must first choose a state." )
-            return
-        my_state = state_widget.value
+    #if ( type != 'Zip Code' ):
+    #    if ( state_widget is None ):
+    #        print( "You must first choose a state." )
+    #        return
+    #    my_state = state_widget.value
     
     if ( type == 'Zip Code' ):
         region_widget = widgets.Text(
             value='98225',
+            description='Zip Code:',
+            disabled=False
+        )
+    elif ( type.startswith("HUC") ):
+        region_widget = widgets.Text(
+            value='14303',
             description='Zip Code:',
             disabled=False
         )
@@ -161,8 +167,8 @@ def show_pick_region_widget( type, state_widget=None ):
             description='District:',
             disabled=False
         )
-    if ( region_widget is not None ):
-        display( region_widget )
+    #if ( region_widget is not None ):
+        #display( region_widget )
     return region_widget
 
 
@@ -189,7 +195,7 @@ def show_data_set_widget( data_sets ):
         description='Data sets:',
         disabled=False,
     ) 
-    display(data_set_widget)
+    #display(data_set_widget)
     return data_set_widget
 
 

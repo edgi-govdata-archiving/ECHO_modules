@@ -1,4 +1,4 @@
-class echo: 
+class Echo: 
   def __init__( self, units, unit_type, programs=[], intersection=False, intersecting_geo=None): 
     # Data parameters
     self.units = units # e.g. 52358
@@ -20,8 +20,6 @@ class echo:
     self.facilities = self.results["facilities"]
 
     # To Do
-    # - add DMRs https://colab.research.google.com/drive/1bvaOQPmIzRA58M7D0lUfzzR7vlJzRiaO
-    # - add effluent analysis (chelsea) https://colab.research.google.com/drive/1Kdc6vzgWywesDI-u9RS8rAdex6tr3y79
     # - fully comment
 
   # General data manipulation methods 

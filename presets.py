@@ -294,13 +294,13 @@ attribute_tables = {
 
 region_field = {
     'States': { "field": 'FAC_STATE' },
-    #'Congressional Districts': { "field": 'FAC_DERIVED_CD113' }, # Need to make state_cd.csv available first
-    #'Counties': { "field": 'FAC_COUNTY' }, # Need to make state_counties.csv available first
+    'Congressional Districts': { "field": 'FAC_DERIVED_CD113' }, # Need to make state_cd.csv available first
+    'Counties': { "field": 'FAC_COUNTY' }, # Need to make state_counties.csv available first
     'Zip Codes': { "field": 'FAC_ZIP' },
     'HUC8 Watersheds': {"field": 'FAC_DERIVED_HUC'},
     'HUC10 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Go big (HUC8) and clip back
-    #'HUC12 Watersheds': {"field": 'FAC_DERIVED_WBD'}, # Not currently working for some reason
-    #'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
+    'HUC12 Watersheds': {"field": 'FAC_DERIVED_WBD'}, # Not currently working for some reason
+    'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
 }
 
 states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
