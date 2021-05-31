@@ -1,24 +1,77 @@
 """
-Create a DataSet object for each of the programs we track.
-Initialize each one with the information it needs to do its query
+Used to create an Echo object for each of the programs (attribute_tables) and
+for each kind of geography (spatial_tables).
+
+Initializes each Echo object with the information it needs to do its query
 of the database.
 
-Store the DataSet objects in a dictionary with keys being the
-friendly names of the program, which will be used in selection
-widgets.
+Stores the Echo object in a dictionary with keys being the
+friendly names of the program.
 """
 
-# In the following line, 'from DataSet' refers to the file DataSet.py
-# while 'import DataSet' refers to the DataSet class within DataSet.py.
+spatial_tables = {
+    "HUC8 Watersheds": dict(
+        table_name="wbdhu8",
+        id_field="huc8"
+    ),
 
-from ECHO_modules.DataSet import DataSet
+    "HUC10 Watersheds": dict(
+        table_name="wbdhu10",
+        id_field="huc10"
+    ),
 
+    "HUC12 Watersheds": dict(
+        table_name="wbdhu12",
+        id_field="huc12"
+    ),
 
-# These are all the presets that `make_data_sets()` can construct.
-# The keys of this dictionary are the preset names and the values are
-# dictionaries of the constructor arguments for `DataSet` that should be used
-# when creating one based on the preset.
-PRESETS = {
+    #"Ecoregions": dict(
+    #    table_name="eco_level3",
+    #    id_field="US_L3NAME" #e.g. Atlantic Coastal Pine Barrens 
+    #    
+    #),
+
+    #"Counties": dict(
+    #    table_name="tl_2019_us_county",
+    #    id_field="GEOID" # four or five digit code corresponding to two digit state number (e.g. 55) and 2-3 digit county code! 
+    #    
+    #),
+
+    "Zip Codes": dict(
+        table_name="tl_2019_us_zcta510",
+        id_field="zcta5ce10" 
+        
+    ),
+
+    "EPA Regions": dict(
+        table_name="epa_regions",
+        id_field="eparegion" # In the form of "Region 1", "Region 2", up to "Region 10"
+    ),
+
+    "States": dict(
+        table_name = "tl_2019_us_state",
+        id_field = "STUSPS" # e.g. MS, IA, AK
+    ),
+
+    "Congressional Districts": dict(
+        table_name = "tl_2019_us_cd116",
+        id_field = "GEOID" # this is the combination of the state id and the CD e.g. AR-2 = 0502
+    )
+}
+
+attribute_tables = {
+    "Facilities": dict(
+        idx_field="REGISTRY_ID", 
+        base_table="ECHO_EXPORTER",
+        table_name="ECHO_EXPORTER_MVIEW",
+        echo_type="RCRA",
+        date_field="DATE_VIOLATION_DETERMINED",
+        date_format="%m/%d/%Y",
+        agg_type="count", 
+        agg_col="VIOL_DETERMINED_BY_AGENCY", 
+        unit="violations"
+    ),
+
     "RCRA Violations": dict(
         idx_field="ID_NUMBER", 
         base_table="RCRA_VIOLATIONS",
@@ -141,7 +194,7 @@ PRESETS = {
         date_field="YEARQTR",
         date_format="%Y", 
         agg_type="sum",
-        agg_col="NUME90Q", 
+        agg_col="NUME90Q", # sum?
         unit="effluent violations"
     ),
 
@@ -165,7 +218,7 @@ PRESETS = {
         date_field="SETTLEMENT_ENTERED_DATE", 
         date_format="%m/%d/%Y",
         agg_type="sum", 
-        agg_col="FED_PENALTY_ASSESSED_AMT",
+        agg_col= "FED_PENALTY_ASSESSED_AMT",
         unit="dollars"
     ),
 
@@ -213,78 +266,48 @@ PRESETS = {
         date_field="FISCAL_YEAR",
         date_format="%Y"
     ),
-   
-#    "DMRs": dict(
-#        echo_type="NPDES",
-#        base_table="NPDES_DMRS_FY2020",
-#        table_name="DMRS_FY2020_MVIEW",
-#        idx_field="EXTERNAL_PERMIT_NMBR",
-#        date_field="MONITORING_PERIOD_END_DATE",
-#        date_format="%m/%d/%Y", 
-#        agg_type="sum",
-#        agg_col="LIMIT_VALUE_NMBR", #we need to take a closer look and think through how to summarize this info, since it addresses a vast array of chemicals and differing units of measure
-#        unit="units" #differing units of measure, which can be found in the LIMIT_UNIT_DESC field
-#    ),
 
     "2020 Discharge Monitoring": dict(
         echo_type="NPDES",
         base_table="NPDES_DMRS_FY2020",
         table_name="DMR_FY2020_MVIEW",
         idx_field="EXTERNAL_PERMIT_NMBR",
-        date_field="LIMIT_BEGIN_DATE",
+        date_field="MONITORING_PERIOD_END_DATE",
         date_format="%m/%d/%Y",
+        agg_type="count", 
+        agg_col = "VIOLATION_CODE", # What should the default be? Can modify in post-processing...
+        units = "discharge reports"
     ),
 
-    # "SDWA Return to Compliance": dict(
-    #     echo_type="SDWA",
-    #     table_name="SDWA_RETURN_TO_COMPLIANCE",
-    #     idx_field="PWSID",
-    #     date_field="FISCAL_YEAR",
-    #     date_format="%Y"
-    # )
+    "Effluent Violations": dict(
+        echo_type = "NPDES",
+        base_table = "NPDES_EFF_VIOLATIONS",
+        table_name="EFF_VIOLATIONS_MVIEW",
+        idx_field="NPDES_ID",
+        date_field="MONITORING_PERIOD_END_DATE",
+        date_format="%m/%d/%Y",
+        agg_type="count", 
+        agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
+        units = "effluent violations"
+    )
 }
 
+region_field = {
+    'States': { "field": 'FAC_STATE' },
+    #'Congressional Districts': { "field": 'FAC_DERIVED_CD113' }, # Need to make state_cd.csv available first
+    #'Counties': { "field": 'FAC_COUNTY' }, # Need to make state_counties.csv available first
+    'Zip Codes': { "field": 'FAC_ZIP' },
+    'HUC8 Watersheds': {"field": 'FAC_DERIVED_HUC'},
+    'HUC10 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Go big (HUC8) and clip back
+    #'HUC12 Watersheds': {"field": 'FAC_DERIVED_WBD'}, # Not currently working for some reason
+    #'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
+}
 
-def make_data_sets( data_set_list = None ):
-    """
-    Create DataSet objects from a list of preset configurations. This takes a
-    list of preset names and returns a dictionary where the keys are the preset
-    names and values are the DataSet objects that were created with those
-    presets. These presets are an important convenience since DataSet objects
-    are complex with lots of options.
+states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
+          "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+          "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+          "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+          "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
 
-    For example, the preset "RCRA Violations" creates a DataSet from the
-    ``RCRA_VIOLATIONS`` table, indexed by the ``ID_NUMBER`` column, with the
-    date format ``%m/%d/%Y``, and so on.
-
-    Parameters
-    ----------
-    data_set_list : sequence of str
-        A list of preset configuration names for which to construct DataSets.
-        e.g. ``["RCRA Violations", "CAA Enforcements"]``. If not set, this will
-        construct and return a DataSet for every possible preset.
-
-    Returns
-    -------
-    dict
-        A dictionary where the keys are the preset names and the values are
-        the ``DataSet`` objects created from the presets.
-
-    Examples
-    --------
-    >>> make_data_sets(["RCRA Violations", "CAA Enforcements"])
-    {
-        "RCRA Violations":  DataSet(name="RCRA Violations",
-                                    idx_field="ID_NUMBER",
-                                    base_table="RCRA_VIOLATIONS",
-                                    # and so on
-                                   ),
-        "CAA Enforcements": DataSet(name="CAA Enforcements",
-                                    idx_field="REGISTRY_ID",
-                                    base_table="CASE_ENFORCEMENTS",
-                                    # and so on
-                                   ),
-    }
-    """
-    return {name: DataSet(name=name, **PRESETS[name])
-            for name in data_set_list or PRESETS.keys()}
+#State CDs (load state_cd.csv)
+#State Counties (load state_counties.csv)
