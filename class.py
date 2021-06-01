@@ -7,6 +7,7 @@ import json
 import folium
 from folium.plugins import FastMarkerCluster
 import urllib
+import pandas as pd
 
 class Echo: 
   def __init__( self, units, unit_type, programs=[], intersection=False, intersecting_geo=None): 
