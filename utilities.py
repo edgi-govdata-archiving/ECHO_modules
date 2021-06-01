@@ -11,6 +11,7 @@ import datetime
 import pandas as pd
 import numpy as np
 import ipywidgets as widgets
+import urllib
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
 
@@ -28,9 +29,10 @@ def get_data( sql, index_field=None ):
     -------
     Dataframe
         The results of the database query
-    '''    
+    '''
+
     url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
-    data_location=url+urllib.parse.quote_plus(sql) + '&pg'
+    data_location = url + urllib.parse.quote_plus(sql) + '&pg'
     # print( sql )
     # print( data_location )
     if ( index_field == "REGISTRY_ID" ):

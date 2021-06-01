@@ -299,7 +299,7 @@ region_field = {
     'Zip Codes': { "field": 'FAC_ZIP' },
     'HUC8 Watersheds': {"field": 'FAC_DERIVED_HUC'},
     'HUC10 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Go big (HUC8) and clip back
-    'HUC12 Watersheds': {"field": 'FAC_DERIVED_WBD'}, # Not currently working for some reason
+    #'HUC12 Watersheds': {"field": 'FAC_DERIVED_WBD'}, # Not currently working for some reason
     'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
 }
 

@@ -1,3 +1,13 @@
+import ECHO_modules.utilities as utilities
+import ECHO_modules.presets as presets
+import geopandas as geopandas
+import topojson as tp
+import rtree
+import json
+import folium
+from folium.plugins import FastMarkerCluster
+import urllib
+
 class Echo: 
   def __init__( self, units, unit_type, programs=[], intersection=False, intersecting_geo=None): 
     # Data parameters
@@ -6,9 +16,9 @@ class Echo:
     self.programs = programs # e.g. ["CWA Violations", "CAA Inspections"]. Optional.
     self.intersection = intersection
     self.intersecting_geo = intersecting_geo
-    self.table_name = spatial_tables[unit_type]["table_name"] # Spatial table name e.g. wbdhu8
-    self.id_field = spatial_tables[unit_type]["id_field"] # ID field in spatial database e.g. huc8
-    self.geo_field = region_field[unit_type]["field"] # Spatial ID Field in ECHO EXPORTER. Can this be None?
+    self.table_name = presets.spatial_tables[unit_type]["table_name"] # Spatial table name e.g. wbdhu8
+    self.id_field = presets.spatial_tables[unit_type]["id_field"] # ID field in spatial database e.g. huc8
+    self.geo_field = presets.region_field[unit_type]["field"] # Spatial ID Field in ECHO EXPORTER. Can this be None?
 
     # Style parameters
     self.style = {'fillColor': '#0099ff', 'color': '#182799', "weight": 1} # Can adjust map styling
@@ -16,7 +26,7 @@ class Echo:
     # Get Data
     self.spatial_data = self.get_spatial_data()
     self.selection = self.selector() # Selection for spatial units (do after intersection, before results)
-    self.results = echo.attributes(self.programs, self.unit_type, self.geo_field, self.selection, self.spatial_data, existing_facilities=None).results
+    self.results = Echo.attributes(self.programs, self.unit_type, self.geo_field, self.selection, self.spatial_data, existing_facilities=None).results
     self.facilities = self.results["facilities"]
 
     # To Do
@@ -34,7 +44,7 @@ class Echo:
     if program in self.results.keys():
       print("This data has already added!")
     else:
-      self.results[program] = echo.attributes([program], self.unit_type, self.geo_field, self.selection, self.spatial_data, existing_facilities = self.facilities).results[program]
+      self.results[program] = Echo.attributes([program], self.unit_type, self.geo_field, self.selection, self.spatial_data, existing_facilities = self.facilities).results[program]
     
     return self.results[program]
 
@@ -60,7 +70,7 @@ class Echo:
       helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program
       '''
       diff = list(
-          set(self.facilities[attribute_tables[program]["echo_type"]+"_IDS"]) - set(input[attribute_tables[program]['idx_field']])
+          set(self.facilities[presets.attribute_tables[program]["echo_type"]+"_IDS"]) - set(input[presets.attribute_tables[program]['idx_field']])
           ) 
       
       # get rid of NaNs - probably no program IDs
@@ -68,14 +78,14 @@ class Echo:
       
       # ^ Not perfect given that some facilities have multiple NPDES_IDs
       # Below return the full ECHO_EXPORTER details for facilities without violations, penalties, or inspections
-      diff = self.facilities.loc[self.facilities[attribute_tables[program]["echo_type"]+"_IDS"].isin(diff)] 
+      diff = self.facilities.loc[self.facilities[presets.attribute_tables[program]["echo_type"]+"_IDS"].isin(diff)] 
       return diff
 
     if (program == "CWA Violations"): 
       year = data["YEARQTR"].astype("str").str[0:4:1]
       data["YEARQTR"] = year
       data["sum"] = data["NUME90Q"] + data["NUMCVDT"] + data['NUMSVCD'] + data["NUMPSCH"]
-      data = data.groupby([attribute_tables[program]['idx_field'], "FAC_NAME", "FAC_LAT", "FAC_LONG"]).sum()
+      data = data.groupby([presets.attribute_tables[program]['idx_field'], "FAC_NAME", "FAC_LAT", "FAC_LONG"]).sum()
       data = data.reset_index()
       data = data.loc[data["sum"] > 0] # only symbolize facilities with violations
       diff = differ(data, program)
@@ -83,10 +93,10 @@ class Echo:
 
     # Penalties
     elif (program == "CAA Penalties" or program == "RCRA Penalties" or program == "CWA Penalties" ):
-      data.rename( columns={ attribute_tables[program]['date_field']: 'Date', attribute_tables[program]['agg_col']: 'Amount'}, inplace=True )
+      data.rename( columns={ presets.attribute_tables[program]['date_field']: 'Date', presets.attribute_tables[program]['agg_col']: 'Amount'}, inplace=True )
       if ( program == "CWA Penalties" ):
         data['Amount'] = data['Amount'].fillna(0) + data['STATE_LOCAL_PENALTY_AMT'].fillna(0)
-      data = data.groupby([attribute_tables[program]['idx_field'], "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({'Amount':'sum'})
+      data = data.groupby([presets.attribute_tables[program]['idx_field'], "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({'Amount':'sum'})
       data = data.reset_index()
       data = data.loc[data["Amount"] > 0] # only symbolize facilities with penalties
       diff = differ(data, program)
@@ -96,8 +106,8 @@ class Echo:
 
     # Inspections, violations
     else: 
-      data = data.groupby([attribute_tables[program]['idx_field'], "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({attribute_tables[program]['date_field']: 'count'})
-      data['count'] = data[attribute_tables[program]['date_field']]
+      data = data.groupby([presets.attribute_tables[program]['idx_field'], "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({presets.attribute_tables[program]['date_field']: 'count'})
+      data['count'] = data[presets.attribute_tables[program]['date_field']]
       data = data.reset_index()
       data = data.loc[data["count"] > 0] # only symbolize facilities with X
       diff = differ(data, program)
@@ -154,7 +164,7 @@ class Echo:
 
     # Penalties
     elif (program == "CAA Penalties" or program == "RCRA Penalties" or program == "CWA Penalties" ):
-      data.rename( columns={ attribute_tables[program]['date_field']: 'Date', attribute_tables[program]['agg_col']: 'Amount'}, inplace=True )
+      data.rename( columns={ presets.attribute_tables[program]['date_field']: 'Date', presets.attribute_tables[program]['agg_col']: 'Amount'}, inplace=True )
       if ( program == "CWA Penalties" ):
         data['Amount'] = data['Amount'].fillna(0) + data['STATE_LOCAL_PENALTY_AMT'].fillna(0)
       data = data.groupby( pd.to_datetime( data['Date'], format="%m/%d/%Y", errors='coerce')).agg({'Amount':'sum'})
@@ -181,8 +191,8 @@ class Echo:
     # All other programs (inspections and violations)
     else:
       try:
-        data = data.groupby(pd.to_datetime(data[attribute_tables[program]['date_field']], 
-          format=attribute_tables[program]['date_format'], errors='coerce'))[[attribute_tables[program]['date_field']]].count()
+        data = data.groupby(pd.to_datetime(data[presets.attribute_tables[program]['date_field']], 
+          format=presets.attribute_tables[program]['date_format'], errors='coerce'))[[presets.attribute_tables[program]['date_field']]].count()
         data = data.resample("Y").sum()
         data.index = data.index.strftime('%Y')
         data = data[ data.index > '2000' ]
@@ -303,7 +313,7 @@ class Echo:
     if (program == "2020 Discharge Monitoring" or program == "Effluent Violations"): # STACKED BAR CHART
       ax = chart_data[list(chart_data.columns)].plot(kind='bar', stacked=True, figsize=(20,10), 
                                   alpha = 1, 
-                                  fontsize=12, title = attribute_tables[program]['units']) 
+                                  fontsize=12, title = presets.attribute_tables[program]['units']) 
     else:
       ax = chart_data.plot(kind='bar', title = chart_title, figsize=(20, 10), fontsize=16)
     # additional parameters for labeling axes here...
@@ -552,7 +562,7 @@ class Echo:
       """
       print(sql) # Debugging
       url = 'http://portal.gss.stonybrook.edu/echoepa/index2.php?query=' 
-      data_location=url+urllib.parse.quote_plus(sql) + '&pg'
+      data_location = url + urllib.parse.quote_plus(sql) + '&pg'
       print(data_location) # Debugging
       result = geopandas.read_file(data_location)
       return result
@@ -567,16 +577,16 @@ class Echo:
       query = """
         SELECT this.* 
         FROM """ + self.table_name + """ AS this 
-        JOIN """ + spatial_tables[self.intersecting_geo]['table_name'] + """ AS other 
-        ON other.""" + spatial_tables[self.intersecting_geo]['id_field'] + """ IN """ + selection + """ 
+        JOIN """ + presets.spatial_tables[self.intersecting_geo]['table_name'] + """ AS other 
+        ON other.""" + presets.spatial_tables[self.intersecting_geo]['id_field'] + """ IN """ + selection + """ 
         AND ST_Intersects(this.geom,other.geom) """
       result = sqlizer(query)
 
       # Get the original geo (zip codes)
       query = """
         SELECT * 
-        FROM """ + spatial_tables[self.intersecting_geo]['table_name'] + """
-        WHERE """ + spatial_tables[self.intersecting_geo]['id_field'] + """ IN """ + selection + ""
+        FROM """ + presets.spatial_tables[self.intersecting_geo]['table_name'] + """
+        WHERE """ + presets.spatial_tables[self.intersecting_geo]['id_field'] + """ IN """ + selection + ""
       self.intersecting_geo = sqlizer(query) #reset intersecting_geo to its spatial data
     
       #if we're doing an intersection we need to change the units after getting the
@@ -684,7 +694,7 @@ class Echo:
         sql = sql.format( self.selection )
       
       print(sql)
-      data = get_data(sql) # still relying on ECHO_Modules/DataSet.py global function
+      data = utilities.get_data(sql) # still relying on ECHO_Modules/DataSet.py global function
 
       print("fac before clip: ", len(data.index))
       # Clip to geographic boundaries (especially for watersheds...)
@@ -698,7 +708,7 @@ class Echo:
       '''
       # return query(program, clipping unit [spatial results])
       '''
-      p = attribute_tables[program] # Details about this program (e.g. index field)
+      p = presets.attribute_tables[program] # Details about this program (e.g. index field)
       facs = [f for f in list(self.facilities[p["echo_type"]+"_IDS"]) if str(f) != 'nan']
       selection = self.selector(facs)
       print(selection)
@@ -709,7 +719,7 @@ class Echo:
 
       results = None
       try:
-        results = get_data(sql)
+        results = utilities.get_data(sql)
       except pd.errors.EmptyDataError:
         print("There were no records found.")
 
