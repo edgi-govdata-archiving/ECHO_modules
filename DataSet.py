@@ -171,6 +171,7 @@ class DataSet:
             else:
                 x_sql = self.sql + ' where ' + filter
             program_data = get_data( x_sql, self.idx_field )
+            # program_data.to_csv( 'CSVs/{}-{}-{}.csv'.format(self.name, state,region_value))
         except pd.errors.EmptyDataError:
             print( "No program records were found." )
 
