@@ -192,7 +192,7 @@ def show_data_set_widget( data_sets ):
     
     data_set_choices = list( data_sets.keys() )
     
-    data_set_widget=widgets.SelectMultiple(
+    data_set_widget=widgets.Dropdown(
         options=list(data_set_choices),
         description='Data sets:',
         disabled=False,

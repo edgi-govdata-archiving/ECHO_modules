@@ -569,6 +569,8 @@ class Echo:
       return result
 
     selection = self.selector()
+
+    units = self.units
     
     if self.intersection:
       # e.g. hucs = echo([14303,14207,14219], "HUC10 Watersheds", ["CWA Violations"], intersection=True, intersecting_geo="Zip Codes")
@@ -594,23 +596,26 @@ class Echo:
       # intersection results (e.g. we started with zip 14303, now we have the HUC8s)
       units = list(result[self.id_field])
 
-      # Translate between HUC 8 / 12 and 10
-      if self.unit_type == "HUC10 Watersheds":
-        #Cut back to 8
-        units = [x[:-2] for x in units]
-
-      # Correct EPA errors in units
-      self.units = ["04120104" if (x == "04270101") else x for x in units]
-      # exclude 0426000002? It is Lake Erie.
-
-      print("new units:", self.units)
-
     else:
       query = """
       SELECT * 
       FROM """ + self.table_name + """
       WHERE """ + self.id_field + """ IN """ + selection + ""
       result = sqlizer(query)
+
+    # Translate between HUC 8 / 12 and 10
+	if self.unit_type == "HUC10 Watersheds":
+	  #Cut back to 8
+	  units = [x[:-2] for x in units]
+	if self.unit_type == "HUC12 Watersheds":
+      #Cut back to 8
+      units = [x[:-4] for x in units]
+
+	# Correct EPA errors in units
+	self.units = ["04120104" if (x == "04270101") else x for x in units]
+	# exclude 0426000002? It is Lake Erie.
+
+	print("units:", self.units)
 
     return result
 
@@ -667,10 +672,9 @@ class Echo:
       create and exectute a query based on the geographic unit type (e.g. zip code) and units of interest (e.g. 52358)
       '''
 
-      #sql = 'select * from "ECHO_EXPORTER" where "' + self.geo_field + '" in ' + self.selection + ' and "FAC_ACTIVE_FLAG" = \'Y\''
-      
+      # Should be able to merge the following three using self.geo_field
       if ( self.unit_type == 'States' ):
-        sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" in {}' # Using 'in' for lists
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" in {}' # Using 'in' for lists. 
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( self.selection )
       elif (self.unit_type == 'Zip Codes'): 

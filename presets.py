@@ -10,6 +10,7 @@ friendly names of the program.
 """
 
 spatial_tables = {
+    # See HUCs here: https://www.arcgis.com/apps/mapviewer/index.html?layers=4c08f2e2b13741da96ad4a8f6aa5e36a
     "HUC8 Watersheds": dict(
         table_name="wbdhu8",
         id_field="huc8"
@@ -60,18 +61,6 @@ spatial_tables = {
 }
 
 attribute_tables = {
-    "Facilities": dict(
-        idx_field="REGISTRY_ID", 
-        base_table="ECHO_EXPORTER",
-        table_name="ECHO_EXPORTER_MVIEW",
-        echo_type="RCRA",
-        date_field="DATE_VIOLATION_DETERMINED",
-        date_format="%m/%d/%Y",
-        agg_type="count", 
-        agg_col="VIOL_DETERMINED_BY_AGENCY", 
-        unit="violations"
-    ),
-
     "RCRA Violations": dict(
         idx_field="ID_NUMBER", 
         base_table="RCRA_VIOLATIONS",
@@ -299,7 +288,7 @@ region_field = {
     'Zip Codes': { "field": 'FAC_ZIP' },
     'HUC8 Watersheds': {"field": 'FAC_DERIVED_HUC'},
     'HUC10 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Go big (HUC8) and clip back
-    #'HUC12 Watersheds': {"field": 'FAC_DERIVED_WBD'}, # Not currently working for some reason
+    'HUC12 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Not currently working in intersections for some reason. But can still search directly for HUC12s.
     'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
 }
 
