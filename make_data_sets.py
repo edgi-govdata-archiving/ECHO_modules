@@ -15,8 +15,7 @@ from ECHO_modules.DataSet import DataSet
 from ECHO_modules.data_set_presets import get_attribute_tables
 
 
-
-def make_data_sets( data_set_list = None ):
+def make_data_sets( data_set_list = None, exclude_list = None ):
     """
     Create DataSet objects from a list of preset configurations. This takes a
     list of preset names and returns a dictionary where the keys are the preset
@@ -30,10 +29,13 @@ def make_data_sets( data_set_list = None ):
 
     Parameters
     ----------
-    data_set_list : sequence of str
+    data_set_list : list of str
         A list of preset configuration names for which to construct DataSets.
         e.g. ``["RCRA Violations", "CAA Enforcements"]``. If not set, this will
         construct and return a DataSet for every possible preset.
+
+    exclude_list : list of str
+        Configuration names to be excluded
 
     Returns
     -------
@@ -56,6 +58,10 @@ def make_data_sets( data_set_list = None ):
                                     # and so on
                                    ),
     }
+    >>> make_data_sets(data_set_list=['RCRA Violations',
+                                      'DMRs','2020 Discharge Monitoring'],
+                       exclude_list=['DMRs'])
+
     """
     presets = get_attribute_tables()
     return {name: DataSet(name=name, **presets[name])

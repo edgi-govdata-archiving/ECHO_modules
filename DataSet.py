@@ -207,16 +207,26 @@ class DataSet:
             region_value = state
         filter = '"' + geographies.region_field[region_type]['field'] + '"'
         if ( region_type == 'County' ):
-            filter += ' like \'' + str( region_value ) + '%\''
-        elif ( region_type == 'Watershed' ):
-            # region_value will be an array of huc8 values 
+            filter = '('
+            for county in region_value:
+                filter += '"' + region_field[region_type]['field'] + '"'
+                filter += ' like \'' + county + '%\' or '
+            filter = filter[:-3]
+            filter += ')'
+        elif ( region_type == 'State' ) :
+            filter = '"' + region_field[region_type]['field'] + '"'
+            filter += ' = \'' + state + '\''
+        else:
+            filter = '"' + region_field[region_type]['field'] + '"'
+            # region_value will be an list of values 
             id_string = ""
-            for huc in region_value:
-                id_string += str(huc) + ','
+            for region in region_value:
+                if ( region_type == 'Congressional District' ):
+                    id_string += str( region ) + ','
+                else:
+                    id_string += '\'' + str( region ) + '\','
             # Remove trailing comma from id_string
             filter += ' in (' + id_string[:-1] + ')'
-        else:
-            filter += ' = \'' + str( region_value ) + '\''
         if ( region_type == 'Congressional District' or region_type == 'County' ):
             filter += ' and "FAC_STATE" = \'' + state + '\''
         return filter
