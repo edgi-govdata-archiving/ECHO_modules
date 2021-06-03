@@ -16,7 +16,7 @@ import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
-from ECHO_modules.DataSet import get_data
+from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.geographies import region_field, states
 
 from IPython.display import display
@@ -242,24 +242,24 @@ def get_active_facilities( state, region_type, region_selected ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( state )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'Congressional District'):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
         sql += ' and "FAC_DERIVED_CD113" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( state, region_selected )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'County' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
         sql += ' and "FAC_COUNTY" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( state, region_selected )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
     else:  ## Zip code
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( region_selected )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
     return df_active
 
 
@@ -518,7 +518,7 @@ def make_filename( base, type, state, region, filetype='csv' ):
     return dir + filename
 
 
-def get_top_violators( df_active, flag, state, cd, noncomp_field, action_field, num_fac=10 ):
+def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 ):
     '''
     Sort the dataframe and return the rows that have the most number of
     non-compliant quarters.
