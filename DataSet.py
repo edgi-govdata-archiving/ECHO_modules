@@ -178,7 +178,7 @@ class DataSet:
                             + id_list + ')'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
-            this_data = get_data( x_sql, self.idx_field )
+            this_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
             print( "..." )
         return this_data
@@ -209,15 +209,15 @@ class DataSet:
         if ( region_type == 'County' ):
             filter = '('
             for county in region_value:
-                filter += '"' + region_field[region_type]['field'] + '"'
+                filter += '"' + geographies.region_field[region_type]['field'] + '"'
                 filter += ' like \'' + county + '%\' or '
             filter = filter[:-3]
             filter += ')'
         elif ( region_type == 'State' ) :
-            filter = '"' + region_field[region_type]['field'] + '"'
+            filter = '"' + geographies.region_field[region_type]['field'] + '"'
             filter += ' = \'' + state + '\''
         else:
-            filter = '"' + region_field[region_type]['field'] + '"'
+            filter = '"' + geographies.region_field[region_type]['field'] + '"'
             # region_value will be an list of values 
             id_string = ""
             for region in region_value:
