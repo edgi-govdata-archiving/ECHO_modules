@@ -209,15 +209,15 @@ class DataSet:
         if ( region_type == 'County' ):
             filter = '('
             for county in region_value:
-                filter += '"' + region_field[region_type]['field'] + '"'
+                filter += '"' + geographies.region_field[region_type]['field'] + '"'
                 filter += ' like \'' + county + '%\' or '
             filter = filter[:-3]
             filter += ')'
         elif ( region_type == 'State' ) :
-            filter = '"' + region_field[region_type]['field'] + '"'
+            filter = '"' + geographies.region_field[region_type]['field'] + '"'
             filter += ' = \'' + state + '\''
         else:
-            filter = '"' + region_field[region_type]['field'] + '"'
+            filter = '"' + geographies.region_field[region_type]['field'] + '"'
             # region_value will be an list of values 
             id_string = ""
             for region in region_value:
