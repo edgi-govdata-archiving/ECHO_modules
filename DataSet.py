@@ -178,7 +178,7 @@ class DataSet:
                             + id_list + ')'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
-            this_data = get_data( x_sql, self.idx_field )
+            this_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
             print( "..." )
         return this_data
