@@ -605,17 +605,17 @@ class Echo:
 
     # Translate between HUC 8 / 12 and 10
   	if self.unit_type == "HUC10 Watersheds":
-  	  #Cut back to 8
-  	  units = [x[:-2] for x in units]
+      #Cut back to 8
+      units = [x[:-2] for x in units]
   	if self.unit_type == "HUC12 Watersheds":
       #Cut back to 8
       units = [x[:-4] for x in units]
 
-  	# Correct EPA errors in units
-  	self.units = ["04120104" if (x == "04270101") else x for x in units]
-  	# exclude 0426000002? It is Lake Erie.
+    # Correct EPA errors in units
+    self.units = ["04120104" if (x == "04270101") else x for x in units]
+    # exclude 0426000002? It is Lake Erie.
 
-  	print("units:", self.units)
+    print("units:", self.units)
 
     return result
 
