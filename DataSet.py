@@ -1,3 +1,5 @@
+import pdb
+
 import os
 import urllib.parse
 import pandas as pd
@@ -214,19 +216,20 @@ class DataSet:
             filter = filter[:-3]
             filter += ')'
         elif ( region_type == 'State' ) :
-            filter = '"' + geographies.region_field[region_type]['field'] + '"'
             filter += ' = \'' + state + '\''
         else:
-            filter = '"' + geographies.region_field[region_type]['field'] + '"'
             # region_value will be an list of values 
             id_string = ""
-            for region in region_value:
-                if ( region_type == 'Congressional District' ):
-                    id_string += str( region ) + ','
-                else:
-                    id_string += '\'' + str( region ) + '\','
-            # Remove trailing comma from id_string
-            filter += ' in (' + id_string[:-1] + ')'
+            if ( type(region_value) == list ):
+                for region in region_value:
+                    if ( region_type == 'Congressional District' ):
+                        id_string += str( region ) + ','
+                    else:
+                        id_string += '\'' + str( region ) + '\','
+                # Remove trailing comma from id_string
+                filter += ' in (' + id_string[:-1] + ')'
+            elif ( type(region_value) == str ):
+                filter += ' = ' + region_value 
         if ( region_type == 'Congressional District' or region_type == 'County' ):
             filter += ' and "FAC_STATE" = \'' + state + '\''
         return filter
