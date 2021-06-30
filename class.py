@@ -43,7 +43,7 @@ class Echo:
 
     # Need to do a check first - don't run if already added....
     if program in self.results.keys():
-      print("This data has already added!")
+      print("This data has already been added!")
     else:
       self.results[program] = Echo.attributes([program], self.unit_type, self.geo_field, self.selection, self.spatial_data, existing_facilities = self.facilities).results[program]
     
@@ -357,7 +357,7 @@ class Echo:
     '''
     df = self.facilities
     
-    print("show fac map")
+    #print("show fac map") #Debugging
 
     # Initialize the map
     map = folium.Map(
@@ -510,9 +510,8 @@ class Echo:
             text = row["FAC_NAME"] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
-        #text += " - <p><a href='"+row["DFR_URL"]
-        #text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
-	      #Somehow DFR_URL got dropped from the views, so asking for it here ^ is breaking def mapper() 
+        text += " - <p><a href='"+row["DFR_URL"]
+        text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
     return text
 
   def selector(self):
@@ -561,10 +560,10 @@ class Echo:
             ) inputs
         ) features;
       """
-      print(sql) # Debugging
+      #print(sql) # Debugging
       url = 'http://portal.gss.stonybrook.edu/echoepa/index2.php?query=' 
       data_location = url + urllib.parse.quote_plus(sql) + '&pg'
-      print(data_location) # Debugging
+      #print(data_location) # Debugging
       result = geopandas.read_file(data_location)
       return result
 
@@ -609,7 +608,7 @@ class Echo:
       units = [x[:-4] for x in units]
     self.units = ["04120104" if (x == "04270101") else x for x in units]
 
-    print("units:", self.units)
+    #print("units:", self.units) #Debugging
 
     return result
 
@@ -632,7 +631,7 @@ class Echo:
       #clip (in cases where )
       #convert program data to geodataframe
       '''
-      print("clipping", input)
+      #print("clipping", input) #Debugging
 
       r = geopandas.GeoDataFrame(input, geometry=geopandas.points_from_xy(input["FAC_LONG"], input["FAC_LAT"]), crs="EPSG:4326")  
       
@@ -692,13 +691,13 @@ class Echo:
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( self.selection )
       
-      print(sql)
+      #print(sql) #Debugging
       data = utilities.get_data(sql) # still relying on ECHO_Modules/DataSet.py global function
 
-      print("fac before clip: ", len(data.index))
+      #print("fac before clip: ", len(data.index)) #Debugging
       # Clip to geographic boundaries (especially for watersheds...)
       data = self.clip(data)
-      print("fac after clip: ", len(data.index))
+      #print("fac after clip: ", len(data.index)) #Debugging
 
       return data
 
@@ -710,11 +709,11 @@ class Echo:
       p = presets.attribute_tables[program] # Details about this program (e.g. index field)
       facs = [f for f in list(self.facilities[p["echo_type"]+"_IDS"]) if str(f) != 'nan']
       selection = self.selector(facs)
-      print(selection)
+      #print(selection) #Debugging
       
       # Get data
       sql = 'select * from "' + p["table_name"] + '" where "'+ p["idx_field"] + '" in ' + selection + ''
-      print(sql)
+      #print(sql) #Debugging
 
       results = None
       try:
