@@ -22,7 +22,7 @@ class Echo:
     self.geo_field = presets.region_field[unit_type]["field"] # Spatial ID Field in ECHO EXPORTER. Can this be None?
 
     # Style parameters
-    self.style = {'fillColor': '#0099ff', 'color': '#182799', "weight": 1} # Can adjust map styling
+    self.style = {'this': {'fillColor': 'orange', 'color': '#182799', "weight": 1}, 'other': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1}} # Can adjust map styling
 
     # Get Data
     self.spatial_data = self.get_spatial_data()
@@ -331,7 +331,7 @@ class Echo:
     m = folium.GeoJson(
       self.spatial_data,
       name = self.table_name,
-      style_function = lambda x: self.style
+      style_function = lambda x: self.style['this']
     ).add_to(map)
     folium.GeoJsonTooltip(fields=[self.id_field.lower()]).add_to(m) # Add tooltip for identifying features
 
@@ -340,7 +340,7 @@ class Echo:
       z = folium.GeoJson(
         self.intersecting_geo,
         #name = "Zip Code",
-        style_function = lambda x: self.style #will need to style this differently
+        style_function = lambda x: self.style['other']
       ).add_to(map)
       #folium.GeoJsonTooltip(fields=["zcta5ce10"]).add_to(z)
 
@@ -367,7 +367,7 @@ class Echo:
     m = folium.GeoJson(
       self.spatial_data,
       name = self.table_name,
-      style_function = lambda x: self.style
+      style_function = lambda x: self.style['this']
     ).add_to(map)
 
     # if there is an intersecting geography we also want to show...
@@ -375,7 +375,7 @@ class Echo:
       z = folium.GeoJson(
         self.intersecting_geo,
         #name = "Zip Code",
-        style_function = lambda x: self.style #will need to style this differently
+        style_function = lambda x: self.style['other']
       ).add_to(map)
 
     # Create the Marker Cluster array
@@ -437,7 +437,7 @@ class Echo:
       m = folium.GeoJson(
         self.spatial_data,
         name = self.table_name,
-        style_function = lambda x: self.style
+        style_function = lambda x: self.style['this']
       ).add_to(map_of_facilities)
 
       # if there is an intersecting geography we also want to show...
@@ -445,7 +445,7 @@ class Echo:
         z = folium.GeoJson(
           self.intersecting_geo,
           #name = "Zip Code",
-          style_function = lambda x: self.style #will need to style this differently
+          style_function = lambda x: self.style['other']
         ).add_to(map_of_facilities)
       
       quartiles = True # To control sizing errors, set quartiles to true
