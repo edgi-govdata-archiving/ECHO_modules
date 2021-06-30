@@ -22,7 +22,7 @@ class Echo:
     self.geo_field = presets.region_field[unit_type]["field"] # Spatial ID Field in ECHO EXPORTER. Can this be None?
 
     # Style parameters
-    self.style = {'this': {'fillColor': 'orange', 'color': '#182799', "weight": 1}, 'other': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1}} # Can adjust map styling
+    self.style = {'this': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1}, 'other': {'fillColor': 'orange', 'color': '#182799', "weight": 1}} # Can adjust map styling
 
     # Get Data
     self.spatial_data = self.get_spatial_data()
