@@ -510,8 +510,9 @@ class Echo:
             text = row["FAC_NAME"] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
-        text += " - <p><a href='"+row["DFR_URL"]
-        text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
+        #text += " - <p><a href='"+row["DFR_URL"]
+        #text += "' target='_blank'>Link to ECHO detailed report</a></p>"
+        #DFR_URL not included in some materialized views...
     return text
 
   def selector(self):
