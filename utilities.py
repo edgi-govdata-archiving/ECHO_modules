@@ -4,7 +4,6 @@ the Jupyter notebooks that use them.
 '''
 
 # Import libraries
-
 import os 
 import csv
 import datetime
@@ -288,9 +287,9 @@ def marker_text( row, no_text ):
             text = row["FAC_NAME"] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
-        text += " - <p><a href='"+row["DFR_URL"]
-        text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
-	#FIXED? Somehow DFR_URL got dropped from the views, so asking for it here ^ is breaking def mapper() 
+        if 'DFR_URL' in row:
+            text += " - <p><a href='"+row["DFR_URL"]
+            text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
     return text
 
 
@@ -559,6 +558,7 @@ def get_top_violators( df_active, flag, state, cd, noncomp_field, action_field, 
     df_active['noncomp_count'] = noncomp_count
     df_active = df_active[['FAC_NAME', 'noncomp_count', action_field,
             'DFR_URL', 'FAC_LAT', 'FAC_LONG']]
+    df_active = df_active[df_active['noncomp_count'] > 0]
     df_active = df_active.sort_values( by=['noncomp_count', action_field], 
             ascending=False )
     df_active = df_active.head( num_fac )
@@ -585,7 +585,7 @@ def chart_top_violators( ranked, state, cd, epa_pgm ):
         The graph that is generated
     '''
     sns.set(style='whitegrid')
-    fig, ax = plt.subplots(figsize=(20,30))
+    fig, ax = plt.subplots(figsize=(10,10))
     unit = ranked.index 
     values = ranked['noncomp_count'] 
     try:
