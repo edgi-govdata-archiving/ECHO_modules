@@ -4,6 +4,7 @@ the Jupyter notebooks that use them.
 '''
 
 # Import libraries
+import pdb
 import os 
 import csv
 import datetime
@@ -584,11 +585,15 @@ def chart_top_violators( ranked, state, cd, epa_pgm ):
     seaborn.barplot
         The graph that is generated
     '''
-    sns.set(style='whitegrid')
-    fig, ax = plt.subplots(figsize=(10,10))
     unit = ranked.index 
     values = ranked['noncomp_count'] 
+    if ( len(values) == 0 ):
+        return "No {} facilities with non-compliant quarters in {} - {}".format(
+            epa_pgm, state, str( cd ))
+    sns.set(style='whitegrid')
+    fig, ax = plt.subplots(figsize=(10,10))
     try:
+        # pdb.set_trace()
         g = sns.barplot(values, unit, order=list(unit), orient="h") 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
                 epa_pgm, state, str( cd )))
