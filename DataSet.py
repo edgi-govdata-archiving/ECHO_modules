@@ -225,6 +225,118 @@ class DataSet:
             print( "{} program records were found".format( str( len( program_data ))))        
         return program_data
                 
+    def get_pgm_ids( self, ee_ids, int_flag=False ):
+        # ee_ids should be a list of ECHO_EXPORTER REGISTRY_IDs
+        # Use the EXP_PGM table to turn the list into program ids.
+        # If the DataSet's index field is REGISTRY_ID there is nothing to
+        # do so we just return back what we were given.
+
+        if ( self.idx_field == 'REGISTRY_ID' ):
+            return ee_ids
+
+        id_string = ''
+        pgm_id_df = None
+        
+        if ( ee_ids is None ):
+            return None
+        else:
+            ee_ids_len = len( ee_ids )
+
+        pos = 0
+        for pos,row in enumerate( ee_ids ):
+            if ( not int_flag ):
+                id_string += "'"
+            id_string += str(row)
+            if ( not int_flag ):
+                id_string += "'"
+            id_string +=  ","
+            if ( pos % 50 == 0 ):
+                id_string=id_string[:-1] # removes trailing comma
+                this_data = None
+                try:
+                    x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
+                                    + id_string + ')'
+                    this_data = get_data( x_sql )
+                except pd.errors.EmptyDataError:
+                    print( "..." )
+                if ( this_data is not None ):
+                    if ( pgm_id_df is None ):
+                        pgm_id_df = this_data
+                    else:
+                        pgm_id_df = pd.concat([ pgm_id_df, this_data ])
+                id_string = ""
+
+        if ( pos % 50 != 0 ):
+            id_string=id_string[:-1] # removes trailing comma
+            this_data = None
+            try:
+                x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
+                                + id_string + ')'
+                this_data = get_data( x_sql )
+            except pd.errors.EmptyDataError:
+                print( "..." )
+            if ( this_data is not None ):
+                if ( pgm_id_df is None ):
+                    pgm_id_df = this_data
+                else:
+                    pgm_id_df = pd.concat([ pgm_id_df, this_data ])
+
+        print( "{} ids were searched for".format( str( ee_ids_len )))
+        if ( pgm_id_df is None ):
+            print( "No program records were found." )
+        else:
+            print( "{} program ids were found".format( str( len( pgm_id_df ))))        
+        return pgm_id_df['PGM_ID']
+        
+
+    def get_data_by_pgm_ids( self, pgm_ids, int_flag=False ):
+        # pgm_ids should be a list of the data set's idx_field values
+        # The id_string can get very long for a state or even a county.
+        # That can result in an error from too big URI.
+        # Get the data in batches of 50 ids.
+
+        id_string = ""
+        program_data = None
+        
+        if ( pgm_ids is None ):
+            return None
+        else:
+            pgm_ids_len = len( pgm_ids )
+
+        pos = 0
+        for pos,row in enumerate( pgm_ids ):
+            if ( not int_flag ):
+                id_string += "'"
+            id_string += str(row)
+            if ( not int_flag ):
+                id_string += "'"
+            id_string +=  ","
+            if ( pos % 50 == 0 ):
+                id_string=id_string[:-1] # removes trailing comma
+                data = self._try_get_data( id_string )   
+                if ( data is not None ):
+                    if ( program_data is None ):
+                        program_data = data
+                    else:
+                        program_data = pd.concat([ program_data, data ])
+                id_string = ""
+
+        if ( pos % 50 != 0 ):
+            id_string=id_string[:-1] # removes trailing comma
+            data = self._try_get_data( id_string )
+            if ( data is not None ):
+                if ( program_data is None ):
+                    program_data = data
+                else:
+                    program_data = pd.concat([ program_data, data ])
+        
+        print( "{} ids were searched for".format( str( pgm_ids_len )))
+        if ( program_data is None ):
+            print( "No program records were found." )
+        else:
+            print( "{} program records were found".format( str( len( program_data ))))        
+        return program_data
+                
     def get_echo_ids( self, echo_data ):
         if ( self.echo_type is None ):
             return None
