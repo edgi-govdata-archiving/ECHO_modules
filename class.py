@@ -270,7 +270,7 @@ class Echo:
     from matplotlib import pyplot as plt
 
     sns.set(style='whitegrid')
-    fig, ax = plt.subplots(figsize=(20,30))
+    fig, ax = plt.subplots(figsize=(10,10))
 
     unit = df.index 
     values = df['noncomp_count'] 
@@ -510,9 +510,9 @@ class Echo:
             text = row["FAC_NAME"] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
-        #text += " - <p><a href='"+row["DFR_URL"]
-        #text += "' target='_blank'>Link to ECHO detailed report</a></p>"
-        #DFR_URL not included in some materialized views...
+        if 'DFR_URL' in row:
+            text += " - <p><a href='"+row["DFR_URL"]
+            text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
     return text
 
   def selector(self):
