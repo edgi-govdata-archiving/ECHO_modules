@@ -5,7 +5,7 @@ from datetime import datetime
 from geographies import region_field, states
 from DataSetResults import DataSetResults
 
-def get_data( sql, index_field=None ):
+def get_data( sql, index_field=None, debug=False ):
     '''
     This is the global function that can run an SQL query against
     the database and return the resulting Pandas DataFrame.
@@ -24,8 +24,9 @@ def get_data( sql, index_field=None ):
     '''    
     url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
     data_location=url+urllib.parse.quote_plus(sql) + '&pg'
-    # print( sql )
-    # print( data_location )
+    if debug:
+        print( sql )
+        print( data_location )
     if ( index_field == "REGISTRY_ID" ):
         ds = pd.read_csv(data_location,encoding='iso-8859-1', 
                  dtype={"REGISTRY_ID": "Int64"})
@@ -147,7 +148,8 @@ class DataSet:
         for result in self.results.values():
             result.show_chart()
         
-    def get_data( self, region_type, region_value, state=None ):
+    def get_data( self, region_type, region_value, state=None, 
+                  debug=False ):
         if ( not self.last_modified_is_set ):
             sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
                 self.base_table )
@@ -170,7 +172,7 @@ class DataSet:
                             + filter
             else:
                 x_sql = self.sql + ' where ' + filter
-            program_data = get_data( x_sql, self.idx_field )
+            program_data = get_data( x_sql, self.idx_field, debug )
         except pd.errors.EmptyDataError:
             print( "No program records were found." )
 
@@ -178,7 +180,7 @@ class DataSet:
             print( "There were {} program records found".format( str( len( program_data ))))        
         return program_data
 
-    def get_data_by_ee_ids( self, ee_ids, int_flag=False ):
+    def get_data_by_ee_ids( self, ee_ids, int_flag=False, debug=False ):
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
         # Get the data in batches of 50 ids.
@@ -201,7 +203,7 @@ class DataSet:
             id_string +=  ","
             if ( pos % 50 == 0 ):
                 id_string=id_string[:-1] # removes trailing comma
-                data = self._try_get_data( id_string )   
+                data = self._try_get_data( id_string, debug )   
                 if ( data is not None ):
                     if ( program_data is None ):
                         program_data = data
@@ -211,7 +213,7 @@ class DataSet:
 
         if ( pos % 50 != 0 ):
             id_string=id_string[:-1] # removes trailing comma
-            data = self._try_get_data( id_string )
+            data = self._try_get_data( id_string, debug )
             if ( data is not None ):
                 if ( program_data is None ):
                     program_data = data
@@ -289,7 +291,7 @@ class DataSet:
         return pgm_id_df['PGM_ID']
         
 
-    def get_data_by_pgm_ids( self, pgm_ids, int_flag=False ):
+    def get_data_by_pgm_ids( self, pgm_ids, int_flag=False, debug=False ):
         # pgm_ids should be a list of the data set's idx_field values
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
@@ -313,7 +315,7 @@ class DataSet:
             id_string +=  ","
             if ( pos % 50 == 0 ):
                 id_string=id_string[:-1] # removes trailing comma
-                data = self._try_get_data( id_string )   
+                data = self._try_get_data( id_string, debug )   
                 if ( data is not None ):
                     if ( program_data is None ):
                         program_data = data
@@ -323,7 +325,7 @@ class DataSet:
 
         if ( pos % 50 != 0 ):
             id_string=id_string[:-1] # removes trailing comma
-            data = self._try_get_data( id_string )
+            data = self._try_get_data( id_string, debug )
             if ( data is not None ):
                 if ( program_data is None ):
                     program_data = data
@@ -363,7 +365,7 @@ class DataSet:
      
     # Private methods of the class
    
-    def _try_get_data( self, id_list ):
+    def _try_get_data( self, id_list, debug=False ):
         this_data = None
         try:
             if ( self.sql is None ):
@@ -372,7 +374,7 @@ class DataSet:
                             + id_list + ')'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
-            this_data = get_data( x_sql, self.idx_field )
+            this_data = get_data( x_sql, self.idx_field, debug )
         except pd.errors.EmptyDataError:
             print( "..." )
         return this_data
