@@ -41,7 +41,8 @@ class DataSetResults:
             # Remove fields not relevant to this graph.
             data = data.drop(columns=['FAC_LAT', 'FAC_LONG', 'FAC_ZIP', 
                 'FAC_EPA_REGION', 'FAC_DERIVED_WBD', 'FAC_DERIVED_CD113',
-                'FAC_PERCENT_MINORITY', 'FAC_POP_DEN'])
+                'FAC_PERCENT_MINORITY', 'FAC_POP_DEN', 'FAC_DERIVED_HUC',
+                'FAC_SIC_CODES', 'FAC_NAICS_CODES'])
             d = data.groupby(pd.to_datetime(data['YEARQTR'], 
                     format="%Y", errors='coerce').dt.to_period("Y")).sum()
             d.index = d.index.strftime('%Y')

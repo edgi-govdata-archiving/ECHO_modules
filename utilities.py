@@ -585,6 +585,9 @@ def chart_top_violators( ranked, state, cd, epa_pgm ):
     seaborn.barplot
         The graph that is generated
     '''
+    if ranked is None:
+        print( 'There is no {} data to graph.'.format( epa_pgm ))
+        return None
     unit = ranked.index 
     values = ranked['noncomp_count'] 
     if ( len(values) == 0 ):
