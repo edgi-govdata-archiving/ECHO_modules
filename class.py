@@ -723,7 +723,7 @@ class Echo:
         sql = 'select * from "' + p["table_name"] + '" where "'+ p["idx_field"] + '" in ' + id_string + ''
         #print(sql) # Debugging
         try:
-          r = get_data(sql)   
+          r = utilities.get_data(sql)   
           if ( r is not None ):
             if ( program_data is None ):
               program_data = r
