@@ -710,7 +710,7 @@ class Echo:
       p = presets.attribute_tables[program] # Details about this program (e.g. index field)
       facs = [f for f in list(self.facilities[p["echo_type"]+"_IDS"]) if str(f) != 'nan']
       selection = facs
-      print(selection, len(selection))
+      #print(selection, len(selection)) # Debugging
       
       # Deal with long URIs - too many facilities - here
       # Divide into batches of 50. Approach based on @shansen's def get_data_by_ee_ids()
