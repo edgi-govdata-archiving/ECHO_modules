@@ -707,7 +707,7 @@ class Echo:
       '''
       # return query(program, clipping unit [spatial results])
       '''
-      p = attribute_tables[program] # Details about this program (e.g. index field)
+      p = presets.attribute_tables[program] # Details about this program (e.g. index field)
       facs = [f for f in list(self.facilities[p["echo_type"]+"_IDS"]) if str(f) != 'nan']
       selection = facs
       print(selection, len(selection))
