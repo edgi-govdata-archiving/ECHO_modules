@@ -721,7 +721,7 @@ class Echo:
         helper function for get_program_data to get data in batches
         '''
         sql = 'select * from "' + p["table_name"] + '" where "'+ p["idx_field"] + '" in ' + id_string + ''
-        print(sql)
+        #print(sql) # Debugging
         try:
           r = get_data(sql)   
           if ( r is not None ):
@@ -732,7 +732,7 @@ class Echo:
               program_data = pd.concat([ program_data, r ])
               return program_data
         except pd.errors.EmptyDataError:
-          print("There were no records found for some set of facilities.")
+          #print("There were no records found for some set of facilities.") # Debugging
           return program_data
 
       id_string = "" # Turn program (NPDES, e.g.) IDs into a string
@@ -747,7 +747,7 @@ class Echo:
         if ( pos % 50 == 0 ):
           id_string=id_string[:-1] # removes trailing comma
           id_string = "(" + id_string + ")"# add () for SQL format
-          print(id_string)
+          #print(id_string) # Debugging
           program_data = batch(p, id_string, program_data)
           id_string = ""
       
@@ -755,7 +755,7 @@ class Echo:
       if ( pos % 50 != 0 ):
         id_string=id_string[:-1] # removes trailing comma
         id_string = "(" + id_string + ")"# add () for SQL format
-        print(id_string)
+        #print(id_string) # Debugging
         program_data = batch(p, id_string, program_data)
       
       # Report to the user
