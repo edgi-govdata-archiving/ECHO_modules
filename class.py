@@ -707,23 +707,65 @@ class Echo:
       '''
       # return query(program, clipping unit [spatial results])
       '''
-      p = presets.attribute_tables[program] # Details about this program (e.g. index field)
+      p = attribute_tables[program] # Details about this program (e.g. index field)
       facs = [f for f in list(self.facilities[p["echo_type"]+"_IDS"]) if str(f) != 'nan']
-      selection = self.selector(facs)
-      #print(selection) #Debugging
+      selection = facs
+      print(selection, len(selection))
       
-      # Get data
-      sql = 'select * from "' + p["table_name"] + '" where "'+ p["idx_field"] + '" in ' + selection + ''
-      #print(sql) #Debugging
+      # Deal with long URIs - too many facilities - here
+      # Divide into batches of 50. Approach based on @shansen's def get_data_by_ee_ids()
+      # https://github.com/edgi-govdata-archiving/ECHO_modules/blob/d14014ba864bf736f9887253012d96ffa2feccd8/DataSet.py#L183
+      
+      def batch(p, id_string, program_data):
+        '''
+        helper function for get_program_data to get data in batches
+        '''
+        sql = 'select * from "' + p["table_name"] + '" where "'+ p["idx_field"] + '" in ' + id_string + ''
+        print(sql)
+        try:
+          r = get_data(sql)   
+          if ( r is not None ):
+            if ( program_data is None ):
+              program_data = r
+              return program_data
+            else:
+              program_data = pd.concat([ program_data, r ])
+              return program_data
+        except pd.errors.EmptyDataError:
+          print("There were no records found for some set of facilities.")
+          return program_data
 
-      results = None
-      try:
-        results = utilities.get_data(sql)
-      except pd.errors.EmptyDataError:
-        print("There were no records found.")
+      id_string = "" # Turn program (NPDES, e.g.) IDs into a string
+      program_data = None # For storing program data
+      
+      pos = 0
+      for pos,row in enumerate( selection ):
+        id_string += "\'"
+        id_string += str(row) # Need to handle integers?
+        id_string += "\'"
+        id_string +=  ","
+        if ( pos % 50 == 0 ):
+          id_string=id_string[:-1] # removes trailing comma
+          id_string = "(" + id_string + ")"# add () for SQL format
+          print(id_string)
+          program_data = batch(p, id_string, program_data)
+          id_string = ""
+      
+      # Capture data for remaining facilities:
+      if ( pos % 50 != 0 ):
+        id_string=id_string[:-1] # removes trailing comma
+        id_string = "(" + id_string + ")"# add () for SQL format
+        print(id_string)
+        program_data = batch(p, id_string, program_data)
+      
+      # Report to the user
+      if ( program_data is None ):
+        print( "No program records were found." )
+      else:
+        print( "{} program records were found".format( str( len( program_data ))))        
 
       # Various adjustments
       if ( program == 'CAA Violations' ):
-        results['Date'] = results['EARLIEST_FRV_DETERM_DATE'].fillna(results['HPV_DAYZERO_DATE'])   
+        program_data['Date'] = program_data['EARLIEST_FRV_DETERM_DATE'].fillna(program_data['HPV_DAYZERO_DATE'])   
       
-      return results
+      return program_data
