@@ -274,20 +274,20 @@ def get_active_facilities( state, region_type, regions_selected ):
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'Congressional District'):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-        sql += ' and "FAC_DERIVED_CD113" in ({})'
+        sql += ' and "FAC_DERIVED_CD113" in {}'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( state, region_selected )
+        sql = sql.format( state, regions_selected )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'County' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-        sql += ' and "FAC_COUNTY" in ({})'
+        sql += ' and "FAC_COUNTY" in {}'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( state, region_selected )
+        sql = sql.format( state, regions_selected )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     else:  ## Zip code
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( region_selected )
+        sql = sql.format( regions_selected )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     return df_active
 

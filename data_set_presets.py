@@ -56,13 +56,13 @@ ATTRIBUTE_TABLES = {
     "Facilities": dict(
         idx_field="REGISTRY_ID", 
         base_table="ECHO_EXPORTER",
-        table_name="ECHO_EXPORTER_MVIEW",
-        echo_type="RCRA",
-        date_field="DATE_VIOLATION_DETERMINED",
+        table_name="ECHO_EXPORTER,
+        echo_type="",
+        date_field="",
         date_format="%m/%d/%Y",
         agg_type="count", 
-        agg_col="VIOL_DETERMINED_BY_AGENCY", 
-        unit="violations"
+        agg_col="", 
+        unit=""
     ),
 
     "RCRA Violations": dict(
