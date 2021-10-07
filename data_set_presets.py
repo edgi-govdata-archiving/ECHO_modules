@@ -56,7 +56,7 @@ ATTRIBUTE_TABLES = {
     "Facilities": dict(
         idx_field="REGISTRY_ID", 
         base_table="ECHO_EXPORTER",
-        table_name="ECHO_EXPORTER,
+        table_name="ECHO_EXPORTER",
         echo_type="",
         date_field="",
         date_format="%m/%d/%Y",

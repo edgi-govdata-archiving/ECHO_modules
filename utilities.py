@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import folium
+import urllib
 import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
@@ -266,29 +267,36 @@ def get_active_facilities( state, region_type, regions_selected ):
     Dataframe
         The active facilities returned from the database query
     '''
-
+    
     if ( region_type == 'State' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( state )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'Congressional District'):
+        cd_str = ",".join( map( lambda x: str(x), regions_selected ))
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-        sql += ' and "FAC_DERIVED_CD113" in {}'
+        sql += ' and "FAC_DERIVED_CD113" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( state, regions_selected )
+        sql = sql.format( state, cd_str )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'County' ):
+        # Single items in a list will have a comma at the end that trips up
+        # the query.  Convert the regions_selected list to a string.
+        regions = "'" + "','".join( regions_selected ) + "'"
+
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-        sql += ' and "FAC_COUNTY" in {}'
+        sql += ' and "FAC_COUNTY" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( state, regions_selected )
+        sql = sql.format( state, regions )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
-    else:  ## Zip code
-        sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in ({})'
+    elif ( region_type == 'Zip Code' ):
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( regions_selected )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    else:
+        df_active = None
     return df_active
 
 
@@ -317,9 +325,9 @@ def marker_text( row, no_text ):
             text = row["FAC_NAME"] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
-        text += " - <p><a href='"+row["DFR_URL"]
-        text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
-	#FIXED? Somehow DFR_URL got dropped from the views, so asking for it here ^ is breaking def mapper() 
+        if 'DFR_URL' in row:
+            text += " - <p><a href='"+row["DFR_URL"]
+            text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
     return text
 
 
@@ -493,6 +501,7 @@ def write_dataset( df, base, type, state, regions ):
         if ( regions is not None ):
             for region in regions:
                 filename += '-' + str(region)
+        filename = urllib.parse.quote_plus(filename)
         filename += '.csv'
         df.to_csv( filename ) 
         print( "Wrote " + filename )

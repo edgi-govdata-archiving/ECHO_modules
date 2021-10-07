@@ -220,7 +220,8 @@ class DataSet:
         else:
             # region_value will be an list of values 
             id_string = ""
-            if ( type(region_value) == list ):
+            value_type = type(region_value)
+            if ( value_type == list or value_type == tuple ):
                 for region in region_value:
                     if ( region_type == 'Congressional District' ):
                         id_string += str( region ) + ','
