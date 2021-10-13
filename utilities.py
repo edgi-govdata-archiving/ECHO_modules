@@ -627,7 +627,7 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     values = ranked['noncomp_count'] 
     if ( len(values) == 0 ):
         return "No {} facilities with non-compliant quarters in {} - {}".format(
-            epa_pgm, state, str( cd ))
+            epa_pgm, state, str( selections ))
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
     try:
