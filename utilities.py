@@ -12,11 +12,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import folium
+import urllib
 import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
-from ECHO_modules.DataSet import get_data
+from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.geographies import region_field, states
 
 from IPython.display import display
@@ -143,7 +144,7 @@ def show_pick_region_widget( type, state_widget=None ):
     elif ( type == 'County' ):
         df = pd.read_csv( 'ECHO_modules/state_counties.csv' )
         counties = df[df['FAC_STATE'] == my_state]['FAC_COUNTY']
-        region_widget=widgets.Dropdown(
+        region_widget=widgets.SelectMultiple(
             options=fix_county_names( counties ),
             description='County:',
             disabled=False
@@ -151,7 +152,7 @@ def show_pick_region_widget( type, state_widget=None ):
     elif ( type == 'Congressional District' ):
         df = pd.read_csv( 'ECHO_modules/state_cd.csv' )
         cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
-        region_widget=widgets.Dropdown(
+        region_widget=widgets.SelectMultiple(
             options=cds.to_list(),
             description='District:',
             disabled=False
@@ -159,6 +160,35 @@ def show_pick_region_widget( type, state_widget=None ):
     if ( region_widget is not None ):
         display( region_widget )
     return region_widget
+
+
+def get_regions_selected( region_type, region_widget ):
+    '''
+    The region_widget may have multiple selections.  
+    Depending on its region_type, extract the selections
+    and return them.
+
+    Parameters
+    ----------
+    region_type : string
+        'Zip Code', 'Congressional District', 'County'
+   
+    region_widget : widget
+        The widget that will contain the selections.
+
+    Returns
+    -------
+    list
+        The selections
+    '''
+
+    selections = list()
+    if ( region_type == 'Zip Code' ):
+        selections = region_widget.value.split(',')
+    else:
+        selections = list( region_widget.value )
+
+    return selections
 
 
 def show_data_set_widget( data_sets ):
@@ -207,7 +237,7 @@ def show_fac_widget( fac_series ):
     fac_list = fac_series.dropna().unique()
     fac_list.sort()
     style = {'description_width': 'initial'}
-    widget=widgets.Dropdown(
+    widget=widgets.SelectMultiple(
         options=fac_list,
         style=style,
         layout=Layout(width='70%'),
@@ -218,7 +248,7 @@ def show_fac_widget( fac_series ):
     return widget
 
 
-def get_active_facilities( state, region_type, region_selected ):
+def get_active_facilities( state, region_type, regions_selected ):
     '''
     Get a Dataframe with the ECHO_EXPORTER facilities with FAC_ACTIVE_FLAG
     set to 'Y' for the region selected.
@@ -229,37 +259,44 @@ def get_active_facilities( state, region_type, region_selected ):
         The state, which could be None
     region_type : str
         The type of region:  'State', 'Congressional District', etc.
-    region_selected : str
-        The selected region of the specified region_type
+    regions_selected : list
+        The selected regions of the specified region_type
 
     Returns
     -------
     Dataframe
         The active facilities returned from the database query
     '''
-
+    
     if ( region_type == 'State' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( state )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'Congressional District'):
+        cd_str = ",".join( map( lambda x: str(x), regions_selected ))
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-        sql += ' and "FAC_DERIVED_CD113" = \'{}\''
+        sql += ' and "FAC_DERIVED_CD113" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( state, region_selected )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+        sql = sql.format( state, cd_str )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'County' ):
+        # Single items in a list will have a comma at the end that trips up
+        # the query.  Convert the regions_selected list to a string.
+        regions = "'" + "','".join( regions_selected ) + "'"
+
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-        sql += ' and "FAC_COUNTY" = \'{}\''
+        sql += ' and "FAC_COUNTY" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( state, region_selected )
-        df_active = get_data( sql, 'REGISTRY_ID' )
-    else:  ## Zip code
+        sql = sql.format( state, regions )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Zip Code' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( region_selected )
-        df_active = get_data( sql, 'REGISTRY_ID' )
+        sql = sql.format( regions_selected )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    else:
+        df_active = None
     return df_active
 
 
@@ -437,7 +474,7 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   else:
     print( "There are no facilities to map." ) 
 
-def write_dataset( df, base, type, state, region ):
+def write_dataset( df, base, type, state, regions ):
     '''
     Write out a file of the Dataframe passed in.
 
@@ -451,8 +488,8 @@ def write_dataset( df, base, type, state, region ):
         The region type of the data
     state: str
         The state, or None
-    region: str
-        The region identifier, e.g. CD number, County, State, Zip code
+    regions: list
+        The region identifiers, e.g. CD number, County, State, Zip code
     '''
     if ( df is not None and len( df ) > 0 ):
         if ( not os.path.exists( 'CSVs' )):
@@ -461,8 +498,10 @@ def write_dataset( df, base, type, state, region ):
         if ( type != 'Zip Code' ):
             filename += '-' + state
         filename += '-' + type
-        if ( region is not None ):
-            filename += '-' + str(region)
+        if ( regions is not None ):
+            for region in regions:
+                filename += '-' + str(region)
+        filename = urllib.parse.quote_plus(filename)
         filename += '.csv'
         df.to_csv( filename ) 
         print( "Wrote " + filename )
@@ -518,7 +557,7 @@ def make_filename( base, type, state, region, filetype='csv' ):
     return dir + filename
 
 
-def get_top_violators( df_active, flag, state, cd, noncomp_field, action_field, num_fac=10 ):
+def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 ):
     '''
     Sort the dataframe and return the rows that have the most number of
     non-compliant quarters.
@@ -529,10 +568,6 @@ def get_top_violators( df_active, flag, state, cd, noncomp_field, action_field, 
         Must have ECHO_EXPORTER fields
     flag : str
         Identifies the EPA programs of the facility (AIR_FLAG, NPDES_FLAG, etc.)
-    state : str
-        The state
-    cd : str
-        The congressional district    
     noncomp_field : str
         The field with the non-compliance values, 'S' or 'V'.
     action_field
@@ -547,7 +582,7 @@ def get_top_violators( df_active, flag, state, cd, noncomp_field, action_field, 
 
     Examples
     --------
-    >>> df_violators = get_top_violators( df_active, 'AIR_FLAG', state, region_selected, 
+    >>> df_violators = get_top_violators( df_active, 'AIR_FLAG',
         'CAA_3YR_COMPL_QTRS_HISTORY', 'CAA_FORMAL_ACTION_COUNT', 20 )
     '''
     df = df_active.loc[ df_active[flag] == 'Y' ]
@@ -565,7 +600,7 @@ def get_top_violators( df_active, flag, state, cd, noncomp_field, action_field, 
     df_active = df_active.head( num_fac )
     return df_active   
 
-def chart_top_violators( ranked, state, cd, epa_pgm ):
+def chart_top_violators( ranked, state, selections, epa_pgm ):
     '''
     Draw a horizontal bar chart of the top non-compliant facilities.
 
@@ -575,8 +610,8 @@ def chart_top_violators( ranked, state, cd, epa_pgm ):
         The facilities to be charted
     state : str
         The state
-    cd : integer
-        The Congressional District
+    selections : list
+        The selections
     epa_pgm : str
         The EPA program associated with this list of non-compliant facilities
 
@@ -596,10 +631,9 @@ def chart_top_violators( ranked, state, cd, epa_pgm ):
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
     try:
-        # pdb.set_trace()
-        g = sns.barplot(values, unit, order=list(unit), orient="h") 
+        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h") 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
-                epa_pgm, state, str( cd )))
+                epa_pgm, state, str( selections )))
         ax.set_xlabel("Non-compliant quarters")
         ax.set_ylabel("Facility")
         ax.set_yticklabels(ranked["FAC_NAME"])

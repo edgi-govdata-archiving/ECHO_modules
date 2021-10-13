@@ -1,87 +1,12 @@
+import pdb
+
 import os
 import urllib.parse
 import pandas as pd
 from datetime import datetime
-from geographies import region_field, states
-from DataSetResults import DataSetResults
-
-def get_data( sql, index_field=None, debug=False ):
-    '''
-    This is the global function that can run an SQL query against
-    the database and return the resulting Pandas DataFrame.
-
-    Parameters
-    ----------
-    sql : str
-        The SQL query to run
-    index_field : str
-        The field in the result set to set as the Dataframe's index
-
-    Results
-    -------
-    Dataframe
-        The results of the database query
-    '''    
-    url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
-    data_location=url+urllib.parse.quote_plus(sql) + '&pg'
-    if debug:
-        print( sql )
-        print( data_location )
-    if ( index_field == "REGISTRY_ID" ):
-        ds = pd.read_csv(data_location,encoding='iso-8859-1', 
-                 dtype={"REGISTRY_ID": "Int64"})
-    else:
-        ds = pd.read_csv(data_location,encoding='iso-8859-1')
-    if ( index_field is not None ):
-        try:
-            ds.set_index( index_field, inplace=True)
-        except KeyError:
-            pass
-    # print( "get_data() returning {} records.".format( len(ds) ))
-    return ds
-
-# Read stored data from a file rather than go to the database.
-def read_file( base, type, state, region ):
-    '''
-    Read stored data from a  file in the CSVs directory, rather
-    than the database.  (TBD: This should check the last_modified,
-    perhaps against a timestamp on the file name, to verify that
-    the file holds the latest data.)
-
-    Parameters
-    ----------
-    base : str
-        The base filename
-    type : {'State','County','Congressional District','Zipcode'}
-        The region type
-    state : str
-        The state two-letter abbreviation
-    region : str or int
-        The region
-
-    Returns
-    -------
-    Dataframe or None
-        The resulting data, if found
-    '''
-
-    if ( not os.path.exists( 'CSVs' )):
-        return None
-    filename = 'CSVs/' + base
-    if ( type != 'Zip Code' ):
-        filename += '-' + state
-    filename += '-' + type
-    if ( region is not None ):
-        filename += '-' + str(region)
-    filename += '.csv'
-    program_data = None
-    try:
-        f = open( filename )
-        f.close()
-        program_data = pd.read_csv( filename ) 
-    except FileNotFoundError:
-        pass
-    return program_data
+from . import geographies
+from .DataSetResults import DataSetResults
+from .get_data import get_echo_data
 
 class DataSet:
     '''
@@ -153,18 +78,12 @@ class DataSet:
         if ( not self.last_modified_is_set ):
             sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
                 self.base_table )
-            ds = get_data( sql )
+            ds = get_echo_data( sql )
             self.last_modified = datetime.strptime( ds.modified[0], '%Y-%m-%d' )
             self.last_modified_is_set = True
 
         program_data = None
 
-        # Development only
-        # # See if there is a local .csv with the data to use 
-        program_data = read_file( self.name, region_type, state, region_value )
-        if ( program_data is not None ):
-            return program_data
-        
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):
@@ -172,7 +91,7 @@ class DataSet:
                             + filter
             else:
                 x_sql = self.sql + ' where ' + filter
-            program_data = get_data( x_sql, self.idx_field, debug )
+            program_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
             print( "No program records were found." )
 
@@ -374,7 +293,7 @@ class DataSet:
                             + id_list + ')'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
-            this_data = get_data( x_sql, self.idx_field, debug )
+            this_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
             print( "..." )
         return this_data
@@ -401,18 +320,30 @@ class DataSet:
     def _set_facility_filter( self, region_type, region_value=None, state=None ):
         if ( region_type == 'State' ):
             region_value = state
-        filter = '"' + region_field[region_type]['field'] + '"'
+        filter = '"' + geographies.region_field[region_type]['field'] + '"'
         if ( region_type == 'County' ):
-            filter += ' like \'' + str( region_value ) + '%\''
-        elif ( region_type == 'Watershed' ):
-            # region_value will be an array of huc8 values 
-            id_string = ""
-            for huc in region_value:
-                id_string += str(huc) + ','
-            # Remove trailing comma from id_string
-            filter += ' in (' + id_string[:-1] + ')'
+            filter = '('
+            for county in region_value:
+                filter += '"' + geographies.region_field[region_type]['field'] + '"'
+                filter += ' like \'' + county + '%\' or '
+            filter = filter[:-3]
+            filter += ')'
+        elif ( region_type == 'State' ) :
+            filter += ' = \'' + state + '\''
         else:
-            filter += ' = \'' + str( region_value ) + '\''
+            # region_value will be an list of values 
+            id_string = ""
+            value_type = type(region_value)
+            if ( value_type == list or value_type == tuple ):
+                for region in region_value:
+                    if ( region_type == 'Congressional District' ):
+                        id_string += str( region ) + ','
+                    else:
+                        id_string += '\'' + str( region ) + '\','
+                # Remove trailing comma from id_string
+                filter += ' in (' + id_string[:-1] + ')'
+            elif ( type(region_value) == str ):
+                filter += ' = \'' + region_value + '\'' 
         if ( region_type == 'Congressional District' or region_type == 'County' ):
             filter += ' and "FAC_STATE" = \'' + state + '\''
         return filter
