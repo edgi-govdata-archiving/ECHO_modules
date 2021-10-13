@@ -4,7 +4,7 @@ the Jupyter notebooks that use them.
 '''
 
 # Import libraries
-
+import pdb
 import os 
 import csv
 import datetime
@@ -594,6 +594,7 @@ def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 
     df_active['noncomp_count'] = noncomp_count
     df_active = df_active[['FAC_NAME', 'noncomp_count', action_field,
             'DFR_URL', 'FAC_LAT', 'FAC_LONG']]
+    df_active = df_active[df_active['noncomp_count'] > 0]
     df_active = df_active.sort_values( by=['noncomp_count', action_field], 
             ascending=False )
     df_active = df_active.head( num_fac )
@@ -619,10 +620,16 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     seaborn.barplot
         The graph that is generated
     '''
-    sns.set(style='whitegrid')
-    fig, ax = plt.subplots(figsize=(20,30))
+    if ranked is None:
+        print( 'There is no {} data to graph.'.format( epa_pgm ))
+        return None
     unit = ranked.index 
     values = ranked['noncomp_count'] 
+    if ( len(values) == 0 ):
+        return "No {} facilities with non-compliant quarters in {} - {}".format(
+            epa_pgm, state, str( cd ))
+    sns.set(style='whitegrid')
+    fig, ax = plt.subplots(figsize=(10,10))
     try:
         g = sns.barplot(x=values, y=unit, order=list(unit), orient="h") 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 

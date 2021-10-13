@@ -3,9 +3,10 @@ region_field = {
     'Congressional District': { "field": 'FAC_DERIVED_CD113' },
     'County': { "field": 'FAC_COUNTY' },
     'Zip Code': { "field": 'FAC_ZIP' },
-    'Watershed': {"field": 'FAC_DERIVED_HUC'},
-    'Census Block': {"field": 'FAC_DERIVED_CB2010'}
 }
+# Commenting out these region types until implemented
+#     'Watershed': {"field": 'FAC_DERIVED_HUC'},
+#     'Census Block': {"field": 'FAC_DERIVED_CB2010'}
 
 states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
           "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
