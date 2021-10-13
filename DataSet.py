@@ -230,7 +230,7 @@ class DataSet:
                 # Remove trailing comma from id_string
                 filter += ' in (' + id_string[:-1] + ')'
             elif ( type(region_value) == str ):
-                filter += ' = ' + region_value 
+                filter += ' = \'' + region_value + '\'' 
         if ( region_type == 'Congressional District' or region_type == 'County' ):
             filter += ' and "FAC_STATE" = \'' + state + '\''
         return filter
