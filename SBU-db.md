@@ -27,11 +27,14 @@ There are different identifiers used within different EPA programs (Clean Air Ac
 Resource Conservation and Recovery Act, etc.)  The ECHO_EXPORTER fields for the different EPA programs that allow this
 mapping from ECHO_EXPORTER's REGISTRY_ID field to program-specific identifiers are as follows:
 
-        "SDWIS_FLAG": "SDWA_IDS",
-        "RCRA_FLAG": "RCRA_IDS",    
-        "NPDES_FLAG": "NPDES_IDS",
-        "AIR_FLAG": "AIR_IDS",
-        "RCRA_FLAG": "RCRA_IDS",
+EPA Program | ECHO_EXPORTER flag | Program-specific ID field
+SDWA |       SDWIS_FLAG | SDWA_IDS
+RCRA |        RCRA_FLAG | RCRA_IDS    
+CWA |       NPDES_FLAG | NPDES_IDS
+CAA |        AIR_FLAG | AIR_IDS
+RCRA |        RCRA_FLAG | RCRA_IDS
+GHG | GHG_FLAG | GHG_IDS
+TRI | TRI_FLAG | TRI_IDS
 
 ### Database Material Views
 
