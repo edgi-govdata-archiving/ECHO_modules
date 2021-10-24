@@ -28,6 +28,7 @@ Resource Conservation and Recovery Act, etc.)  The ECHO_EXPORTER fields for the 
 mapping from ECHO_EXPORTER's REGISTRY_ID field to program-specific identifiers are as follows:
 
 EPA Program | ECHO_EXPORTER flag | Program-specific ID field
+------------| ------------------ | -------------------------
 SDWA |       SDWIS_FLAG | SDWA_IDS
 RCRA |        RCRA_FLAG | RCRA_IDS    
 CWA |       NPDES_FLAG | NPDES_IDS
