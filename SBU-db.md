@@ -77,17 +77,24 @@ the RCRA Violations which will serve to discuss the options:
      
  **idx_field** - This is the index field of the table.  The RCRA program uses a field called ID_NUMBER as its key.  CWA
  program files use NPDES_ID, SDWA uses PWSID, Greenhouse Gas uses REGISTRY_ID, CAA uses PGM_SYS_ID.
+ 
  **base_table** - This is the name of the ECHO CSV file, and the PostgreSQL table that imports it.
+ 
  **table_name** - This is the name of the material view for the table, which has concatenated several key ECHO_EXPORTER
  fields identifying the facility to the base_table.
+ 
  **echo_type** - This identifies the program-type--RCRA, AIR, GHG, NPDES, SDWA, TRI.
+ 
  **date_field** - This is the best option identifying a date with the record.  It might be the date of violation, inspection, or
  enforcement decision.  There may be multiple dates associated with the record and choosing the appropriate one for the analysis
  at hand will be necessary.
+ 
  **date_format** - The program-specific files do not all format the dates alike. This field lets us specify the format to use
  for this DataSet.
+ 
  **agg_type** - When records for this type of data are aggregated, how it that done?  In some cases we simply "count" the records
  that are found.  Alternatively we might "sum" the values in the *agg_col* field of the record.
+ 
  **agg_col** - This is the field on which we may want to aggregate values of the DataSet.  If the *agg_type* is "count" and 
  we are simply counting records, it could be any field in the data set.  If *agg_type* is "sum" then the values of this column
  are summed.
