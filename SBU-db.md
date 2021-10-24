@@ -1,4 +1,4 @@
-## Overview of Stony Brook University database
+## Overview of Stony Brook University database - Organization and Use
 
 This describes how the Stony Brook University (SBU) PostgreSQL database of EPA ECHO data is organized and used. 
 This ECHO_modules repository is the primary location
@@ -50,6 +50,8 @@ Every facility in ECHO_EXPORTER will have one or more rows in the EXP_PGM table.
 * PGM_ID - This is the value of the key field in the program-specific table.  
 Again, there may be multiple rows with different PGM_ID
 values for the same REGISTRY_ID value.
+
+The schema of the material views in the SBU database can be found in [the schema.psql](https://github.com/edgi-govdata-archiving/ECHOEPA-to-SQL/blob/main/schema.psql) file in the ECHOEPA-to-SQL Github repository.
 
 ### Defining DataSets - make_data_sets.py and data_set_presets.py
 
