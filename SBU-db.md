@@ -62,7 +62,7 @@ The schema of the material views in the SBU database can be found in [the schema
 There are a number of parameters that can be used in creating DataSet objects. For data we have been working with there
 are definitions in the *data_set_presets.py* file, in the ATTRIBUTE_TABLES list.  Here is an example of a DataSet definition for 
 the RCRA Violations which will serve to discuss the options:
-    ```Python
+```Python
     "RCRA Violations": dict(
         idx_field="ID_NUMBER",
         base_table="RCRA_VIOLATIONS",
@@ -73,7 +73,7 @@ the RCRA Violations which will serve to discuss the options:
         agg_type="count",
         agg_col="VIOL_DETERMINED_BY_AGENCY",
         unit="violations"
-     ```
+ ```
      
  **idx_field** - This is the index field of the table.  The RCRA program uses a field called ID_NUMBER as its key.  CWA
  program files use NPDES_ID, SDWA uses PWSID, Greenhouse Gas uses REGISTRY_ID, CAA uses PGM_SYS_ID.
