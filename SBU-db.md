@@ -43,5 +43,56 @@ program-specific table for matching records.
 By creating a pivot table called EXP_PGM in the database and then creating "material views", the SBU database is able to provide
 high performing retrieval of the program-specific records that also contain key fields from ECHO_EXPORTER that provide
 location and other key information on the facility.
-get its 
 
+Every facility in ECHO_EXPORTER will have one or more rows in the EXP_PGM table. The EXP_PGM table has this simple structure:
+* PGM - This is the EPA program identifier--SDWIS, RCRA, CWA, CAA, GHG, etc.
+* REGISTRY_ID - This is the value of the key field in ECHO_EXPORTER.  The value is also used in some program data sets.
+* PGM_ID - This is the value of the key field in the program-specific table.  
+Again, there may be multiple rows with different PGM_ID
+values for the same REGISTRY_ID value.
+
+### Defining DataSets - make_data_sets.py and data_set_presets.py
+
+There are a number of parameters that can be used in creating DataSet objects. For data we have been working with there
+are definitions in the *data_set_presets.py* file, in the ATTRIBUTE_TABLES list.  Here is an example of a DataSet definition for 
+the RCRA Violations which will serve to discuss the options:
+    ```Python
+    "RCRA Violations": dict(
+        idx_field="ID_NUMBER",
+        base_table="RCRA_VIOLATIONS",
+        table_name="RCRA_VIOLATIONS_MVIEW",
+        echo_type="RCRA",
+        date_field="DATE_VIOLATION_DETERMINED",
+        date_format="%m/%d/%Y",
+        agg_type="count",
+        agg_col="VIOL_DETERMINED_BY_AGENCY",
+        unit="violations"
+     ```
+     
+ **idx_field** - This is the index field of the table.  The RCRA program uses a field called ID_NUMBER as its key.  CWA
+ program files use NPDES_ID, SDWA uses PWSID, Greenhouse Gas uses REGISTRY_ID, CAA uses PGM_SYS_ID.
+ **base_table** - This is the name of the ECHO CSV file, and the PostgreSQL table that imports it.
+ **table_name** - This is the name of the material view for the table, which has concatenated several key ECHO_EXPORTER
+ fields identifying the facility to the base_table.
+ **echo_type** - This identifies the program-type--RCRA, AIR, GHG, NPDES, SDWA, TRI.
+ **date_field** - This is the best option identifying a date with the record.  It might be the date of violation, inspection, or
+ enforcement decision.  There may be multiple dates associated with the record and choosing the appropriate one for the analysis
+ at hand will be necessary.
+ **date_format** - The program-specific files do not all format the dates alike. This field lets us specify the format to use
+ for this DataSet.
+ **agg_type** - When records for this type of data are aggregated, how it that done?  In some cases we simply "count" the records
+ that are found.  Alternatively we might "sum" the values in the *agg_col* field of the record.
+ **agg_col** - This is the field on which we may want to aggregate values of the DataSet.  If the *agg_type* is "count" and 
+ we are simply counting records, it could be any field in the data set.  If *agg_type* is "sum" then the values of this column
+ are summed.
+ 
+ Generally it will be better to use the **table_name** value to query the database, since the results will have the facility information
+ along with the program-specific data.
+
+By default, all of the data set definitions in the ATTRIBUTE_TABLE of *data_set_presets.py* are used to construct all
+of the corresponding DataSet objects by the make_data_set() function in *make_data_set.py*. A list can also be given to 
+the function to construct only some of the DataSets.  For example, 
+```Python
+make_data_sets(["RCRA Violations", "CAA Enforcements"])
+```
+will only cause the creation of these two DataSet objects.
