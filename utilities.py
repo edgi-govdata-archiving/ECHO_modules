@@ -494,7 +494,7 @@ def write_dataset( df, base, type, state, regions ):
     if ( df is not None and len( df ) > 0 ):
         if ( not os.path.exists( 'CSVs' )):
             os.makedirs( 'CSVs' )
-        filename = 'CSVs/' + base
+        filename = 'CSVs/' + base[:50]
         if ( type != 'Zip Code' ):
             filename += '-' + state
         filename += '-' + type
