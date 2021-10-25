@@ -501,7 +501,7 @@ def write_dataset( df, base, type, state, regions ):
         if ( regions is not None ):
             for region in regions:
                 filename += '-' + str(region)
-        filename = urllib.parse.quote_plus(filename)
+        filename = urllib.parse.quote_plus(filename, safe='/')
         filename += '.csv'
         df.to_csv( filename ) 
         print( "Wrote " + filename )
