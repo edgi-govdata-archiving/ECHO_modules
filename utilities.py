@@ -297,6 +297,8 @@ def get_active_facilities( state, region_type, regions_selected ):
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     else:
         df_active = None
+    if df_active is not None:
+        df_active.index = df_active.index.to_series().fillna('MISSING')
     return df_active
 
 
@@ -598,6 +600,8 @@ def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 
     df_active = df_active.sort_values( by=['noncomp_count', action_field], 
             ascending=False )
     df_active = df_active.head( num_fac )
+    if df_active is not None:
+        df_active.index = df_active.index.to_series().fillna('MISSING')
     return df_active   
 
 def chart_top_violators( ranked, state, selections, epa_pgm ):
