@@ -9,19 +9,21 @@ import os
 import csv
 import datetime
 import pandas as pd
+import geopandas   
 import numpy as np
 import matplotlib.pyplot as plt
-import folium
 import urllib
 import seaborn as sns
+
+import folium
 from folium.plugins import FastMarkerCluster
+
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
-from ECHO_modules.get_data import get_echo_data
-from ECHO_modules.geographies import region_field, states
-
 from IPython.display import display
 
+from ECHO_modules.get_data import get_echo_data
+from ECHO_modules.geographies import region_field, states
 
 # Set up some default parameters for graphing
 from matplotlib import cycler
@@ -42,6 +44,9 @@ font = {'family' : 'DejaVu Sans',
 plt.rc('font', **font)
 plt.rc('legend', fancybox = True, framealpha=1, shadow=True, borderpad=1)
 
+# Styles for States ("other") and selected regions (e.g. Zip Codes) - "this"
+style = {'this': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1},
+'other': {'fillColor': '#FFA500', 'color': '#182799', "weight": 1}}
 
 def fix_county_names( in_counties ):
     '''
@@ -339,9 +344,9 @@ def check_bounds( row, bounds ):
     Parameters
     ----------
     row : Series
-	Must contain FAC_LAT and FAC_LONG
+    Must contain FAC_LAT and FAC_LONG
     bounds : Dataframe
-	Bounding rectangle--minx,miny,maxx,maxy
+    Bounding rectangle--minx,miny,maxx,maxy
 
     Returns
     -------
@@ -473,6 +478,114 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
 
   else:
     print( "There are no facilities to map." ) 
+
+def show_map(regions, states, region_type, spatial_tables):
+    '''
+    # show the map of just the regions (e.g. zip codes) and the selected state(s)
+    # create the map using a library called Folium (https://github.com/python-visualization/folium)
+    '''
+    map = folium.Map()  
+
+    # Show the state(s)
+    s = folium.GeoJson(
+      states,
+      name = "State",
+      style_function = lambda x: style['other']
+    ).add_to(map)
+    folium.GeoJsonTooltip(fields=["stusps"]).add_to(s)
+
+    # Show the intersection regions (e.g. Zip Codes)
+    m = folium.GeoJson(
+      regions,
+      name = region_type,
+      style_function = lambda x: style['this']
+    ).add_to(map)
+    folium.GeoJsonTooltip(fields=[spatial_tables[region_type]["id_field"].lower()]).add_to(m) # Add tooltip for identifying features
+
+    # compute boundaries so that the map automatically zooms in
+    bounds = m.get_bounds()
+    map.fit_bounds(bounds, padding=0)
+
+    # display the map!
+    display(map)
+
+def selector(units):
+    '''
+    helper function for `get_spatial_data`
+    helps parse out multiple inputs into a SQL format
+    e.g. takes a list ["AL", "AK", "AR"] and returns the string ("AL", "AK", "AR")
+    '''
+    selection = '('
+    if (type(units) == list):
+      for place in units:
+          selection += '\''+str(place)+'\', '
+      selection = selection[:-2] # remove trailing comma
+      selection += ')'
+    else:
+      selection = '(\''+str(units)+'\')'
+    return selection
+
+def get_spatial_data(region_type, states, spatial_tables):
+    '''
+    returns spatial data from the database utilizing an intersection query 
+    e.g. return watersheds based on whether they cross the selected state
+
+    region_type = "Congressional District" # from cell 3 region_type_widget
+    states = ["AL"]  # from cell 2 state dropdown selection. 
+    states variable has ability to be expanded to multiple state selection.
+    spatial_tables is from ECHO_modules/geographies.py
+    '''
+
+    def sqlizer(query):
+      '''
+      takes template sql and injects a query into it to return geojson-formatted geo data
+      '''
+      #develop sql
+      sql = """
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection', 'features', jsonb_agg(features.feature)
+        )
+        FROM (
+            SELECT jsonb_build_object(
+                'type', 'Feature','id', gid, 'geometry',
+                ST_AsGeoJSON(geom)::jsonb,'properties',
+                to_jsonb(inputs) - 'gid' - 'geom'
+            ) feature
+            FROM ( 
+              """+query+"""
+            ) inputs
+        ) features;
+      """
+
+      url = 'http://portal.gss.stonybrook.edu/echoepa/index2.php?query=' 
+      data_location = url + urllib.parse.quote_plus(sql) + '&pg'
+      #print(data_location) # Debugging
+      #print(sql) # Debugging
+      result = geopandas.read_file(data_location)
+      return result
+    
+    selection = selector(states)
+    #print(selection)
+    #print(region_type)
+    
+    # Get the regions of interest (watersheds, zips, etc.) based on their intersection with the state(s)
+    query = """
+      SELECT this.* 
+      FROM """ + spatial_tables[region_type]['table_name'] + """ AS this
+      JOIN """ + spatial_tables["State"]['table_name'] + """ AS other 
+      ON other.""" + spatial_tables["State"]['id_field'] + """ IN """ + selection + """ 
+      AND ST_Within(this.geom,other.geom) """
+    result = sqlizer(query)
+
+    # Get the intersecting geo (i.e. states)
+    query = """
+      SELECT * 
+      FROM """ + spatial_tables["State"]['table_name'] + """
+      WHERE """ + spatial_tables["State"]['id_field'] + """ IN """ + selection + ""
+    states = sqlizer(query) #reset intersecting_geo to its spatial data
+  
+    # send results to the show_map function to display
+    show_map(result, states, region_type, spatial_tables)
 
 def write_dataset( df, base, type, state, regions ):
     '''
@@ -628,10 +741,15 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     if ( len(values) == 0 ):
         return "No {} facilities with non-compliant quarters in {} - {}".format(
             epa_pgm, state, str( selections ))
+    display(values)
+    display(values.to_dict('records'))
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
+    cmap = sns.color_palette("rocket", as_cmap=True)
+    barplot_colors = [cmap(c) for c in values]
+
     try:
-        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h") 
+        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", palette=barplot_colors) 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
                 epa_pgm, state, str( selections )))
         ax.set_xlabel("Non-compliant quarters")
