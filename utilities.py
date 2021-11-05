@@ -9,19 +9,21 @@ import os
 import csv
 import datetime
 import pandas as pd
+import geopandas   
 import numpy as np
 import matplotlib.pyplot as plt
-import folium
 import urllib
 import seaborn as sns
+
+import folium
 from folium.plugins import FastMarkerCluster
+
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
-from ECHO_modules.get_data import get_echo_data
-from ECHO_modules.geographies import region_field, states
-
 from IPython.display import display
 
+from ECHO_modules.get_data import get_echo_data
+from ECHO_modules.geographies import region_field, states
 
 # Set up some default parameters for graphing
 from matplotlib import cycler
@@ -42,6 +44,9 @@ font = {'family' : 'DejaVu Sans',
 plt.rc('font', **font)
 plt.rc('legend', fancybox = True, framealpha=1, shadow=True, borderpad=1)
 
+# Styles for States ("other") and selected regions (e.g. Zip Codes) - "this"
+style = {'this': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1},
+'other': {'fillColor': '#FFA500', 'color': '#182799', "weight": 1}}
 
 def fix_county_names( in_counties ):
     '''
@@ -300,6 +305,70 @@ def get_active_facilities( state, region_type, regions_selected ):
     return df_active
 
 
+def aggregate_by_facility(data, program, df_active):
+    '''
+    Definition
+    data  = program data
+    program = program object
+    df_active = a df generated from previous cells of all fac active in the selected regions
+    '''
+    
+    diff = None
+
+    def differ(input, program):
+      '''
+      helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program
+      '''
+      diff = list(
+          set(df_active[program.echo_type + "_IDS"]) - set(input[program.idx_field])
+          ) 
+      
+      # get rid of NaNs - probably no program IDs
+      diff = [x for x in diff if str(x) != 'nan']
+      
+      # ^ Not perfect given that some facilities have multiple NPDES_IDs
+      # Below return the full ECHO_EXPORTER details for facilities without violations, penalties, or inspections
+      diff = df_active.loc[df_active[program.echo_type + "_IDS"].isin(diff)] 
+      return diff
+
+    if (program.name == "CWA Violations"): 
+      year = data["YEARQTR"].astype("str").str[0:4:1]
+      data["YEARQTR"] = year
+      data["sum"] = data["NUME90Q"] + data["NUMCVDT"] + data['NUMSVCD'] + data["NUMPSCH"]
+      data = data.groupby([program.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).sum()
+      data = data.reset_index()
+      data = data.loc[data["sum"] > 0] # only symbolize facilities with violations
+      diff = differ(data, program)
+      aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
+
+    # Penalties
+    elif (program.name == "CAA Penalties" or program.name == "RCRA Penalties" or program.name == "CWA Penalties" ):
+      data.rename( columns={ program.date_field: 'Date', program.agg_col: 'Amount'}, inplace=True )
+      if ( program.name == "CWA Penalties" ):
+        data['Amount'] = data['Amount'].fillna(0) + data['STATE_LOCAL_PENALTY_AMT'].fillna(0)
+      data = data.groupby([program.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({'Amount':'sum'})
+      data = data.reset_index()
+      data = data.loc[data["Amount"] > 0] # only symbolize facilities with penalties
+      diff = differ(data, program)
+      aggregator = "Amount" # keep track of which field we use to aggregate data, which may differ from the preset
+
+    # Air emissions
+
+    # Inspections, violations
+    else: 
+      data = data.groupby([program.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({program.date_field: 'count'})
+      data['count'] = data[program.date_field]
+      data = data.reset_index()
+      data = data.loc[data["count"] > 0] # only symbolize facilities with X
+      diff = differ(data, program)
+      aggregator = "count" # ??? keep track of which field we use to aggregate data, which may differ from the preset
+      
+    if ( len(data) > 0 ):
+      return {"data": data, "diff": diff, "aggregator": aggregator}
+    else:
+      print( "There is no data for this program and region after 2000." )
+
+
 def marker_text( row, no_text ):
     '''
     Create a string with information about the facility or program instance.
@@ -339,9 +408,9 @@ def check_bounds( row, bounds ):
     Parameters
     ----------
     row : Series
-	Must contain FAC_LAT and FAC_LONG
+    Must contain FAC_LAT and FAC_LONG
     bounds : Dataframe
-	Bounding rectangle--minx,miny,maxx,maxy
+    Bounding rectangle--minx,miny,maxx,maxy
 
     Returns
     -------
@@ -396,13 +465,14 @@ def mapper(df, bounds=None, no_text=False):
         ))
     
     m.add_child(mc)
+    
     bounds = m.get_bounds()
     m.fit_bounds(bounds)
 
     # Show the map
     return m
 
-def point_mapper(df, aggcol, quartiles=False, other_fac=None):
+def point_mapper(df, aggcol, quartiles=False, other_fac=None, basemap=None):
   '''
   Display a point symbol map of the Dataframe passed in. A point symbol map represents 
   each facility as a point, with the size of the point scaled to the data value 
@@ -429,6 +499,9 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
       Other regulated facilities without violations, inspections,
       penalties, etc. - whatever the value being mapped is. This is an optional 
       variable enabling further context to the map. They must have a FAC_LAT and FAC_LONG field.
+  basemap : Dataframe
+      Should be a spatial dataframe from get_spatial_data that can be mapped
+      
   Returns
   -------
   folium.Map
@@ -441,38 +514,157 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
       df['quantile'] = pd.qcut(df[aggcol], 4, labels=False, duplicates="drop")
       scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
 
-    # Add a clickable marker for each facility
+    # add basemap (selected regions)
+    if (basemap is not None):
+      b = folium.GeoJson(
+        basemap,
+        style_function = lambda x: style['this']
+      ).add_to(map_of_facilities)
+
+    # Add a clickable marker for each facility with info
     for index, row in df.iterrows():
       if quartiles == True:
         r = scale[row["quantile"]]
       else:
         r = row[aggcol]
       map_of_facilities.add_child(folium.CircleMarker(
-          location = [row["FAC_LAT"], row["FAC_LONG"]],
-          popup = aggcol+": "+str(row[aggcol]),
-          radius = r * 4, # arbitrary scalar
-          color = "black",
-          weight = 1,
-          fill_color = "orange",
-          fill_opacity= .4
+        location = [row["FAC_LAT"], row["FAC_LONG"]],
+        popup = marker_text( row, False ) + "<p>" + aggcol + ": "+str(row[aggcol]),
+        radius = r * 2, # arbitrary scalar
+        color = "black",
+        weight = 1,
+        fill_color = "orange",
+        fill_opacity= .4
       ))
     
+    # add other facilities
     if ( other_fac is not None ):
       for index, row in other_fac.iterrows():
         map_of_facilities.add_child(folium.CircleMarker(
-            location = [row["FAC_LAT"], row["FAC_LONG"]],
-            popup = "other facility",
-            radius = 4,
-            color = "black",
-            weight = 1,
-            fill_color = "black",
-            fill_opacity= 1
+          location = [row["FAC_LAT"], row["FAC_LONG"]],
+          popup = marker_text( row, False ),
+          radius = 4,
+          color = "black",
+          weight = 1,
+          fill_color = "black",
+          fill_opacity= 1
         ))
+    
+    # check and fit bounds
+    bounds = map_of_facilities.get_bounds()
+    map_of_facilities.fit_bounds(bounds)
 
     return map_of_facilities
 
   else:
     print( "There are no facilities to map." ) 
+
+def show_map(regions, states, region_type, spatial_tables):
+    '''
+    # show the map of just the regions (e.g. zip codes) and the selected state(s)
+    # create the map using a library called Folium (https://github.com/python-visualization/folium)
+    '''
+    map = folium.Map()  
+
+    # Show the state(s)
+    s = folium.GeoJson(
+      states,
+      name = "State",
+      style_function = lambda x: style['other']
+    ).add_to(map)
+    folium.GeoJsonTooltip(fields=["stusps"]).add_to(s)
+
+    # Show the intersection regions (e.g. Zip Codes)
+    m = folium.GeoJson(
+      regions,
+      name = region_type,
+      style_function = lambda x: style['this']
+    ).add_to(map)
+    folium.GeoJsonTooltip(fields=[spatial_tables[region_type]["id_field"].lower()]).add_to(m) # Add tooltip for identifying features
+
+    # compute boundaries so that the map automatically zooms in
+    bounds = m.get_bounds()
+    map.fit_bounds(bounds, padding=0)
+
+    # display the map!
+    display(map)
+
+def selector(units):
+    '''
+    helper function for `get_spatial_data`
+    helps parse out multiple inputs into a SQL format
+    e.g. takes a list ["AL", "AK", "AR"] and returns the string ("AL", "AK", "AR")
+    '''
+    selection = '('
+    if (type(units) == list):
+      for place in units:
+          selection += '\''+str(place)+'\', '
+      selection = selection[:-2] # remove trailing comma
+      selection += ')'
+    else:
+      selection = '(\''+str(units)+'\')'
+    return selection
+
+def get_spatial_data(region_type, states, spatial_tables):
+    '''
+    returns spatial data from the database utilizing an intersection query 
+    e.g. return watersheds based on whether they cross the selected state
+
+    region_type = "Congressional District" # from cell 3 region_type_widget
+    states = ["AL"]  # from cell 2 state dropdown selection. 
+    states variable has ability to be expanded to multiple state selection.
+    spatial_tables is from ECHO_modules/geographies.py
+    '''
+
+    def sqlizer(query):
+      '''
+      takes template sql and injects a query into it to return geojson-formatted geo data
+      '''
+      #develop sql
+      sql = """
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection', 'features', jsonb_agg(features.feature)
+        )
+        FROM (
+            SELECT jsonb_build_object(
+                'type', 'Feature','id', gid, 'geometry',
+                ST_AsGeoJSON(geom)::jsonb,'properties',
+                to_jsonb(inputs) - 'gid' - 'geom'
+            ) feature
+            FROM ( 
+              """+query+"""
+            ) inputs
+        ) features;
+      """
+
+      url = 'http://portal.gss.stonybrook.edu/echoepa/index2.php?query=' 
+      data_location = url + urllib.parse.quote_plus(sql) + '&pg'
+      #print(data_location) # Debugging
+      #print(sql) # Debugging
+      result = geopandas.read_file(data_location)
+      return result
+    
+    # Get the regions of interest (watersheds, zips, etc.) based on their intersection with the state(s)
+    selection = selector(states)
+    #print(selection) # Debugging
+    query = """
+      SELECT this.* 
+      FROM """ + spatial_tables[region_type]['table_name'] + """ AS this
+      JOIN """ + spatial_tables["State"]['table_name'] + """ AS other 
+      ON other.""" + spatial_tables["State"]['id_field'] + """ IN """ + selection + """ 
+      AND ST_Within(this.geom,other.geom) """
+    regions = sqlizer(query)
+
+    # Get the intersecting geo (i.e. states)
+    query = """
+      SELECT * 
+      FROM """ + spatial_tables["State"]['table_name'] + """
+      WHERE """ + spatial_tables["State"]['id_field'] + """ IN """ + selection + ""
+    states = sqlizer(query) #reset intersecting_geo to its spatial data
+
+    return regions, states
+    # send results to the show_map function to display
+    #show_map(regions, states, region_type, spatial_tables)
 
 def write_dataset( df, base, type, state, regions ):
     '''
@@ -628,10 +820,14 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     if ( len(values) == 0 ):
         return "No {} facilities with non-compliant quarters in {} - {}".format(
             epa_pgm, state, str( selections ))
+    
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
+    #cmap = sns.color_palette("rocket", as_cmap=True)
+    #barplot_colors = [cmap(c) for c in values]
+
     try:
-        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h") 
+        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", palette="rocket") 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
                 epa_pgm, state, str( selections )))
         ax.set_xlabel("Non-compliant quarters")
