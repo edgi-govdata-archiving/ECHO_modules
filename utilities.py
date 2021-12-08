@@ -114,7 +114,7 @@ def show_state_widget():
     return dropdown_state
 
 
-def show_pick_region_widget( type, state_widget=None ):
+def show_pick_region_widget( type, my_state, input ):
     '''
     Create and return a dropdown list of regions appropriate
     to the input parameters
@@ -123,8 +123,8 @@ def show_pick_region_widget( type, state_widget=None ):
     ----------
     type : str
         The type of region
-    state_widget : widget
-        The widget in which a state may have been selected
+    state : str
+        "AL", "AR", etc.
 
     Returns
     -------
@@ -133,13 +133,15 @@ def show_pick_region_widget( type, state_widget=None ):
     '''
 
     region_widget = None
-    
+    """
+    Can be deleted b/c Cross-Programs will account for this
     if ( type != 'Zip Code' ):
         if ( state_widget is None ):
             print( "You must first choose a state." )
             return
-        my_state = state_widget.value
-    
+        
+    """
+
     if ( type == 'Zip Code' ):
         region_widget = widgets.Text(
             value='98225',
@@ -155,11 +157,18 @@ def show_pick_region_widget( type, state_widget=None ):
             disabled=False
         )
     elif ( type == 'Congressional District' ):
-        df = pd.read_csv( 'ECHO_modules/state_cd.csv' )
+        df = pd.read_csv( 'ECHO_modules/state_cd.csv', dtype={'FAC_STATE': str, 'FAC_DERIVED_CD113':str})
+        #df['FAC_DERIVED_CD113'] = df['FAC_DERIVED_CD113'].astype(str) # To preserve 01, 02, etc.
         cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
         region_widget=widgets.SelectMultiple(
             options=cds.to_list(),
             description='District:',
+            disabled=False
+        )
+    elif ( type == 'Watershed' ):
+        region_widget=widgets.SelectMultiple(
+            options= input,
+            description='Watershed:',
             disabled=False
         )
     if ( region_widget is not None ):
@@ -289,7 +298,6 @@ def get_active_facilities( state, region_type, regions_selected ):
         # Single items in a list will have a comma at the end that trips up
         # the query.  Convert the regions_selected list to a string.
         regions = "'" + "','".join( regions_selected ) + "'"
-
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
         sql += ' and "FAC_COUNTY" in ({})'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
@@ -298,7 +306,14 @@ def get_active_facilities( state, region_type, regions_selected ):
     elif ( region_type == 'Zip Code' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-        sql = sql.format( regions_selected )
+        sql = sql.format( regions_selected[0] ) # UNIQUE CASE - replace with list of zip codes???
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Watershed' ):
+        regions = "'" + "','".join( regions_selected ) + "'"
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( regions )
+        print(sql)
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     else:
         df_active = None
@@ -520,7 +535,7 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None, basemap=None):
         basemap,
         style_function = lambda x: style['this']
       ).add_to(map_of_facilities)
-
+      
     # Add a clickable marker for each facility with info
     for index, row in df.iterrows():
       if quartiles == True:
@@ -564,30 +579,29 @@ def show_map(regions, states, region_type, spatial_tables):
     # show the map of just the regions (e.g. zip codes) and the selected state(s)
     # create the map using a library called Folium (https://github.com/python-visualization/folium)
     '''
-    map = folium.Map()  
+    m = folium.Map()  
 
     # Show the state(s)
     s = folium.GeoJson(
       states,
       name = "State",
       style_function = lambda x: style['other']
-    ).add_to(map)
-    folium.GeoJsonTooltip(fields=["stusps"]).add_to(s)
+    ).add_to(m)
 
     # Show the intersection regions (e.g. Zip Codes)
-    m = folium.GeoJson(
+    i = folium.GeoJson(
       regions,
       name = region_type,
       style_function = lambda x: style['this']
-    ).add_to(map)
-    folium.GeoJsonTooltip(fields=[spatial_tables[region_type]["id_field"].lower()]).add_to(m) # Add tooltip for identifying features
+    ).add_to(m)
+    folium.GeoJsonTooltip(fields=[spatial_tables[region_type]["pretty_field"].lower()]).add_to(i) # Add tooltip for identifying features
 
     # compute boundaries so that the map automatically zooms in
     bounds = m.get_bounds()
-    map.fit_bounds(bounds, padding=0)
+    m.fit_bounds(bounds, padding=0)
 
     # display the map!
-    display(map)
+    display(m)
 
 def selector(units):
     '''
