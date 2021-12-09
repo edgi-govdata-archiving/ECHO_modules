@@ -44,8 +44,8 @@ plt.rc('font', **font)
 plt.rc('legend', fancybox = True, framealpha=1, shadow=True, borderpad=1)
 
 # Import state geographical data
-states = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
-states.crs = "EPSG:4326"
+states_geography = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
+states_geography.crs = "EPSG:4326"
 
 
 def fix_county_names( in_counties ):
@@ -484,7 +484,7 @@ def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"
     map = folium.Map()  
 
     m = folium.Choropleth(
-    geo_data = states,
+    geo_data = states_geography,
     name="choropleth",
     data=state_data,
     columns=["STUSPS",column],
