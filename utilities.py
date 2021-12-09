@@ -10,6 +10,7 @@ import csv
 import datetime
 import pandas as pd
 import numpy as np
+import geopandas
 import matplotlib.pyplot as plt
 import folium
 import urllib
@@ -41,6 +42,10 @@ font = {'family' : 'DejaVu Sans',
         'size'   : 16}
 plt.rc('font', **font)
 plt.rc('legend', fancybox = True, framealpha=1, shadow=True, borderpad=1)
+
+# Import state geographical data
+states = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
+states.crs = "EPSG:4326"
 
 
 def fix_county_names( in_counties ):
@@ -472,7 +477,27 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
     return map_of_facilities
 
   else:
-    print( "There are no facilities to map." ) 
+    print( "There are no facilities to map." )
+    
+
+def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"):
+    map = folium.Map()  
+
+    m = folium.Choropleth(
+    geo_data = states,
+    name="choropleth",
+    data=state_data,
+    columns=["STUSPS",column],
+    key_on="feature.properties.STUSPS",
+    fill_color=color_scheme,
+    fill_opacity=0.7,
+    line_opacity=0.2,
+    legend_name=legend_name
+    ).add_to(map)
+
+    bounds = m.get_bounds()
+    map.fit_bounds(bounds)
+    display(map)
 
 def write_dataset( df, base, type, state, regions ):
     '''
