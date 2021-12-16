@@ -235,7 +235,9 @@ attribute_tables = {
         table_name="SDWA_PUBLIC_WATER_SYSTEMS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
-        date_format="%Y"
+        date_format="%Y", 
+        agg_col = "POPULATION_SERVED_COUNT",
+        units = "people"
     ),
 
     "SDWA Violations": dict(
