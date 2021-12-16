@@ -104,6 +104,16 @@ class Echo:
       aggregator = "Amount" # keep track of which field we use to aggregate data, which may differ from the preset
 
     # Air emissions
+    
+    # SDWA population served
+    elif (program == "SDWA Public Water Systems" or program == "SDWA Serious Violators"):
+      # filter to latest fiscal year
+      data = data.loc[data[presets.attribute_tables[program]['date_field']] == 2021]
+      data = data.groupby([presets.attribute_tables[program]['idx_field'], "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({presets.attribute_tables[program]['agg_col']:'sum'})
+      data['sum'] = data[presets.attribute_tables[program]['agg_col']]
+      data = data.reset_index()
+      diff = differ(data, program)
+      aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
 
     # Inspections, violations
     else: 
