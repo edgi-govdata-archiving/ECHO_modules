@@ -232,7 +232,7 @@ attribute_tables = {
     "SDWA Public Water Systems": dict(
         echo_type="SDWA",
         base_table="SDWA_PUB_WATER_SYSTEMS",
-        table_name="SDWA_PUB_WATER_SYSTEMS_MVIEW",
+        table_name="SDWA_PUBLIC_WATER_SYSTEMS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
         date_format="%Y"
