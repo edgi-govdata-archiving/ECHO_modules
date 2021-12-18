@@ -481,23 +481,28 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
     
 
 def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"):
-    map = folium.Map()  
+    """
+    Documentation forthcoming!
+    Generalize this function to accept any data....
+    """
 
-    m = folium.Choropleth(
-    geo_data = states_geography,
-    name="choropleth",
-    data=state_data,
-    columns=["STUSPS",column],
-    key_on="feature.properties.STUSPS",
-    fill_color=color_scheme,
-    fill_opacity=0.7,
-    line_opacity=0.2,
-    legend_name=legend_name
-    ).add_to(map)
+    m = folium.Map()  
+
+    l = folium.Choropleth(
+      geo_data = states_geography,
+      name="choropleth",
+      data=state_data,
+      columns=["STUSPS",column],
+      key_on="feature.properties.STUSPS",
+      fill_color=color_scheme,
+      fill_opacity=0.7,
+      line_opacity=0.2,
+      legend_name=legend_name
+    ).add_to(m)
 
     bounds = m.get_bounds()
-    map.fit_bounds(bounds)
-    display(map)
+    m.fit_bounds(bounds)
+    display(m)
 
 def write_dataset( df, base, type, state, regions ):
     '''
@@ -666,3 +671,40 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     except TypeError as te:
         print( "TypeError: {}".format( str(te) ))
         return None
+
+def chart (full_data, date_column, counting_column, measure, function, title, mnth_name=""):
+  """
+  Full documentation coming soon!
+  full data = the data to be charted
+  date_column = the column in the data to use for summarizing by date
+  counting_column = the column to sum up
+  measure = the name of the summing method e.g. count or total 
+  function = the way to sum up e.g. count or sum or nunique
+  title = chart title
+  mnth_name = optional description of the months in focus (e.g. for COVID notebook)
+  """
+
+  # Organize the data
+  this_data = full_data.groupby([date_column])[counting_column].agg(function) # For each day, count the number of inspections/enforcements/violations # Summarize inspections/enforcements/violations on a monthly basis  
+  this_data = this_data.resample('Y').sum() # Add together the two months (3 - 4) we're looking at
+  this_data = pd.DataFrame(this_data) # Put our data into a dataframe
+  this_data = this_data.rename(columns={counting_column: measure}) # Format the data columns
+  this_data.index = this_data.index.strftime('%Y') # Make the x axis (date) prettier
+
+  # Create the chart
+  ax = this_data.plot(kind='bar', title = ""+title+" in %s of each year 2001-2020" %(mnth_name), figsize=(20, 10), fontsize=16, color=colour)
+  ax
+
+  # Label trendline
+  trend=this_data[measure].mean()
+  ax.axhline(y=trend, color='#e56d13', linestyle='--', label = "Average "+title+" in %s 2001-2020" %(mnth_name))
+
+  # Label the previous three years' trend (2017, 2018, 2019)
+  trend_month=pd.concat([this_data.loc["2017"],this_data.loc["2018"],this_data.loc["2019"]])
+  trend_month=trend_month[measure].mean()
+  ax.axhline(y=trend_month, xmin = .76, xmax=.93, color='#d43a69', linestyle='--', label = "Average for %s 2017-2019" %(mnth_name))
+
+  # Label plot
+  ax.legend()
+  ax.set_xlabel(mnth_name+" of Each Year")
+  ax.set_ylabel(title)
