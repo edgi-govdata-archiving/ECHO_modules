@@ -72,21 +72,28 @@ def fix_county_names( in_counties ):
     return counties
 
 
-def show_region_type_widget():
+def show_region_type_widget( region_types=None, default_value='County' ):
     '''
     Create and return a dropdown list of types of regions
 
+    Parameters
+    ----------
+    region_types : list of region types to show (str)
+    
     Returns
     -------
     widget
         The dropdown widget with the list of regions
     '''
 
+    if ( region_types == None ):
+        region_types = region_field.keys()
+
     style = {'description_width': 'initial'}
     select_region_widget = widgets.Dropdown(
-        options=region_field.keys(),
+        options=region_types,
         style=style,
-        value='County',
+        value=default_value,
         description='Region of interest:',
         disabled=False
     )
@@ -94,9 +101,14 @@ def show_region_type_widget():
     return select_region_widget
 
 
-def show_state_widget():
+def show_state_widget( multi=False ):
     '''
     Create and return a dropdown list of states
+
+    Parameters
+    ----------
+    multi
+        Allow multiple selection if True
 
     Returns
     -------
@@ -104,20 +116,30 @@ def show_state_widget():
         The dropdown widget with the state list
     '''
 
-    dropdown_state=widgets.Dropdown(
-        options=states,
-        description='State:',
-        disabled=False,
-    )
+    if ( multi ):
+        dropdown_state=widgets.SelectMultiple(
+            options=states,
+            description='States:',
+            disabled=False
+        )
+    else:
+        dropdown_state=widgets.Dropdown(
+            options=states,
+            description='State:',
+            disabled=False
+        )
     
     display( dropdown_state )
     return dropdown_state
 
 
-def show_pick_region_widget( type, state_widget=None ):
+def show_pick_region_widget( type, state_widget=None, multi=True ):
     '''
     Create and return a dropdown list of regions appropriate
-    to the input parameters
+    to the input parameters.
+    The state_widget might be a single value (string) or 
+    multiple (list), or None. If it is a list, just use the first
+    value.
 
     Parameters
     ----------
@@ -139,7 +161,8 @@ def show_pick_region_widget( type, state_widget=None ):
             print( "You must first choose a state." )
             return
         my_state = state_widget.value
-    
+        if ( isinstance( my_state, tuple )):
+            my_state = my_state[0]
     if ( type == 'Zip Code' ):
         region_widget = widgets.Text(
             value='98225',
@@ -149,19 +172,33 @@ def show_pick_region_widget( type, state_widget=None ):
     elif ( type == 'County' ):
         df = pd.read_csv( 'ECHO_modules/state_counties.csv' )
         counties = df[df['FAC_STATE'] == my_state]['FAC_COUNTY']
-        region_widget=widgets.SelectMultiple(
-            options=fix_county_names( counties ),
-            description='County:',
-            disabled=False
-        )
+        if ( multi ):
+            region_widget=widgets.SelectMultiple(
+                options=fix_county_names( counties ),
+                description='County:',
+                disabled=False
+            )
+        else:
+            region_widget=widgets.Dropdown(
+                options=fix_county_names( counties ),
+                description='County:',
+                disabled=False
+            )
     elif ( type == 'Congressional District' ):
         df = pd.read_csv( 'ECHO_modules/state_cd.csv' )
         cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
-        region_widget=widgets.SelectMultiple(
-            options=cds.to_list(),
-            description='District:',
-            disabled=False
-        )
+        if ( multi ):
+            region_widget=widgets.SelectMultiple(
+                options=cds.to_list(),
+                description='District:',
+                disabled=False
+            )
+        else:
+            region_widget=widgets.Dropdown(
+                options=cds.to_list(),
+                description='District:',
+                disabled=False
+            )
     if ( region_widget is not None ):
         display( region_widget )
     return region_widget
