@@ -269,19 +269,18 @@ attribute_tables = {
         agg_col = "VIOLATION_CODE", # What should the default be? Can modify in post-processing...
         units = "discharge reports"
     ),
-    """
-    "Effluent Violations": dict(
-        echo_type = "NPDES",
-        base_table = "NPDES_EFF_VIOLATIONS",
-        table_name="EFF_VIOLATIONS_MVIEW",
-        idx_field="NPDES_ID",
-        date_field="MONITORING_PERIOD_END_DATE",
-        date_format="%m/%d/%Y",
-        agg_type="count", 
-        agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
-        units = "effluent violations"
-    )
-    """
+
+    #"Effluent Violations": dict(
+    #    echo_type = "NPDES",
+    #    base_table = "NPDES_EFF_VIOLATIONS",
+    #    table_name="EFF_VIOLATIONS_MVIEW",
+    #    idx_field="NPDES_ID",
+    #    date_field="MONITORING_PERIOD_END_DATE",
+    #    date_format="%m/%d/%Y",
+    #    agg_type="count", 
+    #    agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
+    #    units = "effluent violations"
+    #)
 }
 
 region_field = {
