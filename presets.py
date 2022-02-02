@@ -269,7 +269,7 @@ attribute_tables = {
         agg_col = "VIOLATION_CODE", # What should the default be? Can modify in post-processing...
         units = "discharge reports"
     ),
-
+    """
     "Effluent Violations": dict(
         echo_type = "NPDES",
         base_table = "NPDES_EFF_VIOLATIONS",
@@ -281,6 +281,7 @@ attribute_tables = {
         agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
         units = "effluent violations"
     )
+    """
 }
 
 region_field = {

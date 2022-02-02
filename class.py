@@ -284,16 +284,18 @@ class Echo:
 
     unit = df.index 
     values = df['noncomp_count'] 
+
     try:
-        g = sns.barplot(values, unit, order=list(unit), orient="h") 
-        g.set_title('{} facilities with the most non-compliant quarters'.format(program))
-        ax.set_xlabel("Non-compliant quarters")
-        ax.set_ylabel("Facility")
-        ax.set_yticklabels(df["FAC_NAME"])
-        return ( g )
+      g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", palette="rocket") 
+      g.set_title('{} facilities with the most non-compliant quarters'.format(program))
+      ax.set_xlabel("Non-compliant quarters")
+      ax.set_ylabel("Facility")
+      ax.set_yticklabels(df["FAC_NAME"])
+      return ( g )
     except TypeError as te:
-        print( "TypeError: {}".format( str(te) ))
-        return None
+      print( "TypeError: {}".format( str(te) ))
+      return None
+
 
   def show_chart(self, program):
     '''
@@ -368,6 +370,7 @@ class Echo:
     df = self.facilities
     
     #print("show fac map") #Debugging
+    #print(df) #Debugging
 
     # Initialize the map
     map = folium.Map(
@@ -394,6 +397,7 @@ class Echo:
  
     # Add a clickable marker for each facility
     for index, row in df.iterrows():
+      #print(index) #Debugging
       mc.add_child(folium.CircleMarker(
         location = [row["FAC_LAT"], row["FAC_LONG"]],
         popup = self.marker_text(row), # Still getting errors here...
