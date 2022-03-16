@@ -171,10 +171,10 @@ def show_pick_region_widget( type, my_state, input ):
             description='Watershed:',
             disabled=False
         )
-    elif ( type == 'Census Block Group' ):
+    elif ( type == 'Census Tract' ):
         region_widget=widgets.SelectMultiple(
             options= input,
-            description='Block Group:',
+            description='Tract:',
             disabled=False
         )
     if ( region_widget is not None ):
