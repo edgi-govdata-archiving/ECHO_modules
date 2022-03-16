@@ -91,6 +91,7 @@ class DataSet:
                             + filter
             else:
                 x_sql = self.sql + ' where ' + filter
+            print (x_sql) #Debugging
             program_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
             print( "No program records were found." )
@@ -336,7 +337,7 @@ class DataSet:
             value_type = type(region_value)
             if ( value_type == list or value_type == tuple ):
                 for region in region_value:
-                    if ( region_type == 'Congressional District' ):
+                    if ( region_type == 'Congressional District' or region_type == 'Census Tract'):
                         id_string += str( region ) + ','
                     else:
                         id_string += '\'' + str( region ) + '\','
@@ -346,4 +347,5 @@ class DataSet:
                 filter += ' = \'' + region_value + '\'' 
         if ( region_type == 'Congressional District' or region_type == 'County' ):
             filter += ' and "FAC_STATE" = \'' + state + '\''
+        print(filter) #debugging
         return filter

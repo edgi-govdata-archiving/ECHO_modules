@@ -171,6 +171,12 @@ def show_pick_region_widget( type, my_state, input ):
             description='Watershed:',
             disabled=False
         )
+    elif ( type == 'Census Block Group' ):
+        region_widget=widgets.SelectMultiple(
+            options= input,
+            description='Block Group:',
+            disabled=False
+        )
     if ( region_widget is not None ):
         display( region_widget )
     return region_widget
@@ -311,6 +317,14 @@ def get_active_facilities( state, region_type, regions_selected ):
     elif ( region_type == 'Watershed' ):
         regions = "'" + "','".join( regions_selected ) + "'"
         sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( regions )
+        print(sql)
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Census Tract' ):
+        regions = "'" + "','".join( regions_selected ) + "'"
+        print(regions) #Debugging # Should be something like \'48201431501%%%%\', \'48201240400%%%%\'
+        sql = 'select * from "ECHO_EXPORTER" where CAST("FAC_DERIVED_CB2010" AS TEXT) LIKE ANY(ARRAY[{}])'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( regions )
         print(sql)
@@ -619,7 +633,7 @@ def selector(units):
       selection = '(\''+str(units)+'\')'
     return selection
 
-def get_spatial_data(region_type, states, spatial_tables):
+def get_spatial_data(region_type, states, spatial_tables, fips=None):
     '''
     returns spatial data from the database utilizing an intersection query 
     e.g. return watersheds based on whether they cross the selected state
@@ -658,16 +672,32 @@ def get_spatial_data(region_type, states, spatial_tables):
       result = geopandas.read_file(data_location)
       return result
     
-    # Get the regions of interest (watersheds, zips, etc.) based on their intersection with the state(s)
     selection = selector(states)
-    #print(selection) # Debugging
-    query = """
-      SELECT this.* 
-      FROM """ + spatial_tables[region_type]['table_name'] + """ AS this
-      JOIN """ + spatial_tables["State"]['table_name'] + """ AS other 
-      ON other.""" + spatial_tables["State"]['id_field'] + """ IN """ + selection + """ 
-      AND ST_Within(this.geom,other.geom) """
-    regions = sqlizer(query)
+
+    # Get the regions of interest (watersheds, zips, etc.) based on their intersection with the state(s)
+    if (region_type == "Census Tract"):
+      # Get all census tracts for this state
+      # Which state is it? FIPS look up
+      f = fips[states[0]] #assuming just one state for the time being
+      print(f)
+      # Get tracts
+      import requests, zipfile, io
+      url = "https://www2.census.gov/geo/tiger/TIGER2010/TRACT/2010/tl_2010_"+f+"_tract10.zip"
+      r = requests.get(url)
+      z = zipfile.ZipFile(io.BytesIO(r.content))
+      z.extractall("/content")
+      regions = geopandas.read_file("/content/tl_2010_"+f+"_tract10.shp")
+      regions.columns = regions.columns.str.lower() #convert columns to lowercase for consistency
+
+    else: 
+      #print(selection) # Debugging
+      query = """
+        SELECT this.* 
+        FROM """ + spatial_tables[region_type]['table_name'] + """ AS this
+        JOIN """ + spatial_tables["State"]['table_name'] + """ AS other 
+        ON other.""" + spatial_tables["State"]['id_field'] + """ IN """ + selection + """ 
+        AND ST_Within(this.geom,other.geom) """
+      regions = sqlizer(query)
 
     # Get the intersecting geo (i.e. states)
     query = """

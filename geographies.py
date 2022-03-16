@@ -63,6 +63,14 @@ spatial_tables = {
         match_field="CD116FP", #match with state_counties.csv
         pretty_field="CD116FP" # two digit state-specific district number
     )
+    ,
+
+    "Census Tract": dict(
+        table_name = "###", # 
+        id_field = "GEOID10", # 
+        match_field="GEOID10", # 
+        pretty_field="GEOID10" # NAMELSAD10 ?
+    )
 }
 
 region_field = {
@@ -70,7 +78,8 @@ region_field = {
     'Congressional District': { "field": 'FAC_DERIVED_CD113' },
     'County': { "field": 'FAC_COUNTY' },
     'Zip Code': { "field": 'FAC_ZIP' },
-    'Watershed': {"field": 'FAC_DERIVED_HUC'}
+    'Watershed': {"field": 'FAC_DERIVED_HUC'},
+    'Census Tract': {"field": 'FAC_DERIVED_CB2010'},
 }
 # Commenting out these region types until implemented
 #     'Census Block': {"field": 'FAC_DERIVED_CB2010'} # We don't have this in the spatial database because there are too many CBs - too much data!
@@ -81,4 +90,62 @@ states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
           "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
           "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
           "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
+
+fips = {
+  "AK": "02",
+  "AL": "01",
+  "AR": "05",
+  "AS": "60",
+  "AZ": "04",
+  "CA": "06",
+  "CO": "08",
+  "CT": "09",
+  "DC": "11",
+  "DE": "10",
+  "FL": "12",
+  "GA": "13",
+  "GU": "66",
+  "HI": "15",
+  "IA": "19",
+  "ID": "16",
+  "IL": "17",
+  "IN": "18",
+  "KS": "20",
+  "KY": "21",
+  "LA": "22",
+  "MA": "25",
+  "MD": "24",
+  "ME": "23",
+  "MI": "26",
+  "MN": "27",
+  "MO": "29",
+  "MS": "28",
+  "MT": "30",
+  "NC": "37",
+  "ND": "38",
+  "NE": "31",
+  "NH": "33",
+  "NJ": "34",
+  "NM": "35",
+  "NV": "32",
+  "NY": "36",
+  "OH": "39",
+  "OK": "40",
+  "OR": "41",
+  "PA": "42",
+  "PR": "72",
+  "RI": "44",
+  "SC": "45",
+  "SD": "46",
+  "TN": "47",
+  "TX": "48",
+  "UT": "49",
+  "VA": "51",
+  "VI": "78",
+  "VT": "50",
+  "WA": "53",
+  "WI": "55",
+  "WV": "54",
+  "WY": "56"
+}
 
