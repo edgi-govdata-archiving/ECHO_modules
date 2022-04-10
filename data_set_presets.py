@@ -215,15 +215,6 @@ ATTRIBUTE_TABLES = {
         unit="dollars"
     ),
 
-    "SDWA Site Visits": dict(
-        echo_type="SDWA",
-        base_table="SDWA_SITE_VISITS",
-        table_name="SDWA_SITE_VISITS_MVIEW",
-        idx_field="PWSID",
-        date_field="SITE_VISIT_DATE",
-        date_format="%m/%d/%Y"
-    ),
-
     "SDWA Enforcements": dict(
         echo_type="SDWA",
         base_table="SDWA_ENFORCEMENTS",
@@ -250,14 +241,29 @@ ATTRIBUTE_TABLES = {
         date_field="FISCAL_YEAR",
         date_format="%Y"
     ),
-
+    
     "SDWA Serious Violators": dict(
-        echo_type="SDWA",
-        base_table="SDWA_SERIOUS_VIOLATORS",
-        table_name="SDWA_SERIOUS_VIOLATORS_MVIEW",
-        idx_field="PWSID",
-        date_field="FISCAL_YEAR",
-        date_format="%Y"
+        agg_col: 'PWS_SIZE',
+        agg_type: 'count',
+        base_table: 'SDWA_SERIOUS_VIOLATORS',
+        date_field: 'FISCAL_YEAR',
+        date_format: '%Y',
+        echo_type: 'SDWA',
+        idx_field: 'PWSID',
+        table_name: 'SDWA_SERIOUS_VIOLATORS_MVIEW',
+        units = "units" #TBD
+    ),
+    
+    "SDWA Site Visits": dict(
+        agg_col: 'PWS_SIZE',
+        agg_type: 'count',
+        base_table: 'SDWA_SITE_VISITS',
+        date_field: 'SITE_VISIT_DATE',
+        date_format: '%m/%d/%Y',
+        echo_type: 'SDWA',
+        idx_field: 'PWSID',
+        table_name: 'SDWA_SITE_VISITS_MVIEW',
+        units = "units" #TBD
     ),
     
     "DMRs": dict(
