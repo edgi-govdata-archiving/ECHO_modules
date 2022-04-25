@@ -251,7 +251,7 @@ ATTRIBUTE_TABLES = {
         echo_type = 'SDWA',
         idx_field = 'PWSID',
         table_name = 'SDWA_SERIOUS_VIOLATORS_MVIEW',
-        units = "units" #TBD
+        unit = "units" #TBD
     ),
     
     "SDWA Site Visits": dict(
@@ -263,7 +263,7 @@ ATTRIBUTE_TABLES = {
         echo_type = 'SDWA',
         idx_field = 'PWSID',
         table_name = 'SDWA_SITE_VISITS_MVIEW',
-        units = "units" #TBD
+        unit = "units" #TBD
     ),
     
     "DMRs": dict(
