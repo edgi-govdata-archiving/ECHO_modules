@@ -75,13 +75,15 @@ class DataSet:
         
     def get_data( self, region_type, region_value, state=None, 
                   debug=False ):
+        """
+        Last-Modified table is currently broken
         if ( not self.last_modified_is_set ):
             sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
                 self.base_table )
             ds = get_echo_data( sql )
             self.last_modified = datetime.strptime( ds.modified[0], '%Y-%m-%d' )
             self.last_modified_is_set = True
-
+        """
         program_data = None
 
         filter = self._set_facility_filter( region_type, region_value, state )
