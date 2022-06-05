@@ -8,6 +8,7 @@ import folium
 from folium.plugins import FastMarkerCluster
 import urllib
 import pandas as pd
+import requests
 
 class Echo: 
   def __init__( self, units, unit_type, programs=[], intersection=False, intersecting_geo=None): 
@@ -168,10 +169,10 @@ class Echo:
       data = data[ data.index > '2000' ]
 
     # Air emissions
-    elif (program == "Combined Air Emissions" or program == "Greenhouse Gases" or program == "Toxic Releases"):
-      data = data.groupby( 'REPORTING_YEAR' )[['ANNUAL_EMISSION']].sum() # This is combining things that shouldn't be combined!!!
-        #ax.set_xlabel( 'Reporting Year' )
-        #ax.set_ylabel( 'Pounds of Emissions')
+    #elif (program == "Combined Air Emissions" or program == "Greenhouse Gases" or program == "Toxic Releases"):
+    #  data = data.groupby( 'REPORTING_YEAR' )[['ANNUAL_EMISSION']].sum() # This is combining things that shouldn't be combined!!!
+    #    #ax.set_xlabel( 'Reporting Year' )
+    #    #ax.set_ylabel( 'Pounds of Emissions')
 
     # Penalties
     elif (program == "CAA Penalties" or program == "RCRA Penalties" or program == "CWA Penalties" ):
@@ -192,7 +193,7 @@ class Echo:
       #    return "Reported"
       #data['alpha'] = data.apply (lambda row: labeler(row), axis=1)
 
-      data['Date'] = pd.to_datetime( data['MONITORING_PERIOD_END_DATE'], format="%m/%d/%Y", errors='coerce')
+      data['Date'] = pd.to_datetime( data['MONITORING_PERIOD_END_DATE'], format=presets.attribute_tables[program]['date_format'], errors='coerce')
       data = data.groupby(['Date', 'PARAMETER_DESC'])['Date'].count().unstack(['PARAMETER_DESC']).fillna(0) #, 'alpha'
       data = data.groupby([pd.Grouper(level='Date')]).sum() #, pd.Grouper(level='alpha')
       data = data.resample("Y").sum()
@@ -286,7 +287,7 @@ class Echo:
     values = df['noncomp_count'] 
 
     try:
-      g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", palette="rocket") 
+      g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", palette="rocket") # 
       g.set_title('{} facilities with the most non-compliant quarters'.format(program))
       ax.set_xlabel("Non-compliant quarters")
       ax.set_ylabel("Facility")
@@ -374,7 +375,7 @@ class Echo:
 
     # Initialize the map
     map = folium.Map(
-      location = [df.mean()["FAC_LAT"], df.mean()["FAC_LONG"]]
+      location = [df["FAC_LAT"].mean(), df["FAC_LONG"].mean()]
     )
 
     m = folium.GeoJson(
@@ -444,7 +445,7 @@ class Echo:
     if ( map_data is not None ):
 
       map_of_facilities = folium.Map(
-        location = [map_data.mean()["FAC_LAT"], map_data.mean()["FAC_LONG"]]
+        location = [map_data["FAC_LAT"].mean(), map_data["FAC_LONG"].mean()]
       )
 
       # Add basemap
@@ -541,6 +542,8 @@ class Echo:
       selection += ')'
     else:
       selection = '(\''+str(self.units)+'\')'
+    
+    #print(selection) # Debugging
     return selection
 
   def get_spatial_data(self):
@@ -559,8 +562,11 @@ class Echo:
       '''
       takes a default sql and injects a query into it
       '''
-      #develop sql
-      sql = """
+
+      # Currently (June 2022) not working
+      # Develop sql
+      """
+      sql = 
         SELECT jsonb_build_object(
             'type', 'FeatureCollection', 'features', jsonb_agg(features.feature)
         )
@@ -571,15 +577,42 @@ class Echo:
                 to_jsonb(inputs) - 'gid' - 'geom'
             ) feature
             FROM ( 
-              """+query+"""
+              """""" <- +query+ in here
             ) inputs
         ) features;
+      
       """
+      
+      # Develop sql
+      sql="""
+      SELECT jsonb_build_object(
+        'data', jsonb_agg(features.feature)
+      ) FROM (
+          SELECT (
+            row_to_json(inputs)
+          ) feature
+          FROM (              
+            """+query+"""
+          ) inputs
+        ) features
+      """
+
       #print(sql) # Debugging
       url = 'http://portal.gss.stonybrook.edu/echoepa/index2.php?query=' 
       data_location = url + urllib.parse.quote_plus(sql) + '&pg'
       #print(data_location) # Debugging
-      result = geopandas.read_file(data_location)
+      #result = geopandas.read_file(data_location) 
+      
+      # Currently (June 2022) need to do extra conversion
+      response = requests.get(data_location)
+      results = response.json()
+      data = results["data"]
+      result = pd.read_json(json.dumps(data))
+
+      result['geometry'] = geopandas.GeoSeries.from_wkb(result['wkb_geometry'])
+      result.drop("wkb_geometry", axis=1, inplace=True)
+      result = geopandas.GeoDataFrame(result, crs=4269)
+      
       return result
 
     selection = self.selector()
@@ -596,7 +629,7 @@ class Echo:
         FROM """ + self.table_name + """ AS this 
         JOIN """ + presets.spatial_tables[self.intersecting_geo]['table_name'] + """ AS other 
         ON other.""" + presets.spatial_tables[self.intersecting_geo]['id_field'] + """ IN """ + selection + """ 
-        AND ST_Intersects(this.geom,other.geom) """
+        AND ST_Intersects(this.wkb_geometry,other.wkb_geometry) """ #.geom
       result = sqlizer(query)
 
       # Get the original geo (zip codes)
@@ -617,11 +650,18 @@ class Echo:
       WHERE """ + self.id_field + """ IN """ + selection + ""
       result = sqlizer(query)
     
+    #print(units) # Debugging
+    # Matching with ECHO database (FAC_DERIVED_HUC - 8). Extras get cut with clip.
+    # THIS IS VERY SPECIFIC TO JUNE 2022 DB CONFIGURATION
+    if self.unit_type == "HUC8 Watersheds":
+      units = ["0" + str(unit) if len(str(unit)) != 8 else str(unit) for unit in units] # Accounting for cut leading 0s
     if self.unit_type == "HUC10 Watersheds":
-      units = [x[:-2] for x in units]
+      units = ["0" + str(unit) if len(str(unit)) != 10 else str(unit) for unit in units] # Accounting for cut leading 0s
+      units = [unit[:-2] for unit in units]
     if self.unit_type == "HUC12 Watersheds":
-      units = [x[:-4] for x in units]
-    self.units = ["04120104" if (x == "04270101") else x for x in units]
+      units = ["0" + str(unit) if len(str(unit)) != 12 else str(unit) for unit in units]
+      units = [unit[:-4] for unit in units]
+    self.units = ["04120104" if (unit == "04270101") else unit for unit in units] # Fixing a known error
 
     #print("units:", self.units) #Debugging
 
@@ -648,7 +688,7 @@ class Echo:
       '''
       #print("clipping", input) #Debugging
 
-      r = geopandas.GeoDataFrame(input, geometry=geopandas.points_from_xy(input["FAC_LONG"], input["FAC_LAT"]), crs="EPSG:4326")  
+      r = geopandas.GeoDataFrame(input, geometry=geopandas.points_from_xy(input["FAC_LONG"], input["FAC_LAT"]), crs="EPSG:4269") #4326 
       
       #de-index in order to clip
       r = r.reset_index() 
@@ -671,6 +711,8 @@ class Echo:
         selection += ')'
       else:
         selection = '(\''+str(facilities)+'\')'
+
+      #print(selection) # Debugging
       return selection
     
     # Two options for getting attribute data
@@ -683,18 +725,19 @@ class Echo:
       # Should be able to merge the following three using self.geo_field
       if ( self.unit_type == 'States' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" in {}' # Using 'in' for lists. 
-        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\' and "NPDES_FLAG" = \'Y\'' # Watershed
         sql = sql.format( self.selection )
       elif (self.unit_type == 'Zip Codes'): 
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in {}'
-        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\' and "NPDES_FLAG" = \'Y\'' # Watershed
         sql = sql.format( self.selection )
       elif (self.unit_type in ["HUC8 Watersheds", "HUC10 Watersheds", "HUC12 Watersheds"]):
         sql = 'select * from "ECHO_EXPORTER" where "' + self.geo_field + '" in {}'
-        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\' and "NPDES_FLAG" = \'Y\'' # Watershed
         sql = sql.format( self.selection )
 
       # Will not currrently work - need to set up a way to handle inputs like (IA, 02)  
+      """
       elif ( self.unit_type == 'Congressional Districts'): 
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" in {}'
         sql += ' and "FAC_DERIVED_CD113" = {}'
@@ -705,7 +748,8 @@ class Echo:
         sql += ' and "FAC_COUNTY" = {}'
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( self.selection )
-      
+      """
+
       #print(sql) #Debugging
       data = utilities.get_data(sql) # still relying on ECHO_Modules/DataSet.py global function
 

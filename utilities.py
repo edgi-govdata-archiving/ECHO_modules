@@ -33,7 +33,7 @@ def get_data( sql, index_field=None ):
 
     url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
     data_location = url + urllib.parse.quote_plus(sql) + '&pg'
-    # print( sql )
+    # print( sql ) # Debugging
     # print( data_location )
     if ( index_field == "REGISTRY_ID" ):
         ds = pd.read_csv(data_location,encoding='iso-8859-1', 

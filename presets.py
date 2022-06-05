@@ -33,21 +33,21 @@ spatial_tables = {
     #),
 
     #"Counties": dict(
-    #    table_name="tl_2019_us_county",
+    #    table_name="tl_2020_us_county",
     #    id_field="GEOID" # four or five digit code corresponding to two digit state number (e.g. 55) and 2-3 digit county code! 
     #    
     #),
 
     "Zip Codes": dict(
-        table_name="tl_2019_us_zcta510",
-        id_field="zcta5ce10" 
+        table_name="tl_2020_us_zcta520",
+        id_field="zcta5ce20" 
         
     ),
 
-    "EPA Regions": dict(
-        table_name="epa_regions",
-        id_field="eparegion" # In the form of "Region 1", "Region 2", up to "Region 10"
-    ),
+    #"EPA Regions": dict(
+    #    table_name="epa_regions",
+    #    id_field="eparegion" # In the form of "Region 1", "Region 2", up to "Region 10"
+    #),
 
     "States": dict(
         table_name = "tl_2019_us_state",
@@ -55,7 +55,7 @@ spatial_tables = {
     ),
 
     "Congressional Districts": dict(
-        table_name = "tl_2019_us_cd116",
+        table_name = "tl_2020_us_cd116",
         id_field = "GEOID" # this is the combination of the state id and the CD e.g. AR-2 = 0502
     )
 }
@@ -270,17 +270,17 @@ attribute_tables = {
         units = "discharge reports"
     ),
 
-    #"Effluent Violations": dict(
-    #    echo_type = "NPDES",
-    #    base_table = "NPDES_EFF_VIOLATIONS",
-    #    table_name="EFF_VIOLATIONS_MVIEW",
-    #    idx_field="NPDES_ID",
-    #    date_field="MONITORING_PERIOD_END_DATE",
-    #    date_format="%m/%d/%Y",
-    #    agg_type="count", 
-    #    agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
-    #    units = "effluent violations"
-    #)
+    "Effluent Violations": dict(
+        echo_type = "NPDES",
+        base_table = "NPDES_EFF_VIOLATIONS",
+        table_name="EFF_VIOLATIONS_MVIEW",
+        idx_field="NPDES_ID",
+        date_field="MONITORING_PERIOD_END_DATE",
+        date_format="%Y-%m-%d",
+        agg_type="count", 
+        agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
+        units = "effluent violations"
+    )
 }
 
 region_field = {
