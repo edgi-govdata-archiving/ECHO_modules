@@ -62,7 +62,7 @@ class DataSetResults:
     
             ax = d.plot(kind='bar', title = chart_title, figsize=(20, 10), fontsize=16)
             ax        
-        elif (program.name == "Combined Air Emissions" or program.name == "Greenhouse Gases" \
+        elif (program.name == "Combined Air Emissions" or program.name == "Greenhouse Gas Emissions" \
                   or program.name == "Toxic Releases"):
             d = data.groupby( 'REPORTING_YEAR' )[['ANNUAL_EMISSION']].sum()
             ax = d.plot(kind='bar', title = chart_title, figsize=(20, 10), fontsize=16)
