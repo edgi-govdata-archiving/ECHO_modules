@@ -33,6 +33,10 @@ class DataSetResults:
         if ( self.region_value is not None ):
             chart_title += ' - ' + str( self.region_value )
     
+        # SDWA programs - use a different date field
+        SDWA_progs = ["SDWA Public Water Systems","SDWA Violations",
+             "SDWA Serious Violators","SDWA Return to Compliance",
+             "SDWA Enforcements"]
         # Handle NPDES_QNCR_HISTORY because there are multiple counts we need to sum
         data = self.dataframe
         if (program.name == "CWA Violations"): 
@@ -51,8 +55,7 @@ class DataSetResults:
             ax = d.plot(kind='bar', title = chart_title, figsize=(20, 10), fontsize=16)
             ax
         # These data sets use a FISCAL_YEAR field
-        elif (program.name == "SDWA Public Water Systems" or program.name == "SDWA Violations" or
-             program.name == "SDWA Serious Violators" or program.name == "SDWA Return to Compliance"):
+        elif (program.name in SDWA_progs):
             year = data["FISCAL_YEAR"].astype("str")
             data["FISCAL_YEAR"] = year
             d = data.groupby(pd.to_datetime(data['FISCAL_YEAR'], format="%Y",
