@@ -471,7 +471,10 @@ class Echo:
       # Add a clickable marker for each facility
       for index, row in map_data.iterrows():
         if quartiles == True:
-          r = scale[row["quantile"]]
+          try:
+            r = scale[row["quantile"]]
+          except KeyError: # In some cases quantiles may not actually be appropriate
+            r = 10
         else:
           r = row[aggregator]
         
