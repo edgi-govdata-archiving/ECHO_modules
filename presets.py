@@ -50,7 +50,7 @@ spatial_tables = {
     #),
 
     "States": dict(
-        table_name = "tl_2019_us_state",
+        table_name = "tl_2020_us_state",
         id_field = "STUSPS" # e.g. MS, IA, AK
     ),
 
@@ -290,7 +290,7 @@ region_field = {
     'Zip Codes': { "field": 'FAC_ZIP' },
     'HUC8 Watersheds': {"field": 'FAC_DERIVED_HUC'},
     'HUC10 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Go big (HUC8) and clip back
-    'HUC12 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Not currently working in intersections for some reason. But can still search directly for HUC12s.
+    'HUC12 Watersheds': {"field": 'FAC_DERIVED_HUC'},
     'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
 }
 
