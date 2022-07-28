@@ -605,7 +605,7 @@ class Echo:
       data_location = url + urllib.parse.quote_plus(sql) + '&pg'
       #print(data_location) # Debugging
       #result = geopandas.read_file(data_location) 
-      
+
       # Currently (June 2022) need to do extra conversion
       response = requests.get(data_location)
       results = response.json()
@@ -725,18 +725,19 @@ class Echo:
       create and exectute a query based on the geographic unit type (e.g. zip code) and units of interest (e.g. 52358)
       '''
 
-      # Should be able to merge the following three using self.geo_field
+      # Todo: should be able to merge the following three using self.geo_field
       if ( self.unit_type == 'States' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" in {}' # Using 'in' for lists. 
-        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\' and "NPDES_FLAG" = \'Y\'' # Watershed
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        # sql add flag
         sql = sql.format( self.selection )
       elif (self.unit_type == 'Zip Codes'): 
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in {}'
-        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\' and "NPDES_FLAG" = \'Y\'' # Watershed
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( self.selection )
       elif (self.unit_type in ["HUC8 Watersheds", "HUC10 Watersheds", "HUC12 Watersheds"]):
         sql = 'select * from "ECHO_EXPORTER" where "' + self.geo_field + '" in {}'
-        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\' and "NPDES_FLAG" = \'Y\'' # Watershed
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( self.selection )
 
       # Will not currrently work - need to set up a way to handle inputs like (IA, 02)  
@@ -768,15 +769,45 @@ class Echo:
       '''
       # return query(program, clipping unit [spatial results])
       '''
-      p = presets.attribute_tables[program] # Details about this program (e.g. index field)
-      facs = [f for f in list(self.facilities[p["echo_type"]+"_IDS"]) if str(f) != 'nan']
-      selection = facs
-      #print(selection, len(selection)) # Debugging
       
+      p = presets.attribute_tables[program]
+
+      # Get facility program ids
+      # Each facility regulated under each program (CWA, CAA, RCRA) has at least one code that is specific to the program
+      def get_program_ids(facs, program):
+        ## Get regulated facilities only
+        if p["echo_type"] == "SDWA": # Account for differences between program and program flag (in SDWA/SDWIS)
+          p["flag"] = "SDWIS_FLAG"
+        else:
+          p["flag"] = p["echo_type"]+"_FLAG"
+        facs = facs.loc[facs[p["flag"]] == "Y"] # Get only regulated facilities based on the flag
+        reg_ids = list(facs["REGISTRY_ID"].astype(str).apply(lambda x: x.replace('.0','')).unique()) # Registry IDs to look up to get program IDs
+        
+        ## Make request to get program ids. Could take quite a while!
+        batchsize = 50 # batch the request to the SBU server.
+        pgm_ids = pd.DataFrame() # End result
+
+        for i in range(0, len(reg_ids), batchsize):
+            batch = reg_ids[i:i+batchsize]
+
+            id_string = ""
+            for id in batch:
+              id_string += "'"+str(id)+"',"
+            id_string = id_string[:len(id_string)-1]
+            
+            try:
+              sql = 'select * from "EXP_PGM" where "PGM" like \'{}_IDS\' and "REGISTRY_ID" in ({})'.format(p["echo_type"], id_string)
+              #print(sql) # Debugging
+              df = utilities.get_data(sql)
+              pgm_ids = pgm_ids.append(df)
+            except pd.errors.EmptyDataError:
+              pass
+
+        return pgm_ids
+
       # Deal with long URIs - too many facilities - here
       # Divide into batches of 50. Approach based on @shansen's def get_data_by_ee_ids()
-      # https://github.com/edgi-govdata-archiving/ECHO_modules/blob/d14014ba864bf736f9887253012d96ffa2feccd8/DataSet.py#L183
-      
+      # https://github.com/edgi-govdata-archiving/ECHO_modules/blob/d14014ba864bf736f9887253012d96ffa2feccd8/DataSet.py#L183   
       def batch(p, id_string, program_data):
         '''
         helper function for get_program_data to get data in batches
@@ -796,9 +827,14 @@ class Echo:
           #print("There were no records found for some set of facilities.") # Debugging
           return program_data
 
+      # Get facilities' program ids
+      selection = get_program_ids(self.facilities, program)
+      selection = list(selection["PGM_ID"].unique())
+      #print(selection, len(selection)) # Debugging
+
+      # Get program information with these ids
       id_string = "" # Turn program (NPDES, e.g.) IDs into a string
       program_data = None # For storing program data
-      
       pos = 0
       for pos,row in enumerate( selection ):
         id_string += "\'"
