@@ -4,7 +4,7 @@ import os
 import urllib.parse
 import pandas as pd
 
-def get_echo_data( sql, index_field=None ):
+def get_echo_data( sql, index_field=None, table_name=None ):
     '''
     This is the global function that can run an SQL query against
     the database and return the resulting Pandas DataFrame.
@@ -37,6 +37,16 @@ def get_echo_data( sql, index_field=None ):
         except (KeyError, pd.errors.EmptyDataError):
             pass
     # print( "get_data() returning {} records.".format( len(ds) ))
+    if (table_name is not None):
+        try:
+            lm_sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(table_name)
+            lm_data_location=url+urllib.parse.quote_plus(lm_sql) + '&pg'
+            ds = pd.read_csv(lm_data_location,encoding='iso-8859-1')
+            last_modified = ds.modified[0]
+            print("Data last updated: " + last_modified) # Print the last modified date for each file we get 
+      except:
+          print("Data last updated: Unknown")
+    
     return ds
 
 def selector(units):
