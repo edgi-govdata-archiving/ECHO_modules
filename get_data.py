@@ -44,8 +44,8 @@ def get_echo_data( sql, index_field=None, table_name=None ):
             ds = pd.read_csv(lm_data_location,encoding='iso-8859-1')
             last_modified = ds.modified[0]
             print("Data last updated: " + last_modified) # Print the last modified date for each file we get 
-      except:
-          print("Data last updated: Unknown")
+        except:
+            print("Data last updated: Unknown")
     
     return ds
 
