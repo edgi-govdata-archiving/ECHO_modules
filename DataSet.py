@@ -82,7 +82,7 @@ class DataSet:
             ds = get_echo_data( sql )
             self.last_modified = datetime.strptime( ds.modified[0], '%Y-%m-%d' )
             self.last_modified_is_set = True
-            print("Data last modified: " + self.last_modified) # Print the last modified date for each file we get
+            print("Data last modified: " + str(self.last_modified)) # Print the last modified date for each file we get
             
         program_data = None
 
