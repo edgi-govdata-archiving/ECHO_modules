@@ -64,7 +64,7 @@ attribute_tables = {
     "RCRA Violations": dict(
         idx_field="ID_NUMBER", 
         base_table="RCRA_VIOLATIONS",
-        table_name="RCRA_VIOLATIONS_VIEW",
+        table_name="RCRA_VIOLATIONS_MVIEW",
         echo_type="RCRA",
         date_field="DATE_VIOLATION_DETERMINED",
         date_format="%m/%d/%Y",
@@ -76,7 +76,7 @@ attribute_tables = {
     "RCRA Inspections": dict(
         idx_field="ID_NUMBER", 
         base_table="RCRA_EVALUATIONS",
-        table_name="RCRA_EVALUATIONS_VIEW",
+        table_name="RCRA_EVALUATIONS_MVIEW",
         echo_type="RCRA",
         date_field="EVALUATION_START_DATE",
         date_format="%m/%d/%Y", 
@@ -88,7 +88,7 @@ attribute_tables = {
     "RCRA Penalties": dict(
         echo_type="RCRA",
         base_table="RCRA_ENFORCEMENTS",
-        table_name="RCRA_ENFORCEMENTS_VIEW",
+        table_name="RCRA_ENFORCEMENTS_MVIEW",
         idx_field="ID_NUMBER", 
         date_field="ENFORCEMENT_ACTION_DATE",
         date_format="%m/%d/%Y", 
@@ -100,7 +100,7 @@ attribute_tables = {
     "ICIS EPA Inspections": dict(
         echo_type="AIR",
         base_table="ICIS_FEC_EPA_INSPECTIONS",
-        table_name="AIR_INSPECTIONS_VIEW",
+        table_name="AIR_INSPECTIONS_MVIEW",
         idx_field="REGISTRY_ID", 
         date_field="ACTUAL_END_DATE",
         date_format="%m/%d/%Y", 
@@ -112,7 +112,7 @@ attribute_tables = {
     "CAA Violations": dict(
         echo_type="AIR",
         base_table="ICIS-AIR_VIOLATION_HISTORY",
-        table_name="AIR_VIOLATIONS_VIEW",
+        table_name="AIR_VIOLATIONS_MVIEW",
         idx_field="PGM_SYS_ID", 
         date_field="Date",
         date_format="%m-%d-%Y", 
@@ -124,7 +124,7 @@ attribute_tables = {
     "CAA Penalties": dict(
         echo_type="AIR",
         base_table="ICIS-AIR_FORMAL_ACTIONS",
-        table_name="AIR_FORMAL_ACTIONS_VIEW",
+        table_name="AIR_FORMAL_ACTIONS_MVIEW",
         idx_field="PGM_SYS_ID",
         date_field="SETTLEMENT_ENTERED_DATE",
         date_format="%m/%d/%Y", 
@@ -136,7 +136,7 @@ attribute_tables = {
     "CAA Inspections": dict(
         echo_type="AIR",
         base_table="ICIS-AIR_FCES_PCES",
-        table_name="AIR_COMPLIANCE_VIEW",
+        table_name="AIR_COMPLIANCE_MVIEW",
         idx_field="PGM_SYS_ID",
         date_field="ACTUAL_END_DATE",
         date_format="%m-%d-%Y", 
@@ -148,7 +148,7 @@ attribute_tables = {
     "Combined Air Emissions": dict(
         echo_type=["GHG","TRI"],
         base_table="POLL_RPT_COMBINED_EMISSIONS",
-        table_name="COMBINED_AIR_EMISSIONS_VIEW", 
+        table_name="COMBINED_AIR_EMISSIONS_MVIEW", 
         idx_field="REGISTRY_ID",
         date_field="REPORTING_YEAR", 
         date_format="%Y"
@@ -157,7 +157,7 @@ attribute_tables = {
     "Greenhouse Gas Emissions": dict(
         echo_type="GHG",
         base_table="POLL_RPT_COMBINED_EMISSIONS",
-        table_name="GREENHOUSE_GASES_VIEW",
+        table_name="GREENHOUSE_GASES_MVIEW",
         idx_field="REGISTRY_ID",
         date_field="REPORTING_YEAR",
         date_format="%Y", 
@@ -169,7 +169,7 @@ attribute_tables = {
     "Toxic Releases": dict(
         echo_type="TRI",
         base_table="POLL_RPT_COMBINED_EMISSIONS",
-        table_name="TOXIC_RELEASES_VIEW",
+        table_name="TOXIC_RELEASES_MVIEW",
         idx_field="REGISTRY_ID",
         date_field="REPORTING_YEAR",
         date_format="%Y"
@@ -178,7 +178,7 @@ attribute_tables = {
     "CWA Violations": dict(
         echo_type="NPDES",
         base_table="NPDES_QNCR_HISTORY",
-        table_name="WATER_QUARTERLY_VIOLATIONS_VIEW", 
+        table_name="WATER_QUARTERLY_VIOLATIONS_MVIEW", 
         idx_field="NPDES_ID",
         date_field="YEARQTR",
         date_format="%Y", 
@@ -190,7 +190,7 @@ attribute_tables = {
     "CWA Inspections": dict(
         echo_type="NPDES",
         base_table="NPDES_INSPECTIONS",
-        table_name="CLEAN_WATER_INSPECTIONS_VIEW", 
+        table_name="CLEAN_WATER_INSPECTIONS_MVIEW", 
         idx_field="NPDES_ID",
         date_field="ACTUAL_END_DATE", 
         date_format="%m/%d/%Y",
@@ -202,7 +202,7 @@ attribute_tables = {
     "CWA Penalties": dict(
         echo_type="NPDES",
         base_table="NPDES_FORMAL_ENFORCEMENT_ACTIONS",
-        table_name="CLEAN_WATER_ENFORCEMENT_ACTIONS_VIEW", 
+        table_name="CLEAN_WATER_ENFORCEMENT_ACTIONS_MVIEW", 
         idx_field="NPDES_ID",
         date_field="SETTLEMENT_ENTERED_DATE", 
         date_format="%m/%d/%Y",
@@ -214,7 +214,7 @@ attribute_tables = {
     "SDWA Site Visits": dict(
         echo_type="SDWA",
         base_table="SDWA_SITE_VISITS",
-        table_name="SDWA_SITE_VISITS_VIEW",
+        table_name="SDWA_SITE_VISITS_MVIEW",
         idx_field="PWSID",
         date_field="SITE_VISIT_DATE",
         date_format="%m/%d/%Y"
@@ -223,7 +223,7 @@ attribute_tables = {
     "SDWA Enforcements": dict(
         echo_type="SDWA",
         base_table="SDWA_ENFORCEMENTS",
-        table_name="SDWA_ENFORCEMENTS_VIEW",
+        table_name="SDWA_ENFORCEMENTS_MVIEW",
         idx_field="PWSID",
         date_field="ENFORCEMENT_DATE",
         date_format="%m/%d/%Y"
@@ -232,7 +232,7 @@ attribute_tables = {
     "SDWA Public Water Systems": dict(
         echo_type="SDWA",
         base_table="SDWA_PUB_WATER_SYSTEMS",
-        table_name="SDWA_PUBLIC_WATER_SYSTEMS_VIEW",
+        table_name="SDWA_PUBLIC_WATER_SYSTEMS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
         date_format="%Y", 
@@ -243,7 +243,7 @@ attribute_tables = {
     "SDWA Violations": dict(
         echo_type="SDWA",
         base_table="SDWA_VIOLATIONS",
-        table_name="SDWA_VIOLATIONS_VIEW",
+        table_name="SDWA_VIOLATIONS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
         date_format="%Y"
@@ -252,7 +252,7 @@ attribute_tables = {
     "SDWA Serious Violators": dict(
         echo_type="SDWA",
         base_table="SDWA_SERIOUS_VIOLATORS",
-        table_name="SDWA_SERIOUS_VIOLATORS_VIEW",
+        table_name="SDWA_SERIOUS_VIOLATORS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
         date_format="%Y"
@@ -261,7 +261,7 @@ attribute_tables = {
     "2020 Discharge Monitoring": dict(
         echo_type="NPDES",
         base_table="NPDES_DMRS_FY2020",
-        table_name="DMR_FY2020_VIEW",
+        table_name="DMR_FY2020_MVIEW",
         idx_field="EXTERNAL_PERMIT_NMBR",
         date_field="MONITORING_PERIOD_END_DATE",
         date_format="%m/%d/%Y",
@@ -273,7 +273,7 @@ attribute_tables = {
     "Effluent Violations": dict(
         echo_type = "NPDES",
         base_table = "NPDES_EFF_VIOLATIONS",
-        table_name="EFF_VIOLATIONS_VIEW",
+        table_name="EFF_VIOLATIONS_MVIEW",
         idx_field="NPDES_ID",
         date_field="MONITORING_PERIOD_END_DATE",
         date_format="%Y-%m-%d",
@@ -290,7 +290,7 @@ region_field = {
     'Zip Codes': { "field": 'FAC_ZIP' },
     'HUC8 Watersheds': {"field": 'FAC_DERIVED_HUC'},
     'HUC10 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Go big (HUC8) and clip back
-    'HUC12 Watersheds': {"field": 'FAC_DERIVED_HUC'},
+    'HUC12 Watersheds': {"field": 'FAC_DERIVED_HUC'}, # Go big (HUC8) and clip back. FAC_DERIVED_WBD is inconsistent (?)
     'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
 }
 
