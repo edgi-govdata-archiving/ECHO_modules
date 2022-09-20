@@ -563,54 +563,10 @@ class Echo:
 
     def sqlizer(query):
       '''
-      takes a default sql and injects a query into it
+      takes a default query and gets results
       '''
 
-      # Currently (June 2022) not working
-      # Develop sql
-      """
-      sql = 
-        SELECT jsonb_build_object(
-            'type', 'FeatureCollection', 'features', jsonb_agg(features.feature)
-        )
-        FROM (
-            SELECT jsonb_build_object(
-                'type', 'Feature','id', gid, 'geometry',
-                ST_AsGeoJSON(geom)::jsonb,'properties',
-                to_jsonb(inputs) - 'gid' - 'geom'
-            ) feature
-            FROM ( 
-              """""" <- +query+ in here
-            ) inputs
-        ) features;
-      
-      """
-      
-      # Develop sql
-      sql="""
-      SELECT jsonb_build_object(
-        'data', jsonb_agg(features.feature)
-      ) FROM (
-          SELECT (
-            row_to_json(inputs)
-          ) feature
-          FROM (              
-            """+query+"""
-          ) inputs
-        ) features
-      """
-
-      #print(sql) # Debugging
-      url = 'http://portal.gss.stonybrook.edu/echoepa/index2.php?query=' 
-      data_location = url + urllib.parse.quote_plus(sql) + '&pg'
-      #print(data_location) # Debugging
-      #result = geopandas.read_file(data_location) 
-
-      # Currently (June 2022) need to do extra conversion
-      response = requests.get(data_location)
-      results = response.json()
-      data = results["data"]
-      result = pd.read_json(json.dumps(data))
+      result = utilities.get_data(query)
 
       result['geometry'] = geopandas.GeoSeries.from_wkb(result['wkb_geometry'])
       result.drop("wkb_geometry", axis=1, inplace=True)
@@ -655,7 +611,6 @@ class Echo:
     
     #print(units) # Debugging
     # Matching with ECHO database (FAC_DERIVED_HUC - 8). Extras get cut with clip.
-    # THIS IS VERY SPECIFIC TO JUNE 2022 DB CONFIGURATION
     if self.unit_type == "HUC8 Watersheds":
       units = ["0" + str(unit) if len(str(unit)) != 8 else str(unit) for unit in units] # Accounting for cut leading 0s
     if self.unit_type == "HUC10 Watersheds":
