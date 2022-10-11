@@ -31,7 +31,7 @@ def get_data( sql, index_field=None ):
         The results of the database query
     '''
 
-    url= 'http://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
+    url= 'https://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
     data_location = url + urllib.parse.quote_plus(sql) + '&pg'
     # print( sql ) # Debugging
     # print( data_location )
