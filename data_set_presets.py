@@ -286,6 +286,15 @@ ATTRIBUTE_TABLES = {
         date_field="LIMIT_BEGIN_DATE",
         date_format="%m/%d/%Y",
     ),
+    
+    "2022 Discharge Monitoring": dict(
+        echo_type="NPDES",
+        base_table="NPDES_DMRS_FY2022",
+        table_name="DMR_FY2022_MVIEW",
+        idx_field="EXTERNAL_PERMIT_NMBR",
+        date_field="LIMIT_BEGIN_DATE",
+        date_format="%m/%d/%Y",
+    ),
 
     # "SDWA Return to Compliance": dict(
     #     echo_type="SDWA",
