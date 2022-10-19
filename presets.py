@@ -269,6 +269,15 @@ attribute_tables = {
         agg_col = "VIOLATION_CODE", # What should the default be? Can modify in post-processing...
         units = "discharge reports"
     ),
+    
+    "2022 Discharge Monitoring": dict(
+        echo_type="NPDES",
+        base_table="NPDES_DMRS_FY2022",
+        table_name="DMR_FY2022_MVIEW",
+        idx_field="EXTERNAL_PERMIT_NMBR",
+        date_field="LIMIT_BEGIN_DATE",
+        date_format="%m/%d/%Y",
+    ),
 
     "Effluent Violations": dict(
         echo_type = "NPDES",
