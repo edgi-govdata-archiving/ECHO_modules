@@ -1,14 +1,19 @@
 import ECHO_modules.utilities as utilities
 import ECHO_modules.presets as presets
-import geopandas as geopandas
-import topojson as tp
-import rtree
 import json
+import geopandas as geopandas
+import pygeos
+import ipyleaflet
 import folium
 from folium.plugins import FastMarkerCluster
 import urllib
 import pandas as pd
 import requests
+import zipfile
+import io
+import seaborn as sns
+import matplotlib.pyplot as plt
+from IPython.core.display import display, HTML
 
 class Echo: 
   def __init__( self, units, unit_type, programs=[], intersection=False, intersecting_geo=None): 
@@ -821,3 +826,92 @@ class Echo:
         program_data['Date'] = program_data['EARLIEST_FRV_DETERM_DATE'].fillna(program_data['HPV_DAYZERO_DATE'])   
       
       return program_data
+
+class EJScreen:
+  """
+  Class for creating EJScreen analysis objects around a location (lat/lng)
+  EJScreen objects host a variety of methods for collecting, analyzing, and display EJScreen data
+  Currently hard-coded for New Jersey
+  """
+  def __init__( self , location=None): 
+    import ipywidgets as widgets
+
+    # Load and join census data
+    self.census_data = utilities.add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2017/BG/tl_2017_34_bg.zip", name="census", projection=26918) # NJ specific
+    self.ej_data = pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
+    self.ej_data["ID"] = self.ej_data["ID"].astype(str)
+    self.census_data.set_index("GEOID", inplace=True)
+    self.ej_data.set_index("ID", inplace=True)
+    self.census_data = self.census_data.join(self.ej_data)
+
+    # EJ variable picking parameters
+    self.pick_ejvar = None
+    self.picker = widgets.Output()
+    self.options = ["LOWINCPCT", "MINORPCT", "OVER64PCT", "CANCER"] # list of EJScreen variables that will be selected
+    display(self.picker)
+    self.out = widgets.Output()
+    display(self.out)
+
+    self.location = location # Should be a single shapely geometry (point or polygon)
+  
+  def show_pick_variable (self):
+    import ipywidgets as widgets
+    self.pick_ejvar = widgets.Dropdown(
+        options=self.options,
+        description='EJ Variable:'
+    )
+    with self.picker:
+      display(self.pick_ejvar)
+      display(HTML("<h4>see also for details on each variable: <a href='https://gaftp.epa.gov/EJSCREEN/2021/2021_EJSCREEEN_columns-explained.xlsx'>Metadata</a>"))
+    self.pick_ejvar.observe(self.make_map)
+    
+  # map
+  def make_map (self, change):
+    if self.location is not None:
+      if change['type'] == 'change' and change['name'] == 'value':
+        import branca
+        from ipyleaflet import Map, basemaps, basemap_to_tiles, GeoJSON, LayersControl
+        import json
+        
+        # get EJ variable
+        ejvar = self.pick_ejvar.value
+        
+        # filter to area
+        bgs = self.census_data[ self.census_data.geometry.intersects(self.location.buffer(10000)[0]) ] #block groups in the area around the clicked point
+
+        # set colorscale
+        colorscale = branca.colormap.linear.YlOrRd_09.scale(bgs[ejvar].min(), bgs[ejvar].max())
+        
+        # set layers and style
+        def style_function(feature):
+          # choropleth approach
+          return {
+            "fillOpacity": .5,
+            "weight": .5,
+            "fillColor": "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(feature["properties"][ejvar]),
+          }
+
+        # Create the map  
+        m = Map(
+          basemap=basemap_to_tiles(basemaps.CartoDB.Positron),
+          )
+
+        # Load the layer
+        bgs = bgs.to_crs(4326) # transformation to geographic coordinate system required
+        geo_json = GeoJSON(
+          data = json.loads(bgs.to_json()),
+          style_callback = style_function
+        )
+        m.add_layer(geo_json)
+        
+        # fits the map to the polygon layer
+        bounds = bgs.total_bounds
+        bounds = [[bounds[1], bounds[0]], [bounds[3], bounds[2]]]
+        m.fit_bounds(bounds)
+        m.zoom = 13
+
+        m.add_control(LayersControl()) # add a control for toggling layers on/off
+
+        with self.out:
+          self.out.clear_output()
+          display(m)  
