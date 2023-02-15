@@ -698,7 +698,7 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
     try:
-        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h") 
+        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", color = colour) 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
                 epa_pgm, state, str( selections )))
         ax.set_xlabel("Non-compliant quarters")
