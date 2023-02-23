@@ -698,7 +698,7 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
     try:
-        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h") 
+        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", color = colour) 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
                 epa_pgm, state, str( selections )))
         ax.set_xlabel("Non-compliant quarters")
@@ -729,17 +729,17 @@ def chart (full_data, date_column, counting_column, measure, function, title, mn
   this_data.index = this_data.index.strftime('%Y') # Make the x axis (date) prettier
 
   # Create the chart
-  ax = this_data.plot(kind='bar', title = ""+title+" in %s of each year 2001-2020" %(mnth_name), figsize=(20, 10), fontsize=16, color=colour)
+  ax = this_data.plot(kind='bar', title = ""+title+" in %s of each year 2001-2022" %(mnth_name), figsize=(20, 10), fontsize=16, color=colour)
   ax
 
   # Label trendline
   trend=this_data[measure].mean()
-  ax.axhline(y=trend, color='#e56d13', linestyle='--', label = "Average "+title+" in %s 2001-2020" %(mnth_name))
+  ax.axhline(y=trend, color='#e56d13', linestyle='--', label = "Average "+title+" in %s 2001-2022" %(mnth_name))
 
-  # Label the previous three years' trend (2017, 2018, 2019)
-  trend_month=pd.concat([this_data.loc["2017"],this_data.loc["2018"],this_data.loc["2019"]])
+  # Label the previous three years' trend (2020, 2021, 2022)
+  trend_month=pd.concat([this_data.loc["2020"],this_data.loc["2021"],this_data.loc["2022"]])
   trend_month=trend_month[measure].mean()
-  ax.axhline(y=trend_month, xmin = .76, xmax=.93, color='#d43a69', linestyle='--', label = "Average for %s 2017-2019" %(mnth_name))
+  ax.axhline(y=trend_month, xmin = .88, xmax=1, color='#d43a69', linestyle='--', label = "Average for %s 2020-2022" %(mnth_name))
 
   # Label plot
   ax.legend()
