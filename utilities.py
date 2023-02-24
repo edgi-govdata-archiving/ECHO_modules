@@ -156,7 +156,7 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
 
     region_widget = None
     
-    if ( type != 'Zip Code' ):
+    if ( type != 'Zip Code' and type != 'Watershed' ):
         if ( state_widget is None ):
             print( "You must first choose a state." )
             return
@@ -167,6 +167,12 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
         region_widget = widgets.Text(
             value='98225',
             description='Zip Code:',
+            disabled=False
+        )
+    elif ( type == 'Watershed' ):
+        region_widget = widgets.Text(
+            value='17110005',
+            description='Watershed:',
             disabled=False
         )
     elif ( type == 'County' ):
@@ -334,6 +340,11 @@ def get_active_facilities( state, region_type, regions_selected ):
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
     elif ( region_type == 'Zip Code' ):
         sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( regions_selected )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Watershed' ):
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" = \'{}\''
         sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
         sql = sql.format( regions_selected )
         df_active = get_echo_data( sql, 'REGISTRY_ID' )
@@ -562,7 +573,7 @@ def write_dataset( df, base, type, state, regions ):
         if ( not os.path.exists( 'CSVs' )):
             os.makedirs( 'CSVs' )
         filename = 'CSVs/' + base[:50]
-        if ( type != 'Zip Code' ):
+        if ( type != 'Zip Code' and type != 'Watershed' ):
             filename += '-' + state
         filename += '-' + type
         if ( regions is not None ):
