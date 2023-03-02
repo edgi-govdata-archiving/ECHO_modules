@@ -215,6 +215,15 @@ ATTRIBUTE_TABLES = {
         unit="dollars"
     ),
 
+    "SDWA Site Visits": dict(
+        echo_type="SDWA",
+        base_table="SDWA_SITE_VISITS",
+        table_name="SDWA_SITE_VISITS_MVIEW",
+        idx_field="PWSID",
+        date_field="SITE_VISIT_DATE",
+        date_format="%m/%d/%Y"
+    ),
+
     "SDWA Enforcements": dict(
         echo_type="SDWA",
         base_table="SDWA_ENFORCEMENTS",
@@ -241,29 +250,14 @@ ATTRIBUTE_TABLES = {
         date_field="FISCAL_YEAR",
         date_format="%Y"
     ),
-    
+
     "SDWA Serious Violators": dict(
-        agg_col = 'PWS_SIZE',
-        agg_type = 'count',
-        base_table = 'SDWA_SERIOUS_VIOLATORS',
-        date_field = 'FISCAL_YEAR',
-        date_format = '%Y',
-        echo_type = 'SDWA',
-        idx_field = 'PWSID',
-        table_name = 'SDWA_SERIOUS_VIOLATORS_MVIEW',
-        unit = "units" #TBD
-    ),
-    
-    "SDWA Site Visits": dict(
-        agg_col = 'PWS_SIZE',
-        agg_type = 'count',
-        base_table = 'SDWA_SITE_VISITS',
-        date_field = 'SITE_VISIT_DATE',
-        date_format = '%m/%d/%Y',
-        echo_type = 'SDWA',
-        idx_field = 'PWSID',
-        table_name = 'SDWA_SITE_VISITS_MVIEW',
-        unit = "units" #TBD
+        echo_type="SDWA",
+        base_table="SDWA_SERIOUS_VIOLATORS",
+        table_name="SDWA_SERIOUS_VIOLATORS_MVIEW",
+        idx_field="PWSID",
+        date_field="FISCAL_YEAR",
+        date_format="%Y"
     ),
     
     "DMRs": dict(
@@ -275,7 +269,6 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y", 
         agg_type="sum",
         agg_col="LIMIT_VALUE_NMBR", #we need to take a closer look and think through how to summarize this info, since it addresses a vast array of chemicals and differing units of measure
-        unit="units" #differing units of measure, which can be found in the LIMIT_UNIT_DESC field
     ),
 
     "2020 Discharge Monitoring": dict(
@@ -286,7 +279,7 @@ ATTRIBUTE_TABLES = {
         date_field="LIMIT_BEGIN_DATE",
         date_format="%m/%d/%Y",
     ),
-    
+
     "2022 Discharge Monitoring": dict(
         echo_type="NPDES",
         base_table="NPDES_DMRS_FY2022",
@@ -295,6 +288,17 @@ ATTRIBUTE_TABLES = {
         date_field="LIMIT_BEGIN_DATE",
         date_format="%m/%d/%Y",
     ),
+
+    "Effluent Violations": dict(
+        echo_type = "NPDES",
+        base_table = "NPDES_EFF_VIOLATIONS",
+        table_name="EFF_VIOLATIONS_MVIEW",
+        idx_field="NPDES_ID",
+        date_field="MONITORING_PERIOD_END_DATE",
+        date_format="%Y-%m-%d",
+        agg_type="count", 
+        agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
+    )
 
     # "SDWA Return to Compliance": dict(
     #     echo_type="SDWA",
