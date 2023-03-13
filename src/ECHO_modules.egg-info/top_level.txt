@@ -4,6 +4,4 @@ data_set_presets
 geographies
 get_data
 make_data_sets
-test_DataSet_store
-test_make_data_sets
 utilities
