@@ -3,7 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "ECHOmodules"
+name = "ECHO_modules"
 authors = [{name = "EDGI", email = "steven.e.hansen@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -11,4 +11,4 @@ classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 
 [project.urls]
-Home = "https://github.com/edgi-govdata-archiving/ECHO_modules/tree/packaging--issue-43"
+Home = "https://github.com/edgi-govdata-archiving/ECHO_modules/tree/packaging"
