@@ -300,6 +300,33 @@ def show_fac_widget( fac_series ):
     display(widget)
     return widget
 
+def get_facs_in_counties( df, selected ):
+    '''
+    The dataframe df that is passed in will have all facilities for the state.
+    The list selected passed in will have the corrected names of the counties
+    we are interested in.
+    We must accumulate facilities in all the alternative county names that the
+    ECHO data has for facilities.  E.g., "Jefferson" and "Jefferson County"
+    may both be in the ECHO data, but we want to consolidate them into
+    "Jefferson".
+
+    Parameters
+    ----------
+    df - DataFrame with facilities for the entire state.
+    selected - List of selected counties.
+
+    Returns
+    -------
+    Dataframe with all facilities in the selected counties.
+
+    '''
+
+    url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
+    url += "ECHO_modules/packaging/data/state_counties_corrected.csv"
+    state_counties = pd.read_csv(url)
+    # Get all of the different ECHO names for the selected counties.
+    selected_counties = state_counties[state_counties['County'].isin(selected)]['FAC_COUNTY']
+    return df[df['FAC_COUNTY'].isin(selected_counties)]
 
 def get_active_facilities( state, region_type, regions_selected ):
     '''
@@ -322,7 +349,7 @@ def get_active_facilities( state, region_type, regions_selected ):
     '''
     
     try:
-        if ( region_type == 'State' ):
+        if ( region_type == 'State' or region_type == 'County'):
             sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( state )
@@ -333,16 +360,6 @@ def get_active_facilities( state, region_type, regions_selected ):
             sql += ' and "FAC_DERIVED_CD113" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( state, cd_str )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
-        elif ( region_type == 'County' ):
-            # Single items in a list will have a comma at the end that trips up
-            # the query.  Convert the regions_selected list to a string.
-            regions = "'" + "','".join( regions_selected ) + "'"
-    
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-            sql += ' and "FAC_COUNTY" in ({})'
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-            sql = sql.format( state, regions )
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Zip Code' ):
             sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
@@ -356,6 +373,10 @@ def get_active_facilities( state, region_type, regions_selected ):
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         else:
             df_active = None
+        if ( region_type == 'County' ):
+            # df_active is currently all active facilities in the state.
+            # Get only those in the selected counties.
+            df_active = get_facs_in_county(df_active, regions_selected)
     except pd.errors.EmptyDataError:
             df_active = None
 
