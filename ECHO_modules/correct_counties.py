@@ -13,18 +13,14 @@ from csv import reader
 import pandas as pd
 
 input_filename = "../data/state_counties.csv"
-
-with open(input_filename, "r") as read_obj:
-    csv_reader = reader(read_obj)
-    raw_state_counties = list(map(tuple, csv_reader))
-
-counties = pd.DataFrame(raw_state_counties, columns=['State', 'ECHO County'])
+counties = pd.read_csv(input_filename)
 counties['County'] = ''
-to_strip = [' COUNTY', ' BOROUGH', ' (CA)', '(CA)', ' CENSUS AREA', 
+
+to_strip = [' COUNTY', ' BOROUGH', ' (CA)', '(CA)', ' (CITY)', ' CENSUS AREA', 
             ' CITY AND BOROUGH', ' CITY AND', ' CITY', ' PARISH', ' COUNT', 
-            ' COUN']
+            ' COUN', ' (B)', ' MUNICIPIO']
 for index, row in counties.iterrows():
-    cx = row['ECHO County'].rstrip()
+    cx = row['FAC_COUNTY'].rstrip()
     for x in to_strip:
         strip_len = -(len(x))
         cx = cx[:strip_len] if cx.endswith(x) else cx
