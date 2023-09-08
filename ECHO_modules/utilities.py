@@ -376,7 +376,7 @@ def get_active_facilities( state, region_type, regions_selected ):
         if ( region_type == 'County' ):
             # df_active is currently all active facilities in the state.
             # Get only those in the selected counties.
-            df_active = get_facs_in_county(df_active, regions_selected)
+            df_active = get_facs_in_counties(df_active, regions_selected)
     except pd.errors.EmptyDataError:
             df_active = None
 
