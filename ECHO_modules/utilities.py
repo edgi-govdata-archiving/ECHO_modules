@@ -23,7 +23,6 @@ from ECHO_modules.geographies import region_field, states
 
 from IPython.display import display
 
-
 # Set up some default parameters for graphing
 from matplotlib import cycler
 colour = "#00C2AB" # The default colour for the barcharts
@@ -43,10 +42,9 @@ font = {'family' : 'DejaVu Sans',
 plt.rc('font', **font)
 plt.rc('legend', fancybox = True, framealpha=1, shadow=True, borderpad=1)
 
-# Import state geographical data
-states_geography = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
-states_geography.crs = "EPSG:4326"
-
+# Styles for States ("other") and selected regions (e.g. Zip Codes) - "this"
+style = {'this': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1},
+'other': {'fillColor': '#FFA500', 'color': '#182799', "weight": 1}}
 
 def fix_county_names( in_counties ):
     '''
@@ -563,6 +561,9 @@ def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"
     Documentation forthcoming!
     Generalize this function to accept any data....
     """
+    # Import state geographical data
+    states_geography = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
+    states_geography.crs = "EPSG:4326"
 
     m = folium.Map()  
 
@@ -594,7 +595,7 @@ def bivariate_map(regions, points, bounds=None, no_text=False):
     # Show the region(s
     s = folium.GeoJson(
       regions,
-      style_function = lambda x: style['other']
+      style_function = lambda x: map_style['other']
     ).add_to(m)
 
     # Show the points
@@ -637,14 +638,14 @@ def show_regions(regions, states, region_type, spatial_tables):
     s = folium.GeoJson(
       states,
       name = "State",
-      style_function = lambda x: style['other']
+      style_function = lambda x: map_style['other']
     ).add_to(m)
 
     # Show the intersection regions (e.g. Zip Codes)
     i = folium.GeoJson(
       regions,
       name = region_type,
-      style_function = lambda x: style['this']
+      style_function = lambda x: map_style['this']
     ).add_to(m)
     folium.GeoJsonTooltip(fields=[spatial_tables[region_type]["pretty_field"].lower()]).add_to(i) # Add tooltip for identifying features
 
