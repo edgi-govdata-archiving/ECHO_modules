@@ -9,20 +9,21 @@ import os
 import csv
 import datetime
 import pandas as pd
+import geopandas   
 import numpy as np
-import geopandas
 import matplotlib.pyplot as plt
-import folium
 import urllib
 import seaborn as sns
+
+import folium
 from folium.plugins import FastMarkerCluster
+
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
-from ECHO_modules.get_data import get_echo_data
-from ECHO_modules.geographies import region_field, states
-
 from IPython.display import display
 
+from ECHO_modules.get_data import get_echo_data
+from ECHO_modules.geographies import region_field, states
 
 # Set up some default parameters for graphing
 from matplotlib import cycler
@@ -43,10 +44,9 @@ font = {'family' : 'DejaVu Sans',
 plt.rc('font', **font)
 plt.rc('legend', fancybox = True, framealpha=1, shadow=True, borderpad=1)
 
-# Import state geographical data
-states_geography = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
-states_geography.crs = "EPSG:4326"
-
+# Styles for States ("other") and selected regions (e.g. Zip Codes) - "this"
+style = {'this': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1},
+'other': {'fillColor': '#FFA500', 'color': '#182799', "weight": 1}}
 
 def fix_county_names( in_counties ):
     '''
@@ -72,28 +72,21 @@ def fix_county_names( in_counties ):
     return counties
 
 
-def show_region_type_widget( region_types=None, default_value='County' ):
+def show_region_type_widget():
     '''
     Create and return a dropdown list of types of regions
 
-    Parameters
-    ----------
-    region_types : list of region types to show (str)
-    
     Returns
     -------
     widget
         The dropdown widget with the list of regions
     '''
 
-    if ( region_types == None ):
-        region_types = region_field.keys()
-
     style = {'description_width': 'initial'}
     select_region_widget = widgets.Dropdown(
-        options=region_types,
+        options=region_field.keys(),
         style=style,
-        value=default_value,
+        value='County',
         description='Region of interest:',
         disabled=False
     )
@@ -101,14 +94,9 @@ def show_region_type_widget( region_types=None, default_value='County' ):
     return select_region_widget
 
 
-def show_state_widget( multi=False ):
+def show_state_widget():
     '''
     Create and return a dropdown list of states
-
-    Parameters
-    ----------
-    multi
-        Allow multiple selection if True
 
     Returns
     -------
@@ -116,37 +104,27 @@ def show_state_widget( multi=False ):
         The dropdown widget with the state list
     '''
 
-    if ( multi ):
-        dropdown_state=widgets.SelectMultiple(
-            options=states,
-            description='States:',
-            disabled=False
-        )
-    else:
-        dropdown_state=widgets.Dropdown(
-            options=states,
-            description='State:',
-            disabled=False
-        )
+    dropdown_state=widgets.Dropdown(
+        options=states,
+        description='State:',
+        disabled=False,
+    )
     
     display( dropdown_state )
     return dropdown_state
 
 
-def show_pick_region_widget( type, state_widget=None, multi=True ):
+def show_pick_region_widget( type, my_state, input ):
     '''
     Create and return a dropdown list of regions appropriate
-    to the input parameters.
-    The state_widget might be a single value (string) or 
-    multiple (list), or None. If it is a list, just use the first
-    value.
+    to the input parameters
 
     Parameters
     ----------
     type : str
         The type of region
-    state_widget : widget
-        The widget in which a state may have been selected
+    state : str
+        "AL", "AR", etc.
 
     Returns
     -------
@@ -155,61 +133,50 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
     '''
 
     region_widget = None
-    
-    if ( type != 'Zip Code' and type != 'Watershed' ):
+    """
+    Can be deleted b/c Cross-Programs will account for this
+    if ( type != 'Zip Code' ):
         if ( state_widget is None ):
             print( "You must first choose a state." )
             return
-        my_state = state_widget.value
-        if ( isinstance( my_state, tuple )):
-            my_state = my_state[0]
+        
+    """
+
     if ( type == 'Zip Code' ):
         region_widget = widgets.Text(
             value='98225',
             description='Zip Code:',
             disabled=False
         )
+    elif ( type == 'County' ):
+        df = pd.read_csv( 'ECHO_modules/state_counties.csv' )
+        counties = df[df['FAC_STATE'] == my_state]['FAC_COUNTY']
+        region_widget=widgets.SelectMultiple(
+            options=fix_county_names( counties ),
+            description='County:',
+            disabled=False
+        )
+    elif ( type == 'Congressional District' ):
+        df = pd.read_csv( 'ECHO_modules/state_cd.csv', dtype={'FAC_STATE': str, 'FAC_DERIVED_CD113':str})
+        #df['FAC_DERIVED_CD113'] = df['FAC_DERIVED_CD113'].astype(str) # To preserve 01, 02, etc.
+        cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
+        region_widget=widgets.SelectMultiple(
+            options=cds.to_list(),
+            description='District:',
+            disabled=False
+        )
     elif ( type == 'Watershed' ):
-        region_widget = widgets.Text(
-            value='17110005',
+        region_widget=widgets.SelectMultiple(
+            options= input,
             description='Watershed:',
             disabled=False
         )
-    elif ( type == 'County' ):
-        url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
-        url += "ECHO_modules/packaging/data/state_counties_corrected.csv"
-        df = pd.read_csv( url )
-        counties = df[df['FAC_STATE'] == my_state]['County']
-        counties = counties.unique()
-        if ( multi ):
-            region_widget=widgets.SelectMultiple(
-                options=counties,
-                description='County:',
-                disabled=False
-            )
-        else:
-            region_widget=widgets.Dropdown(
-                options=counties,
-                description='County:',
-                disabled=False
-            )
-    elif ( type == 'Congressional District' ):
-        url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
-        url += "ECHO_modules/packaging/data/state_cd.csv"
-        df = pd.read_csv( url )
-        cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
-        if ( multi ):
-            region_widget=widgets.SelectMultiple(
-                options=cds.to_list(),
-                description='District:',
-                disabled=False
-            )
-        else:
-            region_widget=widgets.Dropdown(
-                options=cds.to_list(),
-                description='District:',
-                disabled=False
-            )
+    elif ( type == 'Census Tract' ):
+        region_widget=widgets.SelectMultiple(
+            options= input,
+            description='Tract:',
+            disabled=False
+        )
     if ( region_widget is not None ):
         display( region_widget )
     return region_widget
@@ -300,33 +267,6 @@ def show_fac_widget( fac_series ):
     display(widget)
     return widget
 
-def get_facs_in_counties( df, selected ):
-    '''
-    The dataframe df that is passed in will have all facilities for the state.
-    The list selected passed in will have the corrected names of the counties
-    we are interested in.
-    We must accumulate facilities in all the alternative county names that the
-    ECHO data has for facilities.  E.g., "Jefferson" and "Jefferson County"
-    may both be in the ECHO data, but we want to consolidate them into
-    "Jefferson".
-
-    Parameters
-    ----------
-    df - DataFrame with facilities for the entire state.
-    selected - List of selected counties.
-
-    Returns
-    -------
-    Dataframe with all facilities in the selected counties.
-
-    '''
-
-    url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
-    url += "ECHO_modules/packaging/data/state_counties_corrected.csv"
-    state_counties = pd.read_csv(url)
-    # Get all of the different ECHO names for the selected counties.
-    selected_counties = state_counties[state_counties['County'].isin(selected)]['FAC_COUNTY']
-    return df[df['FAC_COUNTY'].isin(selected_counties)]
 
 def get_active_facilities( state, region_type, regions_selected ):
     '''
@@ -348,39 +288,114 @@ def get_active_facilities( state, region_type, regions_selected ):
         The active facilities returned from the database query
     '''
     
-    try:
-        if ( region_type == 'State' or region_type == 'County'):
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-            sql = sql.format( state )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
-        elif ( region_type == 'Congressional District'):
-            cd_str = ",".join( map( lambda x: str(x), regions_selected ))
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-            sql += ' and "FAC_DERIVED_CD113" in ({})'
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-            sql = sql.format( state, cd_str )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
-        elif ( region_type == 'Zip Code' ):
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-            sql = sql.format( regions_selected )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
-        elif ( region_type == 'Watershed' ):
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" = \'{}\''
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-            sql = sql.format( regions_selected )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
-        else:
-            df_active = None
-        if ( region_type == 'County' ):
-            # df_active is currently all active facilities in the state.
-            # Get only those in the selected counties.
-            df_active = get_facs_in_counties(df_active, regions_selected)
-    except pd.errors.EmptyDataError:
-            df_active = None
-
+    if ( region_type == 'State' ):
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( state )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Congressional District'):
+        cd_str = ",".join( map( lambda x: str(x), regions_selected ))
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
+        sql += ' and "FAC_DERIVED_CD113" in ({})'
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( state, cd_str )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'County' ):
+        # Single items in a list will have a comma at the end that trips up
+        # the query.  Convert the regions_selected list to a string.
+        regions = "'" + "','".join( regions_selected ) + "'"
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
+        sql += ' and "FAC_COUNTY" in ({})'
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( state, regions )
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Zip Code' ):
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( regions_selected[0] ) # UNIQUE CASE - replace with list of zip codes???
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Watershed' ):
+        regions = "'" + "','".join( regions_selected ) + "'"
+        sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( regions )
+        print(sql)
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    elif ( region_type == 'Census Tract' ):
+        regions = "'" + "','".join( regions_selected ) + "'"
+        print(regions) #Debugging # Should be something like \'48201431501%%%%\', \'48201240400%%%%\'
+        sql = 'select * from "ECHO_EXPORTER" where CAST("FAC_DERIVED_CB2010" AS TEXT) LIKE ANY(ARRAY[{}])'
+        sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+        sql = sql.format( regions )
+        print(sql)
+        df_active = get_echo_data( sql, 'REGISTRY_ID' )
+    else:
+        df_active = None
     return df_active
+
+
+def aggregate_by_facility(data, program, df_active):
+    '''
+    Definition
+    data  = program data
+    program = program object
+    df_active = a df generated from previous cells of all fac active in the selected regions
+    '''
+    
+    diff = None
+
+    def differ(input, program):
+      '''
+      helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program
+      '''
+      diff = list(
+          set(df_active[program.echo_type + "_IDS"]) - set(input[program.idx_field])
+          ) 
+      
+      # get rid of NaNs - probably no program IDs
+      diff = [x for x in diff if str(x) != 'nan']
+      
+      # ^ Not perfect given that some facilities have multiple NPDES_IDs
+      # Below return the full ECHO_EXPORTER details for facilities without violations, penalties, or inspections
+      diff = df_active.loc[df_active[program.echo_type + "_IDS"].isin(diff)] 
+      return diff
+
+    if (program.name == "CWA Violations"): 
+      year = data["YEARQTR"].astype("str").str[0:4:1]
+      data["YEARQTR"] = year
+      data["sum"] = data["NUME90Q"] + data["NUMCVDT"] + data['NUMSVCD'] + data["NUMPSCH"]
+      data = data.groupby([program.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).sum()
+      data = data.reset_index()
+      data = data.loc[data["sum"] > 0] # only symbolize facilities with violations
+      diff = differ(data, program)
+      aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
+
+    # Penalties
+    elif (program.name == "CAA Penalties" or program.name == "RCRA Penalties" or program.name == "CWA Penalties" ):
+      data.rename( columns={ program.date_field: 'Date', program.agg_col: 'Amount'}, inplace=True )
+      if ( program.name == "CWA Penalties" ):
+        data['Amount'] = data['Amount'].fillna(0) + data['STATE_LOCAL_PENALTY_AMT'].fillna(0)
+      data = data.groupby([program.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({'Amount':'sum'})
+      data = data.reset_index()
+      data = data.loc[data["Amount"] > 0] # only symbolize facilities with penalties
+      diff = differ(data, program)
+      aggregator = "Amount" # keep track of which field we use to aggregate data, which may differ from the preset
+
+    # Air emissions
+
+    # Inspections, violations
+    else: 
+      data = data.groupby([program.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({program.date_field: 'count'})
+      data['count'] = data[program.date_field]
+      data = data.reset_index()
+      data = data.loc[data["count"] > 0] # only symbolize facilities with X
+      diff = differ(data, program)
+      aggregator = "count" # ??? keep track of which field we use to aggregate data, which may differ from the preset
+      
+    if ( len(data) > 0 ):
+      return {"data": data, "diff": diff, "aggregator": aggregator}
+    else:
+      print( "There is no data for this program and region after 2000." )
 
 
 def marker_text( row, no_text ):
@@ -422,9 +437,9 @@ def check_bounds( row, bounds ):
     Parameters
     ----------
     row : Series
-	Must contain FAC_LAT and FAC_LONG
+    Must contain FAC_LAT and FAC_LONG
     bounds : Dataframe
-	Bounding rectangle--minx,miny,maxx,maxy
+    Bounding rectangle--minx,miny,maxx,maxy
 
     Returns
     -------
@@ -479,13 +494,14 @@ def mapper(df, bounds=None, no_text=False):
         ))
     
     m.add_child(mc)
+    
     bounds = m.get_bounds()
     m.fit_bounds(bounds)
 
     # Show the map
     return m
 
-def point_mapper(df, aggcol, quartiles=False, other_fac=None):
+def point_mapper(df, aggcol, quartiles=False, other_fac=None, basemap=None):
   '''
   Display a point symbol map of the Dataframe passed in. A point symbol map represents 
   each facility as a point, with the size of the point scaled to the data value 
@@ -512,6 +528,9 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
       Other regulated facilities without violations, inspections,
       penalties, etc. - whatever the value being mapped is. This is an optional 
       variable enabling further context to the map. They must have a FAC_LAT and FAC_LONG field.
+  basemap : Dataframe
+      Should be a spatial dataframe from get_spatial_data that can be mapped
+      
   Returns
   -------
   folium.Map
@@ -524,62 +543,122 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
       df['quantile'] = pd.qcut(df[aggcol], 4, labels=False, duplicates="drop")
       scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
 
-    # Add a clickable marker for each facility
+    # add basemap (selected regions)
+    if (basemap is not None):
+      b = folium.GeoJson(
+        basemap,
+        style_function = lambda x: style['this']
+      ).add_to(map_of_facilities)
+      
+    # Add a clickable marker for each facility with info
     for index, row in df.iterrows():
       if quartiles == True:
         r = scale[row["quantile"]]
       else:
         r = row[aggcol]
       map_of_facilities.add_child(folium.CircleMarker(
-          location = [row["FAC_LAT"], row["FAC_LONG"]],
-          popup = aggcol+": "+str(row[aggcol]),
-          radius = r * 4, # arbitrary scalar
-          color = "black",
-          weight = 1,
-          fill_color = "orange",
-          fill_opacity= .4
+        location = [row["FAC_LAT"], row["FAC_LONG"]],
+        popup = marker_text( row, False ) + "<p>" + aggcol + ": "+str(row[aggcol]),
+        radius = r * 2, # arbitrary scalar
+        color = "black",
+        weight = 1,
+        fill_color = "orange",
+        fill_opacity= .4
       ))
     
+    # add other facilities
     if ( other_fac is not None ):
       for index, row in other_fac.iterrows():
         map_of_facilities.add_child(folium.CircleMarker(
-            location = [row["FAC_LAT"], row["FAC_LONG"]],
-            popup = "other facility",
-            radius = 4,
-            color = "black",
-            weight = 1,
-            fill_color = "black",
-            fill_opacity= 1
+          location = [row["FAC_LAT"], row["FAC_LONG"]],
+          popup = marker_text( row, False ),
+          radius = 4,
+          color = "black",
+          weight = 1,
+          fill_color = "black",
+          fill_opacity= 1
         ))
+    
+    # check and fit bounds
+    bounds = map_of_facilities.get_bounds()
+    map_of_facilities.fit_bounds(bounds)
 
     return map_of_facilities
 
   else:
-    print( "There are no facilities to map." )
-    
+    print( "There are no facilities to map." ) 
 
-def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"):
-    """
-    Documentation forthcoming!
-    Generalize this function to accept any data....
-    """
-
+def bivariate_map(regions, points, bounds=None, no_text=False):
+    '''
+    show the map of region(s) (e.g. zip codes) and points (e.g. facilities within the regions)
+    create the map using a library called Folium (https://github.com/python-visualization/folium)
+    bounds can be preset if necessary
+    no_text errors can be managed
+    '''
     m = folium.Map()  
 
-    l = folium.Choropleth(
-      geo_data = states_geography,
-      name="choropleth",
-      data=state_data,
-      columns=["STUSPS",column],
-      key_on="feature.properties.STUSPS",
-      fill_color=color_scheme,
-      fill_opacity=0.7,
-      line_opacity=0.2,
-      legend_name=legend_name
+    # Show the region(s
+    s = folium.GeoJson(
+      regions,
+      style_function = lambda x: style['other']
     ).add_to(m)
 
+    # Show the points
+    ## Create the Marker Cluster array
+    #kwargs={"disableClusteringAtZoom": 10, "showCoverageOnHover": False}
+    mc = FastMarkerCluster("")
+ 
+    # Add a clickable marker for each facility
+    for index, row in points.iterrows():
+      if ( bounds is not None ):
+        if ( not check_bounds( row, bounds )):
+          continue
+      mc.add_child(folium.CircleMarker(
+        location = [row["FAC_LAT"], row["FAC_LONG"]],
+        popup = marker_text( row, no_text ),
+        radius = 8,
+        color = "black",
+        weight = 1,
+        fill_color = "orange",
+        fill_opacity= .4
+      ))
+    
+    m.add_child(mc)
+
+    # compute boundaries so that the map automatically zooms in
     bounds = m.get_bounds()
-    m.fit_bounds(bounds)
+    m.fit_bounds(bounds, padding=0)
+
+    # display the map!
+    display(m)
+
+def show_regions(regions, states, region_type, spatial_tables):
+    '''
+    # show the map of just the regions (e.g. zip codes) and the selected state(s)
+    # create the map using a library called Folium (https://github.com/python-visualization/folium)
+    '''
+    m = folium.Map()  
+
+    # Show the state(s)
+    s = folium.GeoJson(
+      states,
+      name = "State",
+      style_function = lambda x: style['other']
+    ).add_to(m)
+
+    # Show the intersection regions (e.g. Zip Codes)
+    i = folium.GeoJson(
+      regions,
+      name = region_type,
+      style_function = lambda x: style['this']
+    ).add_to(m)
+    folium.GeoJsonTooltip(fields=[spatial_tables[region_type]["pretty_field"].lower()]).add_to(i) # Add tooltip for identifying features
+
+    # compute boundaries so that the map automatically zooms in
+    bounds = m.get_bounds()
+    m.fit_bounds(bounds, padding=0)
+
+    # display the map!
     display(m)
 
 def write_dataset( df, base, type, state, regions ):
@@ -603,7 +682,7 @@ def write_dataset( df, base, type, state, regions ):
         if ( not os.path.exists( 'CSVs' )):
             os.makedirs( 'CSVs' )
         filename = 'CSVs/' + base[:50]
-        if ( type != 'Zip Code' and type != 'Watershed' ):
+        if ( type != 'Zip Code' ):
             filename += '-' + state
         filename += '-' + type
         if ( regions is not None ):
@@ -736,10 +815,14 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     if ( len(values) == 0 ):
         return "No {} facilities with non-compliant quarters in {} - {}".format(
             epa_pgm, state, str( selections ))
+    
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
+    #cmap = sns.color_palette("rocket", as_cmap=True)
+    #barplot_colors = [cmap(c) for c in values]
+
     try:
-        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", color = colour) 
+        g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", palette="rocket") 
         g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
                 epa_pgm, state, str( selections )))
         ax.set_xlabel("Non-compliant quarters")
@@ -749,40 +832,3 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     except TypeError as te:
         print( "TypeError: {}".format( str(te) ))
         return None
-
-def chart (full_data, date_column, counting_column, measure, function, title, mnth_name=""):
-  """
-  Full documentation coming soon!
-  full data = the data to be charted
-  date_column = the column in the data to use for summarizing by date
-  counting_column = the column to sum up
-  measure = the name of the summing method e.g. count or total 
-  function = the way to sum up e.g. count or sum or nunique
-  title = chart title
-  mnth_name = optional description of the months in focus (e.g. for COVID notebook)
-  """
-
-  # Organize the data
-  this_data = full_data.groupby([date_column])[counting_column].agg(function) # For each day, count the number of inspections/enforcements/violations # Summarize inspections/enforcements/violations on a monthly basis  
-  this_data = this_data.resample('Y').sum() # Add together the two months (3 - 4) we're looking at
-  this_data = pd.DataFrame(this_data) # Put our data into a dataframe
-  this_data = this_data.rename(columns={counting_column: measure}) # Format the data columns
-  this_data.index = this_data.index.strftime('%Y') # Make the x axis (date) prettier
-
-  # Create the chart
-  ax = this_data.plot(kind='bar', title = ""+title+" in %s of each year 2001-2022" %(mnth_name), figsize=(20, 10), fontsize=16, color=colour)
-  ax
-
-  # Label trendline
-  trend=this_data[measure].mean()
-  ax.axhline(y=trend, color='#e56d13', linestyle='--', label = "Average "+title+" in %s 2001-2022" %(mnth_name))
-
-  # Label the previous three years' trend (2020, 2021, 2022)
-  trend_month=pd.concat([this_data.loc["2020"],this_data.loc["2021"],this_data.loc["2022"]])
-  trend_month=trend_month[measure].mean()
-  ax.axhline(y=trend_month, xmin = .88, xmax=1, color='#d43a69', linestyle='--', label = "Average for %s 2020-2022" %(mnth_name))
-
-  # Label plot
-  ax.legend()
-  ax.set_xlabel(mnth_name+" of Each Year")
-  ax.set_ylabel(title)
