@@ -95,7 +95,7 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
       '''
       Actually gets the data...
       '''
-      print(query) # Debugging
+      #print(query) # Debugging
       result = get_echo_data(query)
       result['geometry'] = geopandas.GeoSeries.from_wkb(result['wkb_geometry'])
       result.drop("wkb_geometry", axis=1, inplace=True)
