@@ -582,6 +582,79 @@ def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"
     m.fit_bounds(bounds)
     display(m)
 
+def bivariate_map(regions, points, bounds=None, no_text=False):
+    '''
+    show the map of region(s) (e.g. zip codes) and points (e.g. facilities within the regions)
+    create the map using a library called Folium (https://github.com/python-visualization/folium)
+    bounds can be preset if necessary
+    no_text errors can be managed
+    '''
+    m = folium.Map()  
+
+    # Show the region(s
+    s = folium.GeoJson(
+      regions,
+      style_function = lambda x: style['other']
+    ).add_to(m)
+
+    # Show the points
+    ## Create the Marker Cluster array
+    #kwargs={"disableClusteringAtZoom": 10, "showCoverageOnHover": False}
+    mc = FastMarkerCluster("")
+ 
+    # Add a clickable marker for each facility
+    for index, row in points.iterrows():
+      if ( bounds is not None ):
+        if ( not check_bounds( row, bounds )):
+          continue
+      mc.add_child(folium.CircleMarker(
+        location = [row["FAC_LAT"], row["FAC_LONG"]],
+        popup = marker_text( row, no_text ),
+        radius = 8,
+        color = "black",
+        weight = 1,
+        fill_color = "orange",
+        fill_opacity= .4
+      ))
+    
+    m.add_child(mc)
+
+    # compute boundaries so that the map automatically zooms in
+    bounds = m.get_bounds()
+    m.fit_bounds(bounds, padding=0)
+
+    # display the map!
+    display(m)
+
+def show_regions(regions, states, region_type, spatial_tables):
+    '''
+    # show the map of just the regions (e.g. zip codes) and the selected state(s)
+    # create the map using a library called Folium (https://github.com/python-visualization/folium)
+    '''
+    m = folium.Map()  
+
+    # Show the state(s)
+    s = folium.GeoJson(
+      states,
+      name = "State",
+      style_function = lambda x: style['other']
+    ).add_to(m)
+
+    # Show the intersection regions (e.g. Zip Codes)
+    i = folium.GeoJson(
+      regions,
+      name = region_type,
+      style_function = lambda x: style['this']
+    ).add_to(m)
+    folium.GeoJsonTooltip(fields=[spatial_tables[region_type]["pretty_field"].lower()]).add_to(i) # Add tooltip for identifying features
+
+    # compute boundaries so that the map automatically zooms in
+    bounds = m.get_bounds()
+    m.fit_bounds(bounds, padding=0)
+
+    # display the map!
+    display(m)
+    
 def write_dataset( df, base, type, state, regions ):
     '''
     Write out a file of the Dataframe passed in.
