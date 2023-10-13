@@ -43,7 +43,7 @@ plt.rc('font', **font)
 plt.rc('legend', fancybox = True, framealpha=1, shadow=True, borderpad=1)
 
 # Styles for States ("other") and selected regions (e.g. Zip Codes) - "this"
-style = {'this': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1},
+map_style = {'this': {'fillColor': '#0099ff', 'color': '#182799', "weight": 1},
 'other': {'fillColor': '#FFA500', 'color': '#182799', "weight": 1}}
 
 def fix_county_names( in_counties ):
