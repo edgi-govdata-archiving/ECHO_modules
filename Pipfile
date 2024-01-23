@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+folium = "==0.14.0"
+geopandas = "==0.9.0"
+ipython = "==7.29.0"
+ipywidgets = "==7.6.5"
+matplotlib = "==3.4.3"
+numpy = "==1.26.3"
+pandas = "==1.3.4"
+requests = "==2.31.0"
+seaborn = "==0.11.2"
+echo-modules = {path = "./dist/echo_modules-0.1.0-py2.py3-none-any.whl"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"

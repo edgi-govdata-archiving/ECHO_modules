@@ -55,7 +55,7 @@ Every facility in ECHO_EXPORTER will have one or more rows in the EXP_PGM table.
 Again, there may be multiple rows with different PGM_ID
 values for the same REGISTRY_ID value.
 
-The schema of the material views in the SBU database can be found in [the schema.psql](https://github.com/edgi-govdata-archiving/ECHOEPA-to-SQL/blob/main/schema.psql) file in the ECHOEPA-to-SQL Github repository.
+The schema of the material views in the SBU database can be found in [the schema.psql](https://github.com/sunggheel/edgipgdb/blob/main/edgi_postgis/echo_scripts/schema.psql) file.
 
 ### Defining DataSets - make_data_sets.py and data_set_presets.py
 
