@@ -37,9 +37,9 @@ Retrieve records of reported violations of the Clean Water Act for Snohomish Cou
 
 ```
 from ECHO_modules.make_data_sets import make_data_sets # Import relevant module
-ds = make_data_sets(["CWA Violations"]) # Create a DataSet class for handling the data
-snohomish_cwa_violations = ds["CWA Violations"].store_results(region_type="County", region_value="Snohomish", state="WA") # Store the results from the database in a dataframe
-snohomish_cwa_violations.dataframe # Show the results
+ds = make_data_sets(["CWA Violations"]) # Create a DataSet for handling the data
+snohomish_cwa_violations = ds["CWA Violations"].store_results(region_type="County", region_value=("SNOHOMISH",) state="WA") # Store results for this DataSet as a DataSetResults object
+snohomish_cwa_violations.dataframe # Show the results as a dataframe
 ```
 
 |   YEARQTR | HLRNC | NUME90Q | NUMCVDT | NUMSVCD | NUMPSCH | FAC_NAME |                 FAC_STREET |                      FAC_CITY | FAC_STATE | ... | FAC_LAT |  FAC_LONG | FAC_DERIVED_WBD | FAC_DERIVED_CD113 | FAC_PERCENT_MINORITY | FAC_POP_DEN | FAC_DERIVED_HUC | FAC_SIC_CODES | FAC_NAICS_CODES | DFR_URL |                                                   |
@@ -55,13 +55,19 @@ Show the results in chart form:
 
 `snohomish_cwa_violations.show_chart()`
 
-...image here...
-
 Map the results:
 
-`TBD`
+```
+from ECHO_modules.utilities import aggregate_by_facility, point_mapper # Import relevant modules
+aggregated_results = aggregate_by_facility(snohomish_cwa_violations, snohomish_cwa_violations.dataset.name, other_records=True) # Aggregate each entry using this function. In the case of CWA violations, it will summarize each type of violation (permit, schedule, effluent, etc.) and then aggregate them for each facility over time. By setting other_records to True, we also get CWA-regulated facilities in the county without records of violations.
+point_mapper(agg["data"], snohomish_cwa_violations.dataset.agg_col, quartiles=True, other_fac=agg["diff"]) # Map each facility as a point, the size of which corresponds to the number of reported violations since 2001.
+```
 
-...image here...
+Export the results:
+```
+from ECHO_modules.utilities import write_dataset
+write_dataset( snohomish_cwa_violations.dataframe, "CWAViolations", snohomish_cwa_violations.region_type, snohomish_cwa_violations.state, snohomish_cwa_violations.region_value )
+```
 
 Code of Conduct
 --------------------------
@@ -77,6 +83,7 @@ Contributors
 - `Sung-Gheel Jang <https://github.com/@sunggheel>` (Code, Database)
 - `Paul St. Denis <https://github.com/@pstdenis>` (Code, Database)
 - `Megan Raisle <https://github.com/@mraisle>` (Code)
+- `Olivia Chang <https://github.com/@oliviachang29>` (Code)
 
 A more complete list of contributors to EEW is [here](https://github.com/edgi-govdata-archiving/Environmental_Enforcement_Watch?tab=readme-ov-file#people-of-eew)	
 
