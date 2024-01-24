@@ -37,7 +37,7 @@ Retrieve records of reported violations of the Clean Water Act for Snohomish Cou
 ```
 from ECHO_modules.make_data_sets import make_data_sets # Import relevant module
 ds = make_data_sets(["CWA Violations"]) # Create a DataSet for handling the data
-snohomish_cwa_violations = ds["CWA Violations"].store_results(region_type="County", region_value=("SNOHOMISH",) state="WA") # Store results for this DataSet as a DataSetResults object
+snohomish_cwa_violations = ds["CWA Violations"].store_results(region_type="County", region_value=["SNOHOMISH"] state="WA") # Store results for this DataSet as a DataSetResults object
 snohomish_cwa_violations.dataframe # Show the results as a dataframe
 ```
 
@@ -48,7 +48,6 @@ snohomish_cwa_violations.dataframe # Show the results as a dataframe
 | WAR012442 | 20112 |       U |       0 |       0 |       0 |        0 | LIFT STATION 16 FORCE MAIN | 196TH ST SW AND SCRIBER LK RD |  LYNNWOOD |  WA |     ... | 47.820513 |     -122.307499 |      1.711001e+11 |                  2.0 |      32.770 |         4359.82 |    17110012.0 |            1794 |     NaN | http://echo.epa.gov/detailed-facility-report?f... |
 | WAR012442 | 20113 |       U |       0 |       0 |       0 |        0 | LIFT STATION 16 FORCE MAIN | 196TH ST SW AND SCRIBER LK RD |  LYNNWOOD |  WA |     ... | 47.820513 |     -122.307499 |      1.711001e+11 |                  2.0 |      32.770 |         4359.82 |    17110012.0 |            1794 |     NaN | http://echo.epa.gov/detailed-facility-report?f... |
 | WAR012442 | 20114 |       U |       0 |       0 |       0 |        0 | LIFT STATION 16 FORCE MAIN | 196TH ST SW AND SCRIBER LK RD |  LYNNWOOD |  WA |     ... | 47.820513 |     -122.307499 |      1.711001e+11 |                  2.0 |      32.770 |         4359.82 |    17110012.0 |                 |         |                                                   |
-`...`
 
 Show the results in chart form:
 
