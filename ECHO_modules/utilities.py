@@ -449,7 +449,12 @@ def aggregate_by_facility(records, program, other_records = False):
     aggregator = "Amount" # keep track of which field we use to aggregate data, which may differ from the preset
 
   # Air emissions
-
+  elif (program == "Greenhouse Gas Emissions" or program == "Toxic Releases"):
+    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({records.dataset.agg_col:'sum'})
+    data['sum'] = data[records.dataset.agg_col]
+    data = data.reset_index()
+    aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
+	  
   # SDWA population served
   elif (program == "SDWA Public Water Systems" or program == "SDWA Serious Violators"):
     # filter to latest fiscal year
