@@ -1,4 +1,3 @@
-===============================
 ECHO_modules
 ===============================
 
@@ -60,7 +59,7 @@ Map the results:
 ```
 from ECHO_modules.utilities import aggregate_by_facility, point_mapper # Import relevant modules
 aggregated_results = aggregate_by_facility(snohomish_cwa_violations, snohomish_cwa_violations.dataset.name, other_records=True) # Aggregate each entry using this function. In the case of CWA violations, it will summarize each type of violation (permit, schedule, effluent, etc.) and then aggregate them for each facility over time. By setting other_records to True, we also get CWA-regulated facilities in the county without records of violations.
-point_mapper(agg["data"], snohomish_cwa_violations.dataset.agg_col, quartiles=True, other_fac=agg["diff"]) # Map each facility as a point, the size of which corresponds to the number of reported violations since 2001.
+point_mapper(aggregated_results["data"], snohomish_cwa_violations.dataset.agg_col, quartiles=True, other_fac=aggregated_results["diff"]) # Map each facility as a point, the size of which corresponds to the number of reported violations since 2001.
 ```
 
 Export the results:
