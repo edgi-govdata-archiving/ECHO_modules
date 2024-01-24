@@ -20,7 +20,6 @@ import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.geographies import region_field, states
-
 from IPython.display import display
 
 # Set up some default parameters for graphing
@@ -415,7 +414,6 @@ def aggregate_by_facility(records, program, other_records = False):
     '''
     Helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program (active)
     '''
-    from ECHO_modules.utilities import get_active_facilities
     active = get_active_facilities(records.state, records.region_type, records.region_value )
 
     diff = list(
@@ -573,7 +571,7 @@ def mapper(df, bounds=None, no_text=False):
             fill_opacity= .4
         ))
     m.add_child(mc)
-    
+
     bounds = m.get_bounds()
     m.fit_bounds(bounds)
 
