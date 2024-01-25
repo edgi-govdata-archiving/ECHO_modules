@@ -128,7 +128,8 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
         ON other.""" + spatial_tables["State"]['id_field'] + """ IN """ + selection + """ 
         AND ST_Within(this.wkb_geometry,other.wkb_geometry) """
       if region_filter:
-        query += """AND this.""" + spatial_tables[region_type]['match_field'] + """ = \'""" + region_filter + """\'"""
+        region_filter = spatial_selector(region_filter)
+        query += """AND this.""" + spatial_tables[region_type]['match_field'] + """ in """ + region_filter + """ """
 
       regions = retrieve(query)
 
