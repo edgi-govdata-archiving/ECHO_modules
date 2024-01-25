@@ -130,7 +130,6 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
       if region_filter:
         region_filter = spatial_selector(region_filter)
         query += """AND this.""" + spatial_tables[region_type]['match_field'] + """ in """ + region_filter + """ """
-
       regions = retrieve(query)
 
     # Get the intersecting geo (i.e. states)

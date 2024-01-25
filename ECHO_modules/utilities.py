@@ -662,7 +662,7 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
     print( "There are no facilities to map." )
     
 
-def choropleth(polygons, polygon_attribute, legend_name, color_scheme="PuRd"):
+def choropleth(polygons, polygon_attribute, key_id, legend_name, color_scheme="PuRd"):
     '''
     creates choropleth map - shades polygons by attribute
 
@@ -670,6 +670,7 @@ def choropleth(polygons, polygon_attribute, legend_name, color_scheme="PuRd"):
     ----------
     polygons: geodataframe of polygons to be mapped
     polygon_attribute: str, name of field in `polygons` geodataframe to symbolize
+    key_id: str, name of the index field
     legend_name: str, a nice title for the legend
     color_scheme: str
 
@@ -691,8 +692,8 @@ def choropleth(polygons, polygon_attribute, legend_name, color_scheme="PuRd"):
 
     # Create layer
     layer = folium.Choropleth(
-        geo_data=geo_data,
-        data=choro_data,
+        geo_data=polygons[[key_id, "geometry"]],
+        data=polygons[[key_id, polygon_attribute]],
         columns=[polygon_attribute],
         fill_color=color_scheme,
         fill_opacity=0.7,
