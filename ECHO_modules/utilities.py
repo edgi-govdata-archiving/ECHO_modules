@@ -363,6 +363,7 @@ def get_active_facilities( state, region_type, regions_selected ):
             sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( regions_selected )
+            print(sql) # debugging
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Watershed' ):
             ws_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected ))
@@ -660,7 +661,55 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   else:
     print( "There are no facilities to map." )
     
+m = Map(
+      basemap=basemap_to_tiles(basemaps.CartoDB.Positron),
+      center=(40,-74),
+      zoom = 7
+      )
 
+def choropleth(polygons, polygon_attribute, legend_name, color_scheme="PuRd"):
+    '''
+    creates choropleth map - shades polygons by attribute
+
+    Parameters
+    ----------
+    polygons: geodataframe of polygons to be mapped
+    polygon_attribute: str, name of field in `polygons` geodataframe to symbolize
+    legend_name: str, a nice title for the legend
+    color_scheme: str
+
+    Returns
+    ----------
+    Displays a map
+
+    '''
+
+    import json
+
+    # split data into geo and choro data for mapping
+    polygons = polygons.to_crs(4326) # requires transformation to geographic coordinate system
+    geo_data = json.loads(polygons[["geometry"]].to_json()) # convert to geojson
+    choro_data = polygons[[polygon_attribute]] # the attribute data
+    choro_data = json.loads(choro_data.to_json()) # convert to geojson
+
+    # Create layer
+    layer = folium.Choropleth(
+        geo_data=geo_data,
+        data=choro_data,
+        columns=[polygon_attribute],
+        fill_color=color_scheme,
+        fill_opacity=0.7,
+        line_opacity=0.2,
+        legend_name=legend_name,
+        key_on = "id" #leaflet default
+    ).add_to(m)
+
+    bounds = m.get_bounds()
+    m.fit_bounds(bounds)
+
+    return m
+
+# The following is still specifically used in the Missing Data notebook
 def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"):
     """
     Documentation forthcoming!
@@ -673,15 +722,15 @@ def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"
     m = folium.Map()  
 
     l = folium.Choropleth(
-      geo_data = states_geography,
-      name="choropleth",
-      data=state_data,
-      columns=["STUSPS",column],
-      key_on="feature.properties.STUSPS",
-      fill_color=color_scheme,
-      fill_opacity=0.7,
-      line_opacity=0.2,
-      legend_name=legend_name
+        geo_data = states_geography,
+        name="choropleth",
+        data=state_data,
+        columns=["STUSPS",column],
+        key_on="feature.properties.STUSPS",
+        fill_color=color_scheme,
+        fill_opacity=0.7,
+        line_opacity=0.2,
+        legend_name=legend_name
     ).add_to(m)
 
     bounds = m.get_bounds()
