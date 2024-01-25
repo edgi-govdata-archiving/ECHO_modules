@@ -319,7 +319,7 @@ def get_facs_in_counties( df, selected ):
     '''
 
     url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
-    url += "ECHO_modules/packaging/data/state_counties_corrected.csv"
+    url += "ECHO_modules/main/data/state_counties_corrected.csv"
     state_counties = pd.read_csv(url)
     # Get all of the different ECHO names for the selected counties.
     selected_counties = state_counties[state_counties['County'].isin(selected)]['FAC_COUNTY']
