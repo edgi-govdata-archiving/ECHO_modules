@@ -272,7 +272,7 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="count", 
         agg_col = "VIOLATION_CODE",
-        units = "discharge monitoring reports"
+        unit = "discharge monitoring reports"
     ),
 
     "2022 Discharge Monitoring": dict(
@@ -284,7 +284,7 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="count", 
         agg_col = "VIOLATION_CODE",
-        units = "discharge monitoring reports"
+        unit = "discharge monitoring reports"
     ),
 
     "Effluent Violations": dict(
