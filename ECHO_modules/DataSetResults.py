@@ -31,7 +31,10 @@ class DataSetResults:
         if ( self.state is not None ):
             chart_title += ' - ' + self.state
         if ( self.region_value is not None ):
-            chart_title += ' - ' + str( self.region_value )
+            value = region_value
+            if ( type( value ) == list ):
+                value = ''.join( map( str, value ))
+            chart_title += ' - ' + str( value )
     
         # SDWA programs - use a different date field
         SDWA_progs = ["SDWA Public Water Systems","SDWA Violations",
