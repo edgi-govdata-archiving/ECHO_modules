@@ -661,11 +661,6 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   else:
     print( "There are no facilities to map." )
     
-m = Map(
-      basemap=basemap_to_tiles(basemaps.CartoDB.Positron),
-      center=(40,-74),
-      zoom = 7
-      )
 
 def choropleth(polygons, polygon_attribute, legend_name, color_scheme="PuRd"):
     '''
@@ -691,6 +686,8 @@ def choropleth(polygons, polygon_attribute, legend_name, color_scheme="PuRd"):
     geo_data = json.loads(polygons[["geometry"]].to_json()) # convert to geojson
     choro_data = polygons[[polygon_attribute]] # the attribute data
     choro_data = json.loads(choro_data.to_json()) # convert to geojson
+
+    m = folium.Map()
 
     # Create layer
     layer = folium.Choropleth(
