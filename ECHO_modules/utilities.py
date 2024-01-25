@@ -370,6 +370,7 @@ def get_active_facilities( state, region_type, regions_selected ):
             sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( regions_selected )
+            print(sql) # debugging
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         else:
             df_active = None
