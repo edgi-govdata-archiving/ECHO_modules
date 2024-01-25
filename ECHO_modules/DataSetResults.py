@@ -70,7 +70,7 @@ class DataSetResults:
             d = data.groupby( 'REPORTING_YEAR' )[['ANNUAL_EMISSION']].sum()
             ax = d.plot(kind='bar', title = chart_title, figsize=(20, 10), fontsize=16)
             ax.set_xlabel( 'Reporting Year' )
-            ax.set_ylabel( 'Pounds of Emissions')
+            ax.set_ylabel( program.units )
             ax        
         elif (program.name == "CAA Penalties" or program.name == "RCRA Penalties"  or program.name == "CWA Penalties" ):
             data.rename( columns={ program.date_field: 'Date',

@@ -176,7 +176,10 @@ ATTRIBUTE_TABLES = {
         table_name="TOXIC_RELEASES_MVIEW",
         idx_field="REGISTRY_ID",
         date_field="REPORTING_YEAR",
-        date_format="%Y"
+        date_format="%Y",
+        agg_type="sum",
+        agg_col="ANNUAL_EMISSION", 
+        unit="pounds"
     ),
 
     "CWA Violations": dict(
