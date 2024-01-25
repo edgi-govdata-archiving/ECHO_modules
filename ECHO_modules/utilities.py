@@ -682,12 +682,6 @@ def choropleth(polygons, polygon_attribute, key_id, legend_name, color_scheme="P
 
     import json
 
-    # split data into geo and choro data for mapping
-    polygons = polygons.to_crs(4326) # requires transformation to geographic coordinate system
-    geo_data = json.loads(polygons[["geometry"]].to_json()) # convert to geojson
-    choro_data = polygons[[polygon_attribute]] # the attribute data
-    choro_data = json.loads(choro_data.to_json()) # convert to geojson
-
     m = folium.Map()
 
     # Create layer
