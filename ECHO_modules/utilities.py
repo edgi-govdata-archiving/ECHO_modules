@@ -663,15 +663,16 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
     print( "There are no facilities to map." )
     
 
-def choropleth(polygons, polygon_attribute, key_id, legend_name, color_scheme="PuRd"):
+def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=None, color_scheme="PuRd"):
     '''
     creates choropleth map - shades polygons by attribute
 
     Parameters
     ----------
     polygons: geodataframe of polygons to be mapped
-    polygon_attribute: str, name of field in `polygons` geodataframe to symbolize
+    attribute: str, name of field to symbolize
     key_id: str, name of the index field
+    attribute_table: dataframe, optional.
     legend_name: str, a nice title for the legend
     color_scheme: str
 
@@ -685,50 +686,26 @@ def choropleth(polygons, polygon_attribute, key_id, legend_name, color_scheme="P
 
     m = folium.Map()
 
-    # Create layer
-    layer = folium.Choropleth(
-        geo_data=polygons[[key_id, "geometry"]],
-        data=polygons[[key_id, polygon_attribute]],
-        columns=[polygon_attribute],
-        fill_color=color_scheme,
-        fill_opacity=0.7,
-        line_opacity=0.2,
-        legend_name=legend_name,
-        key_on = "id" #leaflet default
+    polygons.reset_index(inplace=True) # Reset index
+    if attribute_table: # if we have a separate attribute table that needs to be joined with the spatial data (polygons)...
+        data = attribute_table
+    else:
+        data = polygons
+    folium.Choropleth(
+        geo_data = polygons,
+        data = data,
+        columns = [key_id, attribute],
+        key_on = "feature.properties."+key_id,
+        fill_color = color_scheme,
+        fill_opacity = 0.7,
+        line_opacity = 0.2,
+        legend_name = title, 
     ).add_to(m)
 
     bounds = m.get_bounds()
     m.fit_bounds(bounds)
 
     return m
-
-# The following is still specifically used in the Missing Data notebook
-def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"):
-    """
-    Documentation forthcoming!
-    Generalize this function to accept any data....
-    """
-    # Import state geographical data
-    states_geography = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
-    states_geography.crs = "EPSG:4326"
-
-    m = folium.Map()  
-
-    l = folium.Choropleth(
-        geo_data = states_geography,
-        name="choropleth",
-        data=state_data,
-        columns=["STUSPS",column],
-        key_on="feature.properties.STUSPS",
-        fill_color=color_scheme,
-        fill_opacity=0.7,
-        line_opacity=0.2,
-        legend_name=legend_name
-    ).add_to(m)
-
-    bounds = m.get_bounds()
-    m.fit_bounds(bounds)
-    display(m)
 
 def bivariate_map(regions, points, bounds=None, no_text=False):
     '''
