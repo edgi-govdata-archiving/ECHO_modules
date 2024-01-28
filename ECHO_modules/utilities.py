@@ -691,7 +691,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
         data = attribute_table
     else:
         data = polygons
-    folium.Choropleth(
+    layer = folium.Choropleth(
         geo_data = polygons,
         data = data,
         columns = [key_id, attribute],
@@ -701,6 +701,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
         line_opacity = 0.2,
         legend_name = legend_name, 
     ).add_to(m)
+    folium.GeoJsonTooltip(fields=[key_id, attribute]).add_to(layer.geojson) # Hover over for information
 
     bounds = m.get_bounds()
     m.fit_bounds(bounds)
