@@ -28,8 +28,8 @@ SPATIAL_TABLES = {
     #),
 
     "Zip Codes": dict(
-        table_name="tl_2019_us_zcta510",
-        id_field="zcta5ce10" 
+        table_name="tl_2020_us_zcta520",
+        id_field="zcta5ce20" 
         
     ),
 
