@@ -39,10 +39,10 @@ spatial_tables = {
     ),
 
     "Zip Code": dict(
-        table_name="tl_2020_us_zcta510",
-        id_field="zcta5ce10",
-        match_field="zcta5ce10",
-        pretty_field="zcta5ce10" 
+        table_name="tl_2020_us_zcta520",
+        id_field="zcta5ce20",
+        match_field="zcta5ce20",
+        pretty_field="zcta5ce20" 
     ),
 
     "EPA Region": dict(
