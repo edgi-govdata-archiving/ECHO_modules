@@ -55,8 +55,9 @@ Installation & Basic Usage
 For a more complete set of examples, see the Jupyter Notebook [here](https://colab.research.google.com/drive/1EqbWz1KqBqlMc1IYMcOPbI_8Equ2Jwmr?usp=sharing) or notebooks in project-specific repositories in the EDGI organization on GitHub.
 
 Command line installation:
-
-`pip install ECHO_modules`
+```
+pip install ECHO_modules
+```
 
 Retrieve records of reported violations of the Clean Water Act for Snohomish County in Washington state:
 
@@ -77,7 +78,9 @@ snohomish_cwa_violations.dataframe # Show the results as a dataframe
 
 Show the results in chart form:
 
-`snohomish_cwa_violations.show_chart()`
+```
+snohomish_cwa_violations.show_chart()
+```
 
 Map the results:
 
