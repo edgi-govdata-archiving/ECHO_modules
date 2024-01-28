@@ -699,7 +699,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
         fill_color = color_scheme,
         fill_opacity = 0.7,
         line_opacity = 0.2,
-        legend_name = title, 
+        legend_name = legend_name, 
     ).add_to(m)
 
     bounds = m.get_bounds()
