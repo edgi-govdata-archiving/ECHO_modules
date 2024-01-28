@@ -49,18 +49,6 @@ def get_echo_data( sql, index_field=None, table_name=None ):
     
     return ds
 
-def selector(units):
-    #build query
-    selection = '('
-    if (type(units) == list):
-        for place in self.units:
-            selection += '\''+str(place)+'\', '
-            selection = selection[:-2] # remove trailing comma
-            selection += ')'
-    else:
-        selection = '(\''+str(units)+'\')'
-    return selection
-
 def spatial_selector(units):
     '''
     helper function for `get_spatial_data`
