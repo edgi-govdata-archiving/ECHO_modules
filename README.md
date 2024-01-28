@@ -1,8 +1,8 @@
 ECHO_modules
 ===============================
 
-.. image:: https://img.shields.io/pypi/v/wayback.svg
-        :target: https://pypi.python.org/pypi/wayback
+.. image:: https://img.shields.io/pypi/v/echo-modules.svg
+        :target: https://pypi.python.org/pypi/echo-modules
         :alt: Download Latest Version from PyPI
 
 .. image:: https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat
@@ -18,11 +18,37 @@ The US EPA collects a wide variety of data concerning environmental pollution an
 
 Unfortunately, both the web portal for ECHO (echo.epa.gov) and its API have a number of limitations. First, EPA generally only makes the past 3-5 years worth of data available through these services. Second, EPA typically does not allow aggregating information into meaningful views, such as reports of inspections by Census tract or ZIP code. Instead, searches on echo.epa.gov are usually facility-oriented. This makes it hard to understand the state of environmental enforcement and compliance across an entire geography, company, or industry sector. 
 
-In response, we make regular copies of the full set of historical records in ECHO by scraping echo.epa.gov [here](https://echo.epa.gov/files/echodownloads/). We load a select number of specific tables into a [Postgresql database](https://github.com/sunggheel/edgipgdb) hosted at Stony Brook University (SBU). These tables are then linked through various lookups and materialized views.
+In response, we make regular copies of the full set of historical records in ECHO by scraping echo.epa.gov [here](https://echo.epa.gov/files/echodownloads/). We load a number of specific tables into a [Postgresql database](https://github.com/sunggheel/edgipgdb) hosted at Stony Brook University (SBU). These tables are then linked with one another through various lookups and materialized views. For instance, the table that contains summary information about facilities (ECHO_EXPORTER) is linked to the table with detailed records on Clean Water Act violations through the `NPDES_ID` key. 
 
-`ECHO_modules` provides a set of convenient dataset definitions and pre-defined queries that enable users to retrieve information from the SBU database and to visualize it as tables, maps, and charts. It also supports user-defined queries. With `ECHO_modules`, users can easily access summaries of EPA's records for specific geographies (e.g. a set of ZIP codes) and examine these records in relation to EPA's measures of environmental inequalities (from EJScreen).
+`ECHO_modules` provides convenient dataset definitions and pre-defined queries that enable users to retrieve information from the SBU database and to visualize it as tables, maps, and charts. It also supports user-defined queries. With `ECHO_modules`, users can easily access summaries of EPA's records for specific geographies (e.g. a set of ZIP codes) and examine these records in relation to EPA's measures of environmental inequalities (from EJScreen).
 
 Learn more about the SBU copy of ECHO and how it is used by ECHO_modules [here](https://github.com/edgi-govdata-archiving/ECHO_modules/blob/main/SBU-db.md). EDGI's Environmental Enforcement Watch (EEW) works with `ECHO_modules` extensively. For more on the EEW project, visit [here](https://environmentalenforcementwatch.org/) or check out project-specific repositories in the EDGI organization on GitHub.
+
+Interpreting ECHO Data
+--------------------------
+The ECHO database is notoriously incomplete and biased. EDGI EEW's own research, based on `ECHO_modules` and published [here](https://envirodatagov.org/wp-content/uploads/2022/09/Gaps_and_Disparities_Report.pdf), has found the following:
+
+> * Over 19,000 facilities regulated under foundational environmental protection laws are missing basic information such as their latitude and longitude. Nearly all — 19,657 out of 19,675 (99.9%) — of these are SDWA-regulated facilities.
+* Data needed for basic EJ assessments, such as the percent minority population surrounding a facility or the Census block it resides in, is missing for 14% of the facilities in EPA’s most public-facing database. This increases to 83% of facilities regulated under SDWA. 
+* Nationally, the typical facility regulated under each of these environmental protection laws is missing:
+ * 86% of CWA-specific information
+ * 86% of RCRA-specific information
+ * 71% of CAA-specific information
+ * 40% of SDWA-specific information
+* Facilities in majority-minority communities have somewhat worse data quality scores than facilities in majority-white communities, for all acts except SDWA.
+* Data missingness is substantially worse for facilities in areas already screened by EPA to be of particular concern for environmental injustices and majority-minority areas when looking at Clean Water Act inspections in particular.
+* 78% of all facilities regulated under the CWA are missing inspection counts, but only 75% of facilities in majority white areas, rising to 83% of facilities in majority-minority areas.
+* Western states including Texas, New Mexico, Colorado, Utah, and Nevada are much worse when it comes to inspection data completeness for facilities in majority-minority communities. 
+
+Simply put, ECHO records are flawed because they rely on industry and state self-reporting. For instance, the emissions levels industry provides to EPA are typically estimates rather than direct measurements. ProPublica [has found](https://www.propublica.org/article/whats-polluting-the-air-not-even-the-epa-can-say) that these estimates actually tend to be *overestimates* - industry knows EPA lacks the will and capacity to look into large emitters, while submitting lower numbers might raise suspicion. 
+
+ECHO records also reflect a flawed governance system. Determining that a facility is in violation of its permit to pollute typically requires either accurate and honest self-reporting of emissions, or regulatory inspections of the facility. However, facility inspections have been in decline since at least the Obama administration. Thus, "true" violations are unlikely to be noticed and recorded. In other words, the ECHO database is rife with type II statistical errors ("false negatives"). 
+
+Even when violations are flagged, it is important to keep in mind that these represent emissions above and beyond permitted thresholds (if they are not paperwork violations), but whether or not these permitted thresholds are adequate is entirely different question. Just because a facility is *not* in violation of its permit does not mean that it is inconsequential to human and environmental health, since most permits to pollute do not account for the cumulative effects of multiple polluters in a region or the synergistic effects of multiple pollutants.
+
+[According to](https://global.oup.com/academic/product/next-generation-compliance-9780197656747) former EPA director of enforcement and compliance assurance Cynthia Giles (2020), records related to the Clean Water Act's National Pollutant Discharge Elimination System (NPDES) tend to be the most reliable, in part because of federal requirements that all regulated facilities submit digitized records straight to US EPA.
+
+Any interpretations you make of ECHO data accessed through `ECHO_modules` should keep all the above in mind. For instance, EEW prefers to use language such as "reported violations" and "estimated emissions" when discussing findings. 
 
 Installation & Basic Usage
 --------------------------
@@ -73,11 +99,11 @@ This repository falls under EDGI’s `Code of Conduct <https://github.com/edgi-g
 
 Contributors
 --------------------------
-- `Steve Hansen <https://github.com/shansen5>` (Code, Tests, Documentation, Reviews)
-- `Eric Nost <https://github.com/ericnost>` (Code, Tests, Documentation, Reviews)
-- `Kelsey Breseman <https://github.com/frijol>` (Code, Tests, Documentation, Reviews)
-- `Lourdes Vera <https://github.com/lourdesvera>` (Project Management, Events, Documentation)
-- `Sara Wylie <https://github.com/@saraannwylie>` (Project Management, Events, Documentation)
+- `Steve Hansen <https://github.com/shansen5>` (Organizer, Project Management, Code, Tests, Documentation, Reviews)
+- `Eric Nost <https://github.com/ericnost>` (Organizer, Project Management, Code, Tests, Documentation, Reviews)
+- `Kelsey Breseman <https://github.com/frijol>` (Organizer, Project Management, Code, Tests, Documentation, Reviews)
+- `Lourdes Vera <https://github.com/lourdesvera>` (Organizer, Project Management, Events, Documentation)
+- `Sara Wylie <https://github.com/@saraannwylie>` (Organizer, Project Management, Events, Documentation)
 - `Sung-Gheel Jang <https://github.com/@sunggheel>` (Code, Database)
 - `Paul St. Denis <https://github.com/@pstdenis>` (Code, Database)
 - `Megan Raisle <https://github.com/@mraisle>` (Code)
