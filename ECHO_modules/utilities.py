@@ -687,7 +687,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
     m = folium.Map()
 
     polygons.reset_index(inplace=True) # Reset index
-    if attribute_table: # if we have a separate attribute table that needs to be joined with the spatial data (polygons)...
+    if attribute_table is not None: # if we have a separate attribute table that needs to be joined with the spatial data (polygons)...
         data = attribute_table
     else:
         data = polygons
