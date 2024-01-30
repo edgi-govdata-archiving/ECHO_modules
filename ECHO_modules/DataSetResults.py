@@ -31,7 +31,10 @@ class DataSetResults:
         if ( self.state is not None ):
             chart_title += ' - ' + self.state
         if ( self.region_value is not None ):
-            chart_title += ' - ' + str( self.region_value )
+            value = self.region_value
+            if ( type( value ) == list ):
+                value = ''.join( map( str, value ))
+            chart_title += ' - ' + str( value )
     
         # SDWA programs - use a different date field
         SDWA_progs = ["SDWA Public Water Systems","SDWA Violations",
@@ -70,7 +73,7 @@ class DataSetResults:
             d = data.groupby( 'REPORTING_YEAR' )[['ANNUAL_EMISSION']].sum()
             ax = d.plot(kind='bar', title = chart_title, figsize=(20, 10), fontsize=16)
             ax.set_xlabel( 'Reporting Year' )
-            ax.set_ylabel( 'Pounds of Emissions')
+            ax.set_ylabel( program.unit )
             ax        
         elif (program.name == "CAA Penalties" or program.name == "RCRA Penalties"  or program.name == "CWA Penalties" ):
             data.rename( columns={ program.date_field: 'Date',

@@ -49,18 +49,6 @@ def get_echo_data( sql, index_field=None, table_name=None ):
     
     return ds
 
-def selector(units):
-    #build query
-    selection = '('
-    if (type(units) == list):
-        for place in self.units:
-            selection += '\''+str(place)+'\', '
-            selection = selection[:-2] # remove trailing comma
-            selection += ')'
-    else:
-        selection = '(\''+str(units)+'\')'
-    return selection
-
 def spatial_selector(units):
     '''
     helper function for `get_spatial_data`
@@ -128,8 +116,9 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
         ON other.""" + spatial_tables["State"]['id_field'] + """ IN """ + selection + """ 
         AND ST_Within(this.wkb_geometry,other.wkb_geometry) """
       if region_filter:
-        query += """AND this.""" + spatial_tables[region_type]['match_field'] + """ = \'""" + region_filter + """\'"""
-
+        region_filter = spatial_selector(region_filter)
+        query += """AND this.""" + spatial_tables[region_type]['match_field'] + """ in """ + region_filter + """ """
+      #print(query) # debugging
       regions = retrieve(query)
 
     # Get the intersecting geo (i.e. states)

@@ -60,12 +60,12 @@ class DataSet:
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
 
     def store_results( self, region_type, region_value, state=None ):
+        result = DataSetResults( self, region_type, region_value, state )
+        df = self.get_data( region_type, region_value, state )
+        result.store( df )
         value = region_value
         if ( type( value ) == list ):
             value = ''.join( map( str, value ))
-        result = DataSetResults( self, region_type, value, state )
-        df = self.get_data( region_type, region_value, state )
-        result.store( df )
         self.results[ (region_type, value, state) ] = result
         return result
 

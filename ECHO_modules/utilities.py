@@ -20,7 +20,6 @@ import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.geographies import region_field, states
-
 from IPython.display import display
 
 # Set up some default parameters for graphing
@@ -320,7 +319,7 @@ def get_facs_in_counties( df, selected ):
     '''
 
     url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
-    url += "ECHO_modules/packaging/data/state_counties_corrected.csv"
+    url += "ECHO_modules/main/data/state_counties_corrected.csv"
     state_counties = pd.read_csv(url)
     # Get all of the different ECHO names for the selected counties.
     selected_counties = state_counties[state_counties['County'].isin(selected)]['FAC_COUNTY']
@@ -360,14 +359,18 @@ def get_active_facilities( state, region_type, regions_selected ):
             sql = sql.format( state, cd_str )
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Zip Code' ):
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" = \'{}\''
+            zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected ))
+            sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-            sql = sql.format( regions_selected )
+            sql = sql.format( zc_str )
+            #print(sql) # debugging
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Watershed' ):
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" = \'{}\''
+            ws_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected ))
+            sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
-            sql = sql.format( regions_selected )
+            sql = sql.format( ws_str )
+            #print(sql) # debugging
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         else:
             df_active = None
@@ -376,10 +379,111 @@ def get_active_facilities( state, region_type, regions_selected ):
             # Get only those in the selected counties.
             df_active = get_facs_in_counties(df_active, regions_selected)
     except pd.errors.EmptyDataError:
-            df_active = None
+        df_active = None
 
     return df_active
 
+def aggregate_by_facility(records, program, other_records = False):
+  '''
+  Aggregate a set of records by facility IDs, using sum or count operations. 
+  Enables point symbol mapping. 
+  Other facilities in the selection (e.g. facilities in Snohomish County *without* 
+  reported CWA violations) can be identified and retrieved when the diff flag is True
+
+  Parameters
+  ----------
+  records : DataSetResults object
+      The records to aggregate. records should be a DataSetResults object created from
+      a database query. In the :
+      ds = make_data_sets(["CWA Violations"]) # Create a DataSet for handling the data
+      snohomish_cwa_violations = ds["CWA Violations"].store_results(region_type="County", region_value=("SNOHOMISH",) state="WA") # Store results for this DataSet as a DataSetResults object
+  program : String
+      The name of the program, usually available from records.dataset.name
+  other_records : Boolean
+      When True, will retrieve other facilities in the selection 
+      (e.g. facilities in Snohomish County *without* reported CWA violations)
+  
+  Returns
+  -------
+  A dictionary containing:
+    the aggregated results
+    active facilities regulated under this program, but without recorded violations, inspections, or whatever the metric is (e.g. violations)
+    the name of the new field that counts or sums up the relevant metric (e.g. violations) 
+  '''
+
+  data = records.dataframe
+  diff = None
+
+  def differ(input, program):
+    '''
+    Helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program (active)
+    '''
+    active = get_active_facilities(records.state, records.region_type, records.region_value )
+
+    diff = list(
+        set(active[records.dataset.echo_type + "_IDS"]) - set(input[records.dataset.idx_field])
+        ) 
+    
+    # get rid of NaNs - probably no program IDs
+    diff = [x for x in diff if str(x) != 'nan']
+    
+    # ^ Not perfect given that some facilities have multiple NPDES_IDs
+    # Below return the full ECHO_EXPORTER details for facilities without violations, penalties, or inspections
+    diff = active.loc[active[records.dataset.echo_type + "_IDS"].isin(diff)] 
+    return diff
+
+  # CWA Violations
+  if (program == "CWA Violations"): 
+    year = data["YEARQTR"].astype("str").str[0:4:1]
+    data["YEARQTR"] = year
+    data["sum"] = data["NUME90Q"] + data["NUMCVDT"] + data['NUMSVCD'] + data["NUMPSCH"]
+    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).sum()
+    data = data.reset_index()
+    data = data.loc[data["sum"] > 0] # only symbolize facilities with violations
+    aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
+
+  # Penalties
+  elif (program == "CAA Penalties" or program == "RCRA Penalties" or program == "CWA Penalties" ):
+    data.rename( columns={ records.dataset.date_field: 'Date', records.dataset.agg_col: 'Amount'}, inplace=True )
+    if ( program == "CWA Penalties" ):
+      data['Amount'] = data['Amount'].fillna(0) + data['STATE_LOCAL_PENALTY_AMT'].fillna(0)
+    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({'Amount':'sum'})
+    data = data.reset_index()
+    data = data.loc[data["Amount"] > 0] # only symbolize facilities with penalties
+    aggregator = "Amount" # keep track of which field we use to aggregate data, which may differ from the preset
+
+  # Air emissions
+  elif (program == "Greenhouse Gas Emissions" or program == "Toxic Releases"):
+    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({records.dataset.agg_col:'sum'})
+    data['sum'] = data[records.dataset.agg_col]
+    data = data.reset_index()
+    aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
+	  
+  # SDWA population served
+  elif (program == "SDWA Public Water Systems" or program == "SDWA Serious Violators"):
+    # filter to latest fiscal year
+    data = data.loc[data[records.dataset.date_field] == 2021]
+    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({records.dataset.agg_col:'sum'})
+    data['sum'] = data[records.dataset.agg_col]
+    data = data.reset_index()
+    aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
+
+  # Count of inspections, violations
+  else: 
+    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).agg({records.dataset.date_field: 'count'})
+    data['count'] = data[records.dataset.date_field]
+    data = data.reset_index()
+    data = data.loc[data["count"] > 0] # only symbolize facilities with X
+    aggregator = "count" # keep track of which field we use to aggregate data, which may differ from the preset
+
+  if other_records:
+    diff = differ(data, program)
+  
+  if ( len(data) > 0 ):
+    #print({"data": data, "aggregator": aggregator}) # Debugging
+    return {"data": data, "diff": diff, "aggregator": aggregator}
+  else:
+    print( "There is no data for this program and region after 2000." )
 
 def marker_text( row, no_text ):
     '''
@@ -475,8 +579,8 @@ def mapper(df, bounds=None, no_text=False):
             fill_color = "orange",
             fill_opacity= .4
         ))
-    
     m.add_child(mc)
+
     bounds = m.get_bounds()
     m.fit_bounds(bounds)
 
@@ -531,7 +635,7 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
       map_of_facilities.add_child(folium.CircleMarker(
           location = [row["FAC_LAT"], row["FAC_LONG"]],
           popup = aggcol+": "+str(row[aggcol]),
-          radius = r * 4, # arbitrary scalar
+          radius = r * 1.5, # arbitrary scalar
           color = "black",
           weight = 1,
           fill_color = "orange",
@@ -550,38 +654,59 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
             fill_opacity= 1
         ))
 
+    bounds = map_of_facilities.get_bounds()
+    map_of_facilities.fit_bounds(bounds)
+
     return map_of_facilities
 
   else:
     print( "There are no facilities to map." )
     
 
-def state_choropleth_mapper(state_data, column, legend_name, color_scheme="PuRd"):
-    """
-    Documentation forthcoming!
-    Generalize this function to accept any data....
-    """
-    # Import state geographical data
-    states_geography = geopandas.read_file("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-Geo/main/cb_2018_us_state_500k.json")
-    states_geography.crs = "EPSG:4326"
+def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=None, color_scheme="PuRd"):
+    '''
+    creates choropleth map - shades polygons by attribute
 
-    m = folium.Map()  
+    Parameters
+    ----------
+    polygons: geodataframe of polygons to be mapped
+    attribute: str, name of field to symbolize
+    key_id: str, name of the index field
+    attribute_table: dataframe, optional.
+    legend_name: str, a nice title for the legend
+    color_scheme: str
 
-    l = folium.Choropleth(
-      geo_data = states_geography,
-      name="choropleth",
-      data=state_data,
-      columns=["STUSPS",column],
-      key_on="feature.properties.STUSPS",
-      fill_color=color_scheme,
-      fill_opacity=0.7,
-      line_opacity=0.2,
-      legend_name=legend_name
+    Returns
+    ----------
+    Displays a map
+
+    '''
+
+    import json
+
+    m = folium.Map()
+
+    polygons.reset_index(inplace=True) # Reset index
+    if attribute_table is not None: # if we have a separate attribute table that needs to be joined with the spatial data (polygons)...
+        data = attribute_table
+    else:
+        data = polygons
+    layer = folium.Choropleth(
+        geo_data = polygons,
+        data = data,
+        columns = [key_id, attribute],
+        key_on = "feature.properties."+key_id,
+        fill_color = color_scheme,
+        fill_opacity = 0.7,
+        line_opacity = 0.2,
+        legend_name = legend_name, 
     ).add_to(m)
+    folium.GeoJsonTooltip(fields=[key_id]).add_to(layer.geojson) # Hover over for information
 
     bounds = m.get_bounds()
     m.fit_bounds(bounds)
-    display(m)
+
+    return m
 
 def bivariate_map(regions, points, bounds=None, no_text=False):
     '''
@@ -629,8 +754,8 @@ def bivariate_map(regions, points, bounds=None, no_text=False):
 
 def show_regions(regions, states, region_type, spatial_tables):
     '''
-    # show the map of just the regions (e.g. zip codes) and the selected state(s)
-    # create the map using a library called Folium (https://github.com/python-visualization/folium)
+    show the map of just the regions (e.g. zip codes) and the selected state(s)
+    create the map using a library called Folium (https://github.com/python-visualization/folium)
     '''
     m = folium.Map()  
 

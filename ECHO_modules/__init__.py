@@ -1,3 +1,1 @@
-"""Modules for accessing EPA ECHO data via the Stony Brook database."""
-
-__version__ = "1.0.0"
+__version__ = "0.1.0"
