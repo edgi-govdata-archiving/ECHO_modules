@@ -174,7 +174,7 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
         )
     elif ( type == 'County' ):
         url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
-        url += "ECHO_modules/packaging/data/state_counties_corrected.csv"
+        url += "ECHO_modules/main/data/state_counties_corrected.csv"
         df = pd.read_csv( url )
         counties = df[df['FAC_STATE'] == my_state]['County']
         counties = counties.unique()
@@ -192,7 +192,7 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
             )
     elif ( type == 'Congressional District' ):
         url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
-        url += "ECHO_modules/packaging/data/state_cd.csv"
+        url += "ECHO_modules/main/data/state_cd.csv"
         df = pd.read_csv( url )
         cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
         if ( multi ):
