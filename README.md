@@ -1,14 +1,7 @@
-ECHO_modules
+ECHO_modules 
 ===============================
-
-.. image:: https://img.shields.io/pypi/v/echo-modules.svg
-        :target: https://pypi.python.org/pypi/echo-modules
-        :alt: Download Latest Version from PyPI
-
-.. image:: https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat
-        :target: https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md
-        :alt: Code of Conduct
-
+[![Download Latest Version from PyPI](https://img.shields.io/pypi/v/echo-modules.svg)](https://pypi.python.org/pypi/echo-modules)
+[![Code of Conduct](https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat)](https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md)
 
 *ECHO_modules* is a Python package repository for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) database.
 
@@ -64,7 +57,7 @@ Retrieve records of reported violations of the Clean Water Act for Snohomish Cou
 ```
 from ECHO_modules.make_data_sets import make_data_sets # Import relevant module
 ds = make_data_sets(["CWA Violations"]) # Create a DataSet for handling the data
-snohomish_cwa_violations = ds["CWA Violations"].store_results(region_type="County", region_value=["SNOHOMISH"] state="WA") # Store results for this DataSet as a DataSetResults object
+snohomish_cwa_violations = ds["CWA Violations"].store_results(region_type="County", region_value=["SNOHOMISH"], state="WA") # Store results for this DataSet as a DataSetResults object
 snohomish_cwa_violations.dataframe # Show the results as a dataframe
 ```
 
@@ -81,6 +74,7 @@ Show the results in chart form:
 ```
 snohomish_cwa_violations.show_chart()
 ```
+![image](https://github.com/edgi-govdata-archiving/ECHO_modules/assets/6888951/c076faa6-9a29-4a4a-b7eb-36aee3169d20)
 
 Map the results:
 
@@ -89,6 +83,7 @@ from ECHO_modules.utilities import aggregate_by_facility, point_mapper # Import 
 aggregated_results = aggregate_by_facility(snohomish_cwa_violations, snohomish_cwa_violations.dataset.name, other_records=True) # Aggregate each entry using this function. In the case of CWA violations, it will summarize each type of violation (permit, schedule, effluent, etc.) and then aggregate them for each facility over time. By setting other_records to True, we also get CWA-regulated facilities in the county without records of violations.
 point_mapper(aggregated_results["data"], aggregated_results["aggregator"], quartiles=True, other_fac=aggregated_results["diff"]) # Map each facility as a point, the size of which corresponds to the number of reported violations since 2001.
 ```
+<img width="1391" alt="image" src="https://github.com/edgi-govdata-archiving/ECHO_modules/assets/6888951/92ab95e7-cbd8-4eb5-ae05-0e1a3e55a20b">
 
 Export the results:
 ```
