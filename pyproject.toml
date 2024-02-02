@@ -4,11 +4,11 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "ECHO_modules"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
 	{name = "Steve Hansen", email = "steven.e.hansen@gmail.com"}, 
-	{ name="Eric Nost", email="enost@uoguelph.ca" }, 
-	{ name="Kelsey Breseman", email="ifoundthemeaningoflife@gmail.com" }, 
+	{name="Eric Nost", email="enost@uoguelph.ca" }, 
+	{name="Kelsey Breseman", email="ifoundthemeaningoflife@gmail.com" }, 
 	{name = "EDGI", email = "contact@envirodatagov.org"}
 ]
 readme = "README.md"
