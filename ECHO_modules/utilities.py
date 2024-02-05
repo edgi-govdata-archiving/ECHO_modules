@@ -344,7 +344,7 @@ def get_active_facilities( state, region_type, regions_selected ):
     Dataframe
         The active facilities returned from the database query
     '''
-    
+
     try:
         if ( region_type == 'State' or region_type == 'County'):
             sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
@@ -359,18 +359,18 @@ def get_active_facilities( state, region_type, regions_selected ):
             sql = sql.format( state, cd_str )
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Zip Code' ):
-            zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected ))
+            regions_selected = ''.join(regions_selected.split())
+            zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
             sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( zc_str )
-            #print(sql) # debugging
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Watershed' ):
-            ws_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected ))
+            regions_selected = ''.join(regions_selected.split())
+            zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
             sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( ws_str )
-            #print(sql) # debugging
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         else:
             df_active = None
@@ -558,13 +558,13 @@ def mapper(df, bounds=None, no_text=False):
 
     # Initialize the map
     m = folium.Map(
-        location = [df.mean()["FAC_LAT"], df.mean()["FAC_LONG"]]
+        location = [df.mean(numeric_only=True)["FAC_LAT"], df.mean(numeric_only=True)["FAC_LONG"]]
     )
 
     # Create the Marker Cluster array
     #kwargs={"disableClusteringAtZoom": 10, "showCoverageOnHover": False}
     mc = FastMarkerCluster("")
- 
+
     # Add a clickable marker for each facility
     for index, row in df.iterrows():
         if ( bounds is not None ):

@@ -65,7 +65,7 @@ class DataSet:
         df = self.get_data( region_type, region_value, state )
         result.store( df )
         value = region_value
-        if ( type( value ) == list ):
+        if type(value) == list:
             value = ''.join( map( str, value ))
         self.results[ (region_type, value, state) ] = result
         return result
@@ -96,7 +96,7 @@ class DataSet:
                 x_sql = self.sql + ' where ' + filter
             program_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
-            print( "No program records were found." )
+            print( "No program records were found.")
 
         if (region_type == 'County'):
             if (type(region_value) == str):
@@ -345,8 +345,10 @@ class DataSet:
                 # Remove trailing comma from id_string
                 filter += ' in (' + id_string[:-1] + ')'
             elif ( type(region_value) == str ):
-                filter += ' = \'' + region_value + '\'' 
+                region_value = ''.join(region_value.split())
+                region_value = ",".join(map(lambda x: "\'" + str(x) + "\'", region_value.split(',')))
+                filter += ' in (' + region_value + ')'
             if ( region_type == 'Congressional District' ):
-                filter += ' and ' + geographies.region_field['State']['field']
-                filter += ' = \'' + state + '\''
+                filter += ' and "' + geographies.region_field['State']['field']
+                filter += '" = \'' + state + '\''
         return filter
