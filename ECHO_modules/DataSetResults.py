@@ -51,7 +51,7 @@ class DataSetResults:
                 'FAC_PERCENT_MINORITY', 'FAC_POP_DEN', 'FAC_DERIVED_HUC',
                 'FAC_SIC_CODES', 'FAC_NAICS_CODES'])
             d = data.groupby(pd.to_datetime(data['YEARQTR'], 
-                    format="%Y", errors='coerce').dt.to_period("Y")).sum()
+                    format="%Y", errors='coerce').dt.to_period("Y")).sum(numeric_only=True)
             d.index = d.index.strftime('%Y')
             d = d[ d.index > '2000' ]
     

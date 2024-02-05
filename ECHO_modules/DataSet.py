@@ -7,6 +7,7 @@ from datetime import datetime
 from . import geographies
 from .DataSetResults import DataSetResults
 from .get_data import get_echo_data
+from .utilities import get_facs_in_counties
 
 class DataSet:
     '''
@@ -64,7 +65,7 @@ class DataSet:
         df = self.get_data( region_type, region_value, state )
         result.store( df )
         value = region_value
-        if ( type( value ) == list ):
+        if type(value) == list:
             value = ''.join( map( str, value ))
         self.results[ (region_type, value, state) ] = result
         return result
@@ -95,7 +96,12 @@ class DataSet:
                 x_sql = self.sql + ' where ' + filter
             program_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
-            print( "No program records were found." )
+            print( "No program records were found.")
+
+        if (region_type == 'County'):
+            if (type(region_value) == str):
+                region_value = [region_value,]
+            program_data = get_facs_in_counties(program_data, region_value)
 
         if ( program_data is not None ):
             print( "There were {} program records found".format( str( len( program_data ))))        
@@ -322,18 +328,12 @@ class DataSet:
     def _set_facility_filter( self, region_type, region_value=None, state=None ):
         if ( region_type == 'State' ):
             region_value = state
-        filter = '"' + geographies.region_field[region_type]['field'] + '"'
-        if ( region_type == 'County' ):
-            filter = '('
-            for county in region_value:
-                filter += '"' + geographies.region_field[region_type]['field'] + '"'
-                filter += ' like \'' + county + '%\' or '
-            filter = filter[:-3]
-            filter += ')'
-        elif ( region_type == 'State' ) :
+        if ( region_type == 'County' or region_type == 'State' ):
+            filter = '"' + geographies.region_field['State']['field'] + '"'
             filter += ' = \'' + state + '\''
         else:
-            # region_value will be an list of values 
+            filter = '"' + geographies.region_field[region_type]['field'] + '"'
+            # region_value will be an list of values
             id_string = ""
             value_type = type(region_value)
             if ( value_type == list or value_type == tuple ):
@@ -345,7 +345,10 @@ class DataSet:
                 # Remove trailing comma from id_string
                 filter += ' in (' + id_string[:-1] + ')'
             elif ( type(region_value) == str ):
-                filter += ' = \'' + region_value + '\'' 
-        if ( region_type == 'Congressional District' or region_type == 'County' ):
-            filter += ' and "FAC_STATE" = \'' + state + '\''
+                region_value = ''.join(region_value.split())
+                region_value = ",".join(map(lambda x: "\'" + str(x) + "\'", region_value.split(',')))
+                filter += ' in (' + region_value + ')'
+            if ( region_type == 'Congressional District' ):
+                filter += ' and "' + geographies.region_field['State']['field']
+                filter += '" = \'' + state + '\''
         return filter
