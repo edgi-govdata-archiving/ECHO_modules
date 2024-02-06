@@ -3,7 +3,7 @@ ECHO_modules
 [![Download Latest Version from PyPI](https://img.shields.io/pypi/v/echo-modules.svg)](https://pypi.python.org/pypi/echo-modules)
 [![Code of Conduct](https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat)](https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md)
 
-*ECHO_modules* is a Python package repository for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) database.
+*ECHO_modules* is a Python package for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) database.
 
 Background
 --------------------------
