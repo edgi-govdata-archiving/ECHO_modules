@@ -367,7 +367,7 @@ def get_active_facilities( state, region_type, regions_selected ):
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Watershed' ):
             regions_selected = ''.join(regions_selected.split())
-            ws_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
+            zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
             sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( ws_str )
@@ -805,9 +805,14 @@ def write_dataset( df, base, type, state, regions ):
         if ( type != 'Zip Code' and type != 'Watershed' ):
             filename += '-' + state
         filename += '-' + type
+
         if ( regions is not None ):
-            for region in regions:
-                filename += '-' + str(region)
+            regions = ''.join(regions.split())
+            regions = ",".join(map(lambda x: "\'" + str(x) + "\'", regions.split(',')))
+        filename += str(regions)
+        filename = filename.replace('\'', '').replace(',', '-')
+#            for region in regions:
+#                filename += '-' + str(region)
         filename = urllib.parse.quote_plus(filename, safe='/')
         filename += '.csv'
         df.to_csv( filename ) 
@@ -933,8 +938,12 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     unit = ranked.index 
     values = ranked['noncomp_count'] 
     if ( len(values) == 0 ):
-        return "No {} facilities with non-compliant quarters in {} - {}".format(
-            epa_pgm, state, str( selections ))
+        if state == None:
+            return "No {} facilities with non-compliant quarters in {}".format(
+                epa_pgm, str(selections))
+        else:
+            return "No {} facilities with non-compliant quarters in {} - {}".format(
+                epa_pgm, state, str( selections ))
     sns.set(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
     try:
