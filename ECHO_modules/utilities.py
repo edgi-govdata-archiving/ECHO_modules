@@ -268,27 +268,32 @@ def show_data_set_widget( data_sets ):
     return data_set_widget
 
 
-def show_fac_widget( fac_series ):
+def show_fac_widget( fac_series, top_violators ):
     '''
     Create and return a dropdown list of facilities from the 
-    input Series
+    input Series. Pre-select the facilities identified in
+    top_violators.
 
     Parameters
     ----------
     fac_series : Series
         The facilities to be shown.  It may have duplicates.
 
+    top_violators : Dataframe
+        The top violators in the region.
+
     Returns
     -------
     widget
         The widget with facility names
     '''
-
+    selected = list(set(fac_series) & set(top_violators))
     fac_list = fac_series.dropna().unique()
     fac_list.sort()
     style = {'description_width': 'initial'}
     widget=widgets.SelectMultiple(
         options=fac_list,
+        value=selected,
         style=style,
         layout=Layout(width='70%'),
         description='Facility Name:',
@@ -795,7 +800,7 @@ def write_dataset( df, base, type, state, regions ):
         The region type of the data
     state: str
         The state, or None
-    regions: list
+    regions: tuple
         The region identifiers, e.g. CD number, County, State, Zip code
     '''
     if ( df is not None and len( df ) > 0 ):
@@ -807,12 +812,9 @@ def write_dataset( df, base, type, state, regions ):
         filename += '-' + type
 
         if ( regions is not None ):
-            regions = ''.join(regions.split())
-            regions = ",".join(map(lambda x: "\'" + str(x) + "\'", regions.split(',')))
-        filename += str(regions)
+            for region in regions:
+                filename += '-' + str(region)
         filename = filename.replace('\'', '').replace(',', '-')
-#            for region in regions:
-#                filename += '-' + str(region)
         filename = urllib.parse.quote_plus(filename, safe='/')
         filename += '.csv'
         df.to_csv( filename ) 
@@ -911,6 +913,34 @@ def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 
             ascending=False )
     df_active = df_active.head( num_fac )
     return df_active   
+
+
+def get_tri_ghg_violators(df_active, field, num_violators):
+    df = df_active.loc[df_active[field]  > 0]
+    df_a = df.copy()
+    df_a = df_a[['FAC_NAME', field, 'DFR_URL', 'FAC_LAT', 'FAC_LONG']]
+    df_a = df_a.sort_values(by=[field], ascending=False)
+    df_a = df_a.head(num_violators)
+    return df_a
+
+# def get_sdwa_violators(df_active, num_violators):
+# use SDWA_FORMAL_ACTION_COUNT ?
+    
+
+def chart_tri_ghg_violators(df, field, title, xlabel):
+    unit = df.index
+    values = df[field]
+    sns.set(style='whitegrid')
+    fig, ax = plt.subplots(figsize=(10,10))
+    try:
+      g = sns.barplot(x=values, y=unit, order=list(unit), orient='h', color=colour)
+      g.set_title(title)
+      ax.set_xlabel(xlabel)
+      ax.set_ylabel('Facility')
+      ax.set_yticklabels(df['FAC_NAME'])
+    except TypeError as te:
+      print("TypeError: {}".format(str(te)))
+
 
 def chart_top_violators( ranked, state, selections, epa_pgm ):
     '''
