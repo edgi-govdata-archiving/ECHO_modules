@@ -67,16 +67,34 @@ def spatial_selector(units):
 
 def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filter=None):
     '''
-    returns spatial data from the database utilizing an intersection query 
-    e.g. return watersheds based on whether they cross the selected state
+    Returns spatial data from the database utilizing an intersection query 
 
-    region_type = "Congressional District" # from cell 3 region_type_widget
-    states = ["AL"]  # from cell 2 state dropdown selection. 
-    states variable has ability to be expanded to multiple state selection.
+    Parameters
+    ----------
+    region_type : str
+        The spatial unit to return e.g. "Congressional District" # from cell 3 region_type_widget
+    states : list
+        The extent across which to get the spatial data e.g. ["AL"]
+    spatial_tables : dict
+        Import from ECHO_modules/geographies.py
+    fips : dict
+        Optional - Import from ECHO_modules/geographies.py for Census Tracts
+    region_filter : str
+        Optional - specify whether to return a single unit (e.g. a specific county - "Erie"). region_filter should be based on the id_field specified in spatial_tables
+
+    Returns
+    -------
+    regions
+        GeoDataFrame of the spatial units
+    states
+        GeoDataFrame of the state(s) across which the units are selected
+    
+    '''
+    '''
+
     spatial_tables is from ECHO_modules/geographies.py
-    fips is also from geographies.py but is not required - only for Census Tracts
-    region_filter can specify whether to return a single unit (e.g. a specific county)
-    region_filter should be based on the id_field specified in spatial_tables
+    
+    
     '''
 
     def retrieve(query):

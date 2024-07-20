@@ -9,21 +9,21 @@ spatial_tables = {
         table_name="wbdhu8",
         id_field="huc8",
         match_field="huc8",
-        pretty_field="NAME"
+        pretty_field="name"
     ),
 
     "HUC10 Watersheds": dict(
         table_name="wbdhu10",
         id_field="huc10",
         match_field="huc10",
-        pretty_field="NAME"
+        pretty_field="name"
     ),
 
     "HUC12 Watersheds": dict(
         table_name="wbdhu12",
         id_field="huc12",
         match_field="huc12",
-        pretty_field="NAME"
+        pretty_field="name"
     ),
 
     "Ecoregions": dict(
@@ -59,9 +59,9 @@ spatial_tables = {
 
     "Congressional District": dict(
         table_name = "tl_2020_us_cd116", # Unfortunately, ECHO seems based on 113th Congress
-        id_field = "GEOID", # this is the combination of the state id and the CD e.g. AR-2 = 0502
-        match_field="CD116FP", #match with state_counties.csv
-        pretty_field="CD116FP" # two digit state-specific district number
+        id_field = "geoid", # this is the combination of the state id and the CD e.g. AR-2 = 0502
+        match_field="cd116fp", #match with state_counties.csv
+        pretty_field="cd116fp" # two digit state-specific district number
     )
     ,
 
