@@ -372,7 +372,7 @@ def get_active_facilities( state, region_type, regions_selected ):
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
         elif ( region_type == 'Watershed' ):
             regions_selected = ''.join(regions_selected.split())
-            zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
+            ws_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
             sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( ws_str )
