@@ -6,11 +6,9 @@ the Jupyter notebooks that use them.
 # Import libraries
 import pdb
 import os 
-import csv
 import datetime
 import pandas as pd
 import numpy as np
-import geopandas
 import matplotlib.pyplot as plt
 import folium
 import urllib
@@ -713,7 +711,9 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
 
     return m
 
-def bivariate_map(regions, points, bounds=None, no_text=False):
+def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=None, 
+                  region_aliases = None, points_fields=None, points_aliases=None,
+                  show_marker=False):
     '''
     show the map of region(s) (e.g. zip codes) and points (e.g. facilities within the regions)
     create the map using a library called Folium (https://github.com/python-visualization/folium)
@@ -722,33 +722,51 @@ def bivariate_map(regions, points, bounds=None, no_text=False):
     '''
     m = folium.Map()  
 
+    region_popup = None
+    if region_fields:
+       region_popup = folium.GeoJsonPopup(
+           fields = region_fields,
+           aliases = region_aliases,
+           localize=True,
+           labels=True,
+           style="background-color: yellow;",
+        )
+
     # Show the region(s
     s = folium.GeoJson(
       regions,
-      style_function = lambda x: map_style['other']
+      style_function = lambda x: map_style['other'],
+      popup=region_popup,
     ).add_to(m)
 
     # Show the points
     ## Create the Marker Cluster array
     #kwargs={"disableClusteringAtZoom": 10, "showCoverageOnHover": False}
-    mc = FastMarkerCluster("")
  
-    # Add a clickable marker for each facility
-    for index, row in points.iterrows():
-      if ( bounds is not None ):
-        if ( not check_bounds( row, bounds )):
-          continue
-      mc.add_child(folium.CircleMarker(
-        location = [row["FAC_LAT"], row["FAC_LONG"]],
-        popup = marker_text( row, no_text ),
-        radius = 8,
-        color = "black",
-        weight = 1,
-        fill_color = "orange",
-        fill_opacity= .4
-      ))
-    
-    m.add_child(mc)
+    points_popup = None
+    if points_fields:
+        points_popup = folium.GeoJsonPopup(
+           fields = points_fields,
+           aliases = points_aliases,
+           localize=True,
+           labels=True,
+           style="background-color: yellow;",
+        )
+
+    # Show the points
+    if show_marker:
+        marker=folium.Marker()
+    else:
+        marker=folium.Circle(radius=100, fill_color="black", fill_opacity=0.4, color="white", weight=1)
+    folium.GeoJson(
+        points,
+        marker=marker,
+        tooltip=points_popup,
+        popup=points_popup,
+        style="background-color: yellow;",
+        highlight_function=lambda x: {"fillOpacity": 0.8},
+        zoom_on_click=True,
+    ).add_to(m)
 
     # compute boundaries so that the map automatically zooms in
     bounds = m.get_bounds()
