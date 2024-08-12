@@ -799,13 +799,11 @@ def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=Non
     if show_marker:
         marker=folium.Marker()
     else:
-        marker=folium.Circle(radius=100, fill_color="black", fill_opacity=0.4, color="white", weight=1)
+        marker=folium.CircleMarker(radius = 8, color = "black", weight = 1, fill_color = "orange", fill_opacity= .4)
     folium.GeoJson(
         points,
         marker=marker,
-        tooltip=points_popup,
         popup=points_popup,
-        style="background-color: yellow;",
         highlight_function=lambda x: {"fillOpacity": 0.8},
         zoom_on_click=True,
     ).add_to(m)
