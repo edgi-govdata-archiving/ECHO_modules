@@ -4,13 +4,10 @@ the Jupyter notebooks that use them.
 '''
 
 # Import libraries
-import pdb
 import os 
-import csv
 import datetime
 import pandas as pd
 import numpy as np
-import geopandas
 import matplotlib.pyplot as plt
 import folium
 import urllib
@@ -18,9 +15,9 @@ import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
+from IPython.display import display
 from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.geographies import region_field, states
-from IPython.display import display
 
 # Set up some default parameters for graphing
 from matplotlib import cycler
@@ -490,6 +487,48 @@ def aggregate_by_facility(records, program, other_records = False):
   else:
     print( "There is no data for this program and region after 2000." )
 
+def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
+    '''
+    Aggregate attribute data by a spatial unit, such as zip codes
+
+    Parameters
+    ----------
+    dsr : DataSetResults object
+        The data to be aggregated
+    agg_type : str
+        How to aggregate the data (sum, mean, median)
+    spatial_tables : dict
+        Import from ECHO_modules/geographies.py
+    region_filter : list
+        Optional list of regions (zips, counties, etc.) to focus on. Same as region_value from ds.store_results
+
+    Returns
+    -------
+    result
+        GeoDataFrame - data aggregated to the indicated spatial unit. This can then be mapped with choropleth()
+        choropleth(result, dsr.dataset.agg_col, key_id=region_field[dsr.region_type]["field"], legend_name=dsr.dataset.agg_col)
+
+    '''
+    from ECHO_modules.get_data import get_spatial_data
+
+    # Aggregate attribute data
+    aggregated = dsr.dataframe.groupby(by=region_field[dsr.region_type]["field"])[[dsr.dataset.agg_col]].agg({dsr.dataset.agg_col:agg_type}) 
+    
+    # Join aggregated data with spatial dataset
+    ## Get spatial data
+    if region_filter and dsr.region_type == "County":
+        region_filter = [c.title() for c in region_filter]
+    regions, states = get_spatial_data(dsr.region_type, dsr.state, spatial_tables, region_filter=region_filter)
+    ## Join
+    if dsr.region_type == "County":
+        idx = regions[spatial_tables[dsr.region_type]['match_field']].str.upper()
+    else:
+        idx = regions[spatial_tables[dsr.region_type]['match_field']]
+    
+    results = geopandas.GeoDataFrame(aggregated.join(regions[["geometry"]].set_index(idx)), geometry="geometry", crs=4269)
+
+    return results 
+
 def marker_text( row, no_text ):
     '''
     Create a string with information about the facility or program instance.
@@ -692,6 +731,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
     m = folium.Map()
 
     polygons.reset_index(inplace=True) # Reset index
+    polygons = polygons[~polygons.geometry.isna()] # Remove empty geographies we can't map   
     if attribute_table is not None: # if we have a separate attribute table that needs to be joined with the spatial data (polygons)...
         data = attribute_table
     else:
@@ -713,7 +753,9 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
 
     return m
 
-def bivariate_map(regions, points, bounds=None, no_text=False):
+def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=None, 
+                  region_aliases = None, points_fields=None, points_aliases=None,
+                  show_marker=False):
     '''
     show the map of region(s) (e.g. zip codes) and points (e.g. facilities within the regions)
     create the map using a library called Folium (https://github.com/python-visualization/folium)
@@ -722,33 +764,49 @@ def bivariate_map(regions, points, bounds=None, no_text=False):
     '''
     m = folium.Map()  
 
+    region_popup = None
+    if region_fields:
+       region_popup = folium.GeoJsonPopup(
+           fields = region_fields,
+           aliases = region_aliases,
+           localize=True,
+           labels=True,
+           style="background-color: yellow;",
+        )
+
     # Show the region(s
     s = folium.GeoJson(
       regions,
-      style_function = lambda x: map_style['other']
+      style_function = lambda x: map_style['other'],
+      popup=region_popup,
     ).add_to(m)
 
     # Show the points
     ## Create the Marker Cluster array
     #kwargs={"disableClusteringAtZoom": 10, "showCoverageOnHover": False}
-    mc = FastMarkerCluster("")
  
-    # Add a clickable marker for each facility
-    for index, row in points.iterrows():
-      if ( bounds is not None ):
-        if ( not check_bounds( row, bounds )):
-          continue
-      mc.add_child(folium.CircleMarker(
-        location = [row["FAC_LAT"], row["FAC_LONG"]],
-        popup = marker_text( row, no_text ),
-        radius = 8,
-        color = "black",
-        weight = 1,
-        fill_color = "orange",
-        fill_opacity= .4
-      ))
-    
-    m.add_child(mc)
+    points_popup = None
+    if points_fields:
+        points_popup = folium.GeoJsonPopup(
+           fields = points_fields,
+           aliases = points_aliases,
+           localize=True,
+           labels=True,
+           style="background-color: yellow;",
+        )
+
+    # Show the points
+    if show_marker:
+        marker=folium.Marker()
+    else:
+        marker=folium.CircleMarker(radius = 8, color = "black", weight = 1, fill_color = "orange", fill_opacity= .4)
+    folium.GeoJson(
+        points,
+        marker=marker,
+        popup=points_popup,
+        highlight_function=lambda x: {"fillOpacity": 0.8},
+        zoom_on_click=True,
+    ).add_to(m)
 
     # compute boundaries so that the map automatically zooms in
     bounds = m.get_bounds()
