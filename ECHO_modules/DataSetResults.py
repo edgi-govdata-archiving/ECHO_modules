@@ -4,7 +4,7 @@ import pandas as pd
 # This class represents the results of a query of a DataSet and 
 # configuration to allow the display of the results.
 class DataSetResults:
-    def __init__( self, dataset, region_type, region_value, state=None ):
+    def __init__( self, dataset, region_type=None, region_value=None, state=None ):
 
         self.dataset = dataset
         self.region_type = region_type      # State, CD, Zip, Region

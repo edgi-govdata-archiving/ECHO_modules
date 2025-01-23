@@ -4,6 +4,7 @@ import os
 import urllib.parse
 import pandas as pd
 from datetime import datetime
+from itertools import islice
 from . import geographies
 from .DataSetResults import DataSetResults
 from .get_data import get_echo_data
@@ -70,12 +71,19 @@ class DataSet:
         self.results[ (region_type, value, state) ] = result
         return result
 
+    def store_results_by_ids( self, ids, region_type, use_registry_id=True ):
+        result = DataSetResults( self, region_type=region_type )
+        df = self.get_data_by_ids( ids, use_registry_id=use_registry_id )
+        result.store( df )
+        value = use_registry_id
+        self.results[ (region_type, value) ] = result
+        return result
+
     def show_charts( self ):
         for result in self.results.values():
             result.show_chart()
         
-    def get_data( self, region_type, region_value, state=None, 
-                  debug=False ):
+    def get_data( self, region_type, region_value, state=None ):
         
         if ( not self.last_modified_is_set ):
             sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
@@ -86,6 +94,9 @@ class DataSet:
             print("Data last modified: " + str(self.last_modified)) # Print the last modified date for each file we get
             
         program_data = None
+
+        if (region_type == 'Neighborhood'):
+            return self._get_nbhd_data(region_value)
 
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
@@ -107,53 +118,45 @@ class DataSet:
             print( "There were {} program records found".format( str( len( program_data ))))        
         return program_data
 
-    def get_data_by_ee_ids( self, ee_ids, int_flag=False, debug=False ):
+    def get_data_by_ids( self, ids, use_registry_id=False, int_flag=False ):
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
         # Get the data in batches of 50 ids.
 
-        id_string = ""
         program_data = None
         
-        if ( ee_ids is None ):
+        if ( ids is None ):
             return None
         else:
-            ee_ids_len = len( ee_ids )
+            ids_len = len( ids )
 
-        pos = 0
-        for pos,row in enumerate( ee_ids ):
-            if ( not int_flag ):
-                id_string += "'"
-            id_string += str(row)
-            if ( not int_flag ):
-                id_string += "'"
-            id_string +=  ","
-            if ( pos % 50 == 0 ):
-                id_string=id_string[:-1] # removes trailing comma
-                data = self._try_get_data( id_string, debug )   
-                if ( data is not None ):
-                    if ( program_data is None ):
-                        program_data = data
-                    else:
-                        program_data = pd.concat([ program_data, data ])
-                id_string = ""
+        iterator = iter(ids)
+        while chunk := list(islice(iterator, 50)):
+            id_string = ""
 
-        if ( pos % 50 != 0 ):
+            for id in chunk:
+                if ( not int_flag ):
+                    id_string += "'"
+                id_string += str(id)
+                if ( not int_flag ):
+                    id_string += "'"
+                id_string +=  ","
             id_string=id_string[:-1] # removes trailing comma
-            data = self._try_get_data( id_string, debug )
+            data = self._try_get_data( id_string, use_registry_id )
             if ( data is not None ):
                 if ( program_data is None ):
                     program_data = data
                 else:
                     program_data = pd.concat([ program_data, data ])
-        
-        print( "{} ids were searched for".format( str( ee_ids_len )))
+
+        print( "{} ids were searched".format( str( ids_len )))
         if ( program_data is None ):
             print( "No program records were found." )
         else:
             print( "{} program records were found".format( str( len( program_data ))))        
         return program_data
-                
+
+
     def get_pgm_ids( self, ee_ids, int_flag=False ):
         # ee_ids should be a list of ECHO_EXPORTER REGISTRY_IDs
         # Use the EXP_PGM table to turn the list into program ids.
@@ -163,7 +166,6 @@ class DataSet:
         if ( self.idx_field == 'REGISTRY_ID' ):
             return ee_ids
 
-        id_string = ''
         pgm_id_df = None
         
         if ( ee_ids is None ):
@@ -171,37 +173,22 @@ class DataSet:
         else:
             ee_ids_len = len( ee_ids )
 
-        pos = 0
-        for pos,row in enumerate( ee_ids ):
-            if ( not int_flag ):
-                id_string += "'"
-            id_string += str(row)
-            if ( not int_flag ):
-                id_string += "'"
-            id_string +=  ","
-            if ( pos % 50 == 0 ):
-                id_string=id_string[:-1] # removes trailing comma
-                this_data = None
-                try:
-                    x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
-                                    + id_string + ')'
-                    this_data = get_data( x_sql )
-                except pd.errors.EmptyDataError:
-                    print( "..." )
-                if ( this_data is not None ):
-                    if ( pgm_id_df is None ):
-                        pgm_id_df = this_data
-                    else:
-                        pgm_id_df = pd.concat([ pgm_id_df, this_data ])
-                id_string = ""
-
-        if ( pos % 50 != 0 ):
+        iterator = iter(ee_ids)
+        while chunk := list(islice(iterator, 50)):
+            id_string = ""
+            for id in chunk:
+                if ( not int_flag ):
+                    id_string += "'"
+                id_string += str(id)
+                if ( not int_flag ):
+                    id_string += "'"
+                id_string +=  ","
             id_string=id_string[:-1] # removes trailing comma
             this_data = None
             try:
                 x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
-                                + id_string + ')'
-                this_data = get_data( x_sql )
+                                    + id_string + ')'
+                this_data = get_echo_data( x_sql )
             except pd.errors.EmptyDataError:
                 print( "..." )
             if ( this_data is not None ):
@@ -210,7 +197,7 @@ class DataSet:
                 else:
                     pgm_id_df = pd.concat([ pgm_id_df, this_data ])
 
-        print( "{} ids were searched for".format( str( ee_ids_len )))
+        print( "{} ids were searched".format( str( ee_ids_len )))
         if ( pgm_id_df is None ):
             print( "No program records were found." )
         else:
@@ -218,54 +205,6 @@ class DataSet:
         return pgm_id_df['PGM_ID']
         
 
-    def get_data_by_pgm_ids( self, pgm_ids, int_flag=False, debug=False ):
-        # pgm_ids should be a list of the data set's idx_field values
-        # The id_string can get very long for a state or even a county.
-        # That can result in an error from too big URI.
-        # Get the data in batches of 50 ids.
-
-        id_string = ""
-        program_data = None
-        
-        if ( pgm_ids is None ):
-            return None
-        else:
-            pgm_ids_len = len( pgm_ids )
-
-        pos = 0
-        for pos,row in enumerate( pgm_ids ):
-            if ( not int_flag ):
-                id_string += "'"
-            id_string += str(row)
-            if ( not int_flag ):
-                id_string += "'"
-            id_string +=  ","
-            if ( pos % 50 == 0 ):
-                id_string=id_string[:-1] # removes trailing comma
-                data = self._try_get_data( id_string, debug )   
-                if ( data is not None ):
-                    if ( program_data is None ):
-                        program_data = data
-                    else:
-                        program_data = pd.concat([ program_data, data ])
-                id_string = ""
-
-        if ( pos % 50 != 0 ):
-            id_string=id_string[:-1] # removes trailing comma
-            data = self._try_get_data( id_string, debug )
-            if ( data is not None ):
-                if ( program_data is None ):
-                    program_data = data
-                else:
-                    program_data = pd.concat([ program_data, data ])
-        
-        print( "{} ids were searched for".format( str( pgm_ids_len )))
-        if ( program_data is None ):
-            print( "No program records were found." )
-        else:
-            print( "{} program records were found".format( str( len( program_data ))))        
-        return program_data
-                
     def get_echo_ids( self, echo_data ):
         if ( self.echo_type is None ):
             return None
@@ -292,13 +231,37 @@ class DataSet:
      
     # Private methods of the class
    
-    def _try_get_data( self, id_list, debug=False ):
+    def _get_nbhd_data(self, points):
+        poly_str = ''
+        for point in points:
+            poly_str += f'{point[0]} {point[1]} ,'
+        poly_str += f'{points[0][0]} {points[0][1]}'
+
+        if ( self.echo_type == 'SDWA' ):
+            echo_flag = 'SDWIS_FLAG'
+        else:
+            echo_flag = self.echo_type + '_FLAG'
+
+        sql = """
+            SELECT "REGISTRY_ID"
+            FROM "ECHO_EXPORTER"
+            WHERE "{}" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
+            """.format(echo_flag, poly_str)
+
+        registry_ids = get_echo_data(sql)
+        echo_ids = registry_ids["REGISTRY_ID"].to_list()
+        return self.get_data_by_ids(ids=echo_ids, use_registry_id=True)
+
+    def _try_get_data( self, id_list, use_registry_id=False):
+        # The use_registry_id flag determines whether we use the table or view's
+        # defined index field or the REGISTRY_ID which is part of each MVIEW.
         this_data = None
         try:
             if ( self.sql is None ):
-                x_sql = 'select * from "' + self.table_name + '" where "' \
-                            + self.idx_field + '" in (' \
-                            + id_list + ')'
+                idx = self.idx_field
+                if use_registry_id:
+                    idx = "REGISTRY_ID"
+                x_sql = f'select * from "{self.table_name}"  where "{idx}" in ({id_list})'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
             this_data = get_echo_data( x_sql, self.idx_field )
