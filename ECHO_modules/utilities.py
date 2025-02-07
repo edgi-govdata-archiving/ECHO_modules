@@ -15,6 +15,7 @@ import urllib
 import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
+from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
 from ECHO_modules.get_data import get_echo_data
@@ -375,6 +376,20 @@ def get_active_facilities( state, region_type, regions_selected ):
             sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
             sql = sql.format( ws_str )
             df_active = get_echo_data( sql, 'REGISTRY_ID' )
+        elif ( region_type == 'Neighborhood' ):
+            poly_str = ''
+            points = regions_selected
+            for point in points:
+                poly_str += f'{point[0]} {point[1]} ,'
+            poly_str += f'{points[0][0]} {points[0][1]}'
+    
+            sql = """
+                SELECT *
+                FROM "ECHO_EXPORTER"
+                WHERE "FAC_ACTIVE_FLAG" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
+                """.format(poly_str)
+    
+            df_active = get_echo_data(sql)
         else:
             df_active = None
         if ( region_type == 'County' ):
@@ -600,6 +615,10 @@ def mapper(df, bounds=None, no_text=False):
     -------
     folium.Map
     '''
+
+    if df.empty:
+        print("The DataFrame is empty. There is nothing to map.")
+        return None
 
     # Initialize the map
     m = folium.Map(
@@ -845,14 +864,12 @@ def show_regions(regions, states, region_type, spatial_tables):
     # display the map!
     display(m)
     
-def write_dataset( df, base, type, state, regions ):
+def dataset_filename(base, type, state, regions):
     '''
-    Write out a file of the Dataframe passed in.
+    Create a suggested filename.
 
     Parameters
     ----------
-    df : Dataframe
-        The data to write.
     base: str
         A base string of the file to write
     type: str
@@ -862,20 +879,44 @@ def write_dataset( df, base, type, state, regions ):
     regions: tuple
         The region identifiers, e.g. CD number, County, State, Zip code
     '''
+    filename = base[:50]
+    filename = filename.replace(' ', '-')
+    if ( state != None ):
+        filename += '-' + state
+    filename += '-' + type
+
+    if ( type != 'Neighborhood' and regions is not None ):
+        for region in regions:
+            filename += '-' + str(region)
+    filename = filename.replace('\'', '').replace(',', '-')
+    filename = urllib.parse.quote_plus(filename, safe='/')
+    filename += '.csv'
+    filename_widget = widgets.Text(
+        value=filename,
+        description='File name:',
+        disabled=False
+    )
+    display(filename_widget)
+    return filename_widget
+
+
+def write_dataset( df, filename ):
+    '''
+    Write out a file of the Dataframe passed in.
+
+    Parameters
+    ----------
+    df : Dataframe
+        The data to write.
+    filename:
+        The user's choice of a filename
+    '''
     if ( df is not None and len( df ) > 0 ):
         if ( not os.path.exists( 'CSVs' )):
             os.makedirs( 'CSVs' )
-        filename = 'CSVs/' + base[:50]
-        if ( type != 'Zip Code' and type != 'Watershed' ):
-            filename += '-' + state
-        filename += '-' + type
-
-        if ( regions is not None ):
-            for region in regions:
-                filename += '-' + str(region)
+        filename = 'CSVs/' + filename.replace(' ', '-')
         filename = filename.replace('\'', '').replace(',', '-')
         filename = urllib.parse.quote_plus(filename, safe='/')
-        filename += '.csv'
         df.to_csv( filename ) 
         print( "Wrote " + filename )
     else:
@@ -996,6 +1037,7 @@ def chart_tri_ghg_violators(df, field, title, xlabel):
       g.set_title(title)
       ax.set_xlabel(xlabel)
       ax.set_ylabel('Facility')
+      ax.set_yticks(ax.get_yticks())
       ax.set_yticklabels(df['FAC_NAME'])
     except TypeError as te:
       print("TypeError: {}".format(str(te)))
@@ -1041,6 +1083,7 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
                 epa_pgm, state, str( selections )))
         ax.set_xlabel("Non-compliant quarters")
         ax.set_ylabel("Facility")
+        ax.set_yticks(ax.get_yticks())
         ax.set_yticklabels(ranked["FAC_NAME"])
         return ( g )
     except TypeError as te:
@@ -1083,3 +1126,40 @@ def chart (full_data, date_column, counting_column, measure, function, title, mn
   ax.legend()
   ax.set_xlabel(mnth_name+" of Each Year")
   ax.set_ylabel(title)
+
+
+def handle_draw(self, action, geo_json):
+  global shapes
+  polygon=[]
+  for coords in geo_json['geometry']['coordinates'][0][:-1][:]:
+    polygon.append(tuple(coords))
+  polygon = tuple(polygon)
+  if action == 'created':
+    shapes.add(polygon)
+  elif action == 'deleted':
+    shapes.discard(polygon)
+
+
+def polygon_map(center=(39.8282,-98.5796), zoom=5):
+  # Create map
+  ## Heavily inspired by #https://notebook.community/rjleveque/binder_experiments/misc/ipyleaflet_polygon_selector
+  watercolor = basemap_to_tiles(basemaps.CartoDB.Positron)
+  
+  m = Map(layers=(watercolor, ), center=center, zoom=zoom)
+  
+  global shapes
+  shapes = set()
+  
+  draw_control = DrawControl()
+  
+  draw_control.rectangle = {
+      "shapeOptions": {
+          "fillColor": "#fca45d",
+          "color": "#fca45d",
+          "fillOpacity": .25
+      }
+  }
+  draw_control.on_draw(handle_draw)
+  m.add_control(draw_control)
+  display(m)
+  return shapes

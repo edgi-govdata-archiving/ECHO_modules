@@ -80,6 +80,7 @@ region_field = {
     'Zip Code': { "field": 'FAC_ZIP' },
     'Watershed': {"field": 'FAC_DERIVED_HUC'},
     'Census Tract': {"field": 'FAC_DERIVED_CB2010'},
+    'Neighborhood': {"field": 'None'},
 }
 # Commenting out these region types until implemented
 #     'Census Block': {"field": 'FAC_DERIVED_CB2010'} # We don't have this in the spatial database because there are too many CBs - too much data!
