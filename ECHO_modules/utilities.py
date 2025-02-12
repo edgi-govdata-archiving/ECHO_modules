@@ -5,7 +5,7 @@ the Jupyter notebooks that use them.
 
 # Import libraries
 import os 
-import datetime
+from datetime import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -209,6 +209,22 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
     if ( region_widget is not None ):
         display( region_widget )
     return region_widget
+
+
+def show_year_range_widget():
+    start_year = 1970
+    end_year = datetime.now().year
+    options = [year for year in range(start_year,end_year)]
+    index = (0, len(options)-1)
+    selection_range_slider = widgets.SelectionRangeSlider(
+        options=options,
+        index=index,
+        description='Dates',
+        orientation='horizontal',
+        layout={'width': '500px'}
+    )
+    display(selection_range_slider)
+    return selection_range_slider
 
 
 def get_regions_selected( region_type, region_widget ):
@@ -963,7 +979,7 @@ def make_filename( base, type, state, region, filetype='csv' ):
         if ( region is not None ):
             dir += str(region)
             filename += '-' + str(region)
-    x = datetime.datetime.now()
+    x = datetime.now()
     filename += '-' + x.strftime( "%m%d%y") +'.' + filetype
     dir += '/'
     if ( not os.path.exists( dir )):

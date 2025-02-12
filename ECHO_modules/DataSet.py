@@ -273,8 +273,11 @@ class DataSet:
 
     def _apply_date_filter(self, program_data, years=None):
             df = program_data.copy()
-            df[self.date_field] = pd.to_datetime(df[self.date_field], errors='coerce')
-            df['year'] = df[self.date_field].dt.year
+            if self.echo_type == 'TRI':
+                df['year'] = df[self.date_field]
+            else:
+                df[self.date_field] = pd.to_datetime(df[self.date_field], errors='coerce')
+                df['year'] = df[self.date_field].dt.year
             start_year = 2001
             today = date.today()
             end_year = today.year
@@ -283,6 +286,7 @@ class DataSet:
                 end_year = years[1]
             df = df[df['year'] >= start_year]
             df = df[df['year'] <= end_year]
+            df.drop('year', axis=1, inplace=True)
             return df
 
     def _get_echo_ids( self, echo_type, echo_data ):
