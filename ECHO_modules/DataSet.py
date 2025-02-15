@@ -3,7 +3,7 @@ import pdb
 import os
 import urllib.parse
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from itertools import islice
 from . import geographies
 from .DataSetResults import DataSetResults
@@ -61,9 +61,9 @@ class DataSet:
         self.last_modified_is_set = False
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
 
-    def store_results( self, region_type, region_value, state=None ):
+    def store_results( self, region_type, region_value, state=None, years=None ):
         result = DataSetResults( self, region_type, region_value, state )
-        df = self.get_data( region_type, region_value, state )
+        df = self.get_data( region_type, region_value, state, years )
         result.store( df )
         value = region_value
         if type(value) == list:
@@ -71,9 +71,9 @@ class DataSet:
         self.results[ (region_type, value, state) ] = result
         return result
 
-    def store_results_by_ids( self, ids, region_type, use_registry_id=True ):
+    def store_results_by_ids( self, ids, region_type, use_registry_id=True, years=None ):
         result = DataSetResults( self, region_type=region_type )
-        df = self.get_data_by_ids( ids, use_registry_id=use_registry_id )
+        df = self.get_data_by_ids( ids, use_registry_id=use_registry_id, years=years )
         result.store( df )
         value = use_registry_id
         self.results[ (region_type, value) ] = result
@@ -83,7 +83,7 @@ class DataSet:
         for result in self.results.values():
             result.show_chart()
         
-    def get_data( self, region_type, region_value, state=None ):
+    def get_data( self, region_type, region_value, state=None, years=None ):
         
         if ( not self.last_modified_is_set ):
             sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
@@ -96,7 +96,7 @@ class DataSet:
         program_data = None
 
         if (region_type == 'Neighborhood'):
-            return self._get_nbhd_data(region_value)
+            return self._get_nbhd_data(region_value, years)
 
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
@@ -106,6 +106,7 @@ class DataSet:
             else:
                 x_sql = self.sql + ' where ' + filter
             program_data = get_echo_data( x_sql, self.idx_field )
+            program_data = self._apply_date_filter(program_data, years)
         except pd.errors.EmptyDataError:
             print( "No program records were found.")
 
@@ -118,7 +119,7 @@ class DataSet:
             print( "There were {} program records found".format( str( len( program_data ))))        
         return program_data
 
-    def get_data_by_ids( self, ids, use_registry_id=False, int_flag=False ):
+    def get_data_by_ids( self, ids, use_registry_id=False, int_flag=False, years=None ):
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
         # Get the data in batches of 50 ids.
@@ -148,7 +149,7 @@ class DataSet:
                     program_data = data
                 else:
                     program_data = pd.concat([ program_data, data ])
-
+        program_data = self._apply_date_filter(program_data, years)
         print( "{} ids were searched".format( str( ids_len )))
         if ( program_data is None ):
             print( "No program records were found." )
@@ -231,7 +232,7 @@ class DataSet:
      
     # Private methods of the class
    
-    def _get_nbhd_data(self, points):
+    def _get_nbhd_data(self, points, years=None):
         poly_str = ''
         for point in points:
             poly_str += f'{point[0]} {point[1]} ,'
@@ -250,7 +251,7 @@ class DataSet:
 
         registry_ids = get_echo_data(sql)
         echo_ids = registry_ids["REGISTRY_ID"].to_list()
-        return self.get_data_by_ids(ids=echo_ids, use_registry_id=True)
+        return self.get_data_by_ids(ids=echo_ids, use_registry_id=True, years=years)
 
     def _try_get_data( self, id_list, use_registry_id=False):
         # The use_registry_id flag determines whether we use the table or view's
@@ -269,6 +270,25 @@ class DataSet:
             print( "..." )
         return this_data
     
+
+    def _apply_date_filter(self, program_data, years=None):
+            df = program_data.copy()
+            if self.echo_type == 'TRI':
+                df['year'] = df[self.date_field]
+            else:
+                df[self.date_field] = pd.to_datetime(df[self.date_field], errors='coerce')
+                df['year'] = df[self.date_field].dt.year
+            start_year = 2001
+            today = date.today()
+            end_year = today.year
+            if years is not None:
+                start_year = years[0]
+                end_year = years[1]
+            df = df[df['year'] >= start_year]
+            df = df[df['year'] <= end_year]
+            df.drop('year', axis=1, inplace=True)
+            return df
+
     def _get_echo_ids( self, echo_type, echo_data ):
         # Return the ids for a single echo type.
         echo_id = echo_type + '_IDS'

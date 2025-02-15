@@ -97,7 +97,7 @@ class DataSetResults:
             try:
                 d = data.groupby(pd.to_datetime(data[program.date_field], 
                         format=program.date_format, errors='coerce'))[[program.date_field]].count()
-                d = d.resample("Y").sum()
+                d = d.resample("YE").sum()
                 d.index = d.index.strftime('%Y')
                 d = d[ d.index > '2000' ]
     
