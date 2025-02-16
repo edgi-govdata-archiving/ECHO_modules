@@ -38,6 +38,8 @@ class DataSet:
         The unit of measure for the data field
     sql : str
         The SQL query to use to retrieve the data
+    last_sql : str
+        The last query made of the database
     '''
 
     def __init__( self, name, base_table, table_name, echo_type=None,
@@ -60,6 +62,7 @@ class DataSet:
         self.results = {}                   #Dictionary of DataSetResults objects
         self.last_modified_is_set = False
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
+        self.last_sql = ''
 
     def store_results( self, region_type, region_value, state=None, years=None ):
         result = DataSetResults( self, region_type, region_value, state )
@@ -88,6 +91,7 @@ class DataSet:
         if ( not self.last_modified_is_set ):
             sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
                 self.base_table )
+            self.last_sql = sql
             ds = get_echo_data( sql )
             self.last_modified = datetime.strptime( ds.modified[0], '%Y-%m-%d' )
             self.last_modified_is_set = True
@@ -105,6 +109,7 @@ class DataSet:
                             + filter
             else:
                 x_sql = self.sql + ' where ' + filter
+            self.last_sql = x_sql
             program_data = get_echo_data( x_sql, self.idx_field )
             program_data = self._apply_date_filter(program_data, years)
         except pd.errors.EmptyDataError:
@@ -189,6 +194,7 @@ class DataSet:
             try:
                 x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
                                     + id_string + ')'
+                self.last_sql = x_sql
                 this_data = get_echo_data( x_sql )
             except pd.errors.EmptyDataError:
                 print( "..." )
@@ -249,6 +255,7 @@ class DataSet:
             WHERE "{}" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
             """.format(echo_flag, poly_str)
 
+        self.last_sql = sql
         registry_ids = get_echo_data(sql)
         echo_ids = registry_ids["REGISTRY_ID"].to_list()
         return self.get_data_by_ids(ids=echo_ids, use_registry_id=True, years=years)
@@ -265,6 +272,7 @@ class DataSet:
                 x_sql = f'select * from "{self.table_name}"  where "{idx}" in ({id_list})'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
+            self.last_sql = x_sql
             this_data = get_echo_data( x_sql, self.idx_field )
         except pd.errors.EmptyDataError:
             print( "..." )
@@ -273,8 +281,11 @@ class DataSet:
 
     def _apply_date_filter(self, program_data, years=None):
             df = program_data.copy()
-            if self.echo_type == 'TRI':
+            if self.echo_type in ['TRI', 'GHG']:
                 df['year'] = df[self.date_field]
+            elif self.name == 'CWA Violations':
+                df['year'] = df[self.date_field]/10
+                df['year'] = df['year'].astype(int)
             else:
                 df[self.date_field] = pd.to_datetime(df[self.date_field], errors='coerce')
                 df['year'] = df[self.date_field].dt.year
