@@ -244,12 +244,24 @@ class DataSet:
             poly_str += f'{point[0]} {point[1]} ,'
         poly_str += f'{points[0][0]} {points[0][1]}'
 
-        if ( self.echo_type == 'SDWA' ):
+        if self.echo_type == 'SDWA':
             echo_flag = 'SDWIS_FLAG'
-        else:
+        elif type(self.echo_type) != list:
             echo_flag = self.echo_type + '_FLAG'
-
-        sql = """
+            
+        echo_ids = []
+        if type(self.echo_type) == list:
+            for flag in self.echo_type:
+                sql = """
+                SELECT "REGISTRY_ID"
+                FROM "ECHO_EXPORTER"
+                WHERE "{}_FLAG" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
+                """.format(flag, poly_str)
+                self.last_sql = sql
+                registry_ids = get_echo_data(sql)
+                echo_ids.extend(registry_ids["REGISTRY_ID"].to_list())
+        else:
+            sql = """
             SELECT "REGISTRY_ID"
             FROM "ECHO_EXPORTER"
             WHERE "{}" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
@@ -281,8 +293,12 @@ class DataSet:
 
     def _apply_date_filter(self, program_data, years=None):
             df = program_data.copy()
-            if self.echo_type in ['TRI', 'GHG']:
-                df['year'] = df[self.date_field]
+            if self.echo_type in ['TRI', 'GHG', 'SDWA'] or 'TRI' in self.echo_type or 'GHG' in self.echo_type:
+                if self.name == 'SDWA Site Visits' or self.name == 'SDWA Enforcements':
+                    df[self.date_field] = pd.to_datetime(df[self.date_field], errors='coerce')
+                    df['year'] = df[self.date_field].dt.year
+                else:
+                    df['year'] = df[self.date_field].astype(int)
             elif self.name == 'CWA Violations':
                 df['year'] = df[self.date_field]/10
                 df['year'] = df['year'].astype(int)

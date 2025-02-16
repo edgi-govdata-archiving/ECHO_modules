@@ -115,3 +115,21 @@ region_value = ((-105.181732, 39.835959),
      (-105.26413, 39.746266))
 _run_test(program=program, region_type=region_type, region_value=region_value, 
           state=None, years=years)
+
+program = data_sets['Combined Air Emissions']
+years = [2010, 2023]
+region_type = 'Neighborhood'
+region_value = ((-105.181732, 39.835959),
+     (-105.04715, 39.847558),
+     (-104.986725, 39.786379),
+     (-105.060883, 39.628961),
+     (-105.250397, 39.619441),
+     (-105.26413, 39.746266))
+_run_test(program=program, region_type=region_type, region_value=region_value, 
+          state=None, years=years)
+
+region_type = 'County'
+state = 'NJ'
+region_value = ['MONMOUTH', 'ESSEX']
+_run_test(program=program, region_type=region_type, region_value=region_value, 
+          state=state, years=years)
