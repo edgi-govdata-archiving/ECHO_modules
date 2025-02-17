@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "ECHO_modules"
-version = "0.1.5"
+version = "0.1.6"
 authors = [
 	{name = "Steve Hansen", email = "steven.e.hansen@gmail.com"}, 
 	{name="Eric Nost", email="enost@uoguelph.ca" }, 
@@ -22,6 +22,7 @@ classifiers = [
 dependencies = [
 	"folium>=0.14.0",
 	"geopandas>=0.9.0",
+	"ipyleaflet==0.19.2",
 	"ipython>=7.29.0",
 	"ipywidgets>=7.6.5",
 	"matplotlib>=3.4.3",
