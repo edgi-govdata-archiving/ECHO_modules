@@ -638,7 +638,10 @@ def mapper(df, bounds=None, no_text=False):
 
     # Initialize the map
     m = folium.Map(
-        location = [df.mean(numeric_only=True)["FAC_LAT"], df.mean(numeric_only=True)["FAC_LONG"]]
+        location = [df.mean(numeric_only=True)["FAC_LAT"], 
+                    df.mean(numeric_only=True)["FAC_LONG"]],
+        min_zoom=2,
+        max_bounds=True
     )
 
     # Create the Marker Cluster array
@@ -700,7 +703,8 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   '''
   if ( df is not None ):
 
-    map_of_facilities = folium.Map()
+    map_of_facilities = folium.Map(min_zoom=2,
+                                   max_bounds=True)
    
     if quartiles == True:
       df['quantile'] = pd.qcut(df[aggcol], 4, labels=False, duplicates="drop")
@@ -764,7 +768,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
 
     import json
 
-    m = folium.Map()
+    m = folium.Map(max_bounds=True, min_zoom=2)
 
     polygons.reset_index(inplace=True) # Reset index
     polygons = polygons[~polygons.geometry.isna()] # Remove empty geographies we can't map   
@@ -798,7 +802,7 @@ def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=Non
     bounds can be preset if necessary
     no_text errors can be managed
     '''
-    m = folium.Map()  
+    m = folium.Map(max_bounds=True, min_zoom=2)  
 
     region_popup = None
     if region_fields:
@@ -856,7 +860,7 @@ def show_regions(regions, states, region_type, spatial_tables):
     show the map of just the regions (e.g. zip codes) and the selected state(s)
     create the map using a library called Folium (https://github.com/python-visualization/folium)
     '''
-    m = folium.Map()  
+    m = folium.Map(max_bounds=True, min_zoom=2)  
 
     # Show the state(s)
     s = folium.GeoJson(
@@ -1159,10 +1163,15 @@ def handle_draw(self, action, geo_json):
 def polygon_map(center=(39.8282,-98.5796), zoom=5):
   # Create map
   ## Heavily inspired by #https://notebook.community/rjleveque/binder_experiments/misc/ipyleaflet_polygon_selector
-  watercolor = basemap_to_tiles(basemaps.CartoDB.Positron)
+  watercolor = basemap_to_tiles(basemaps.Esri.NatGeoWorldMap)
   
-  m = Map(layers=(watercolor, ), center=center, zoom=zoom)
-  
+  m = Map(layers=(watercolor, ), 
+          center=center, 
+          zoom=zoom,
+          scroll_wheel_zoom=True,
+          min_zoom=2, 
+          max_bounds=True)
+
   global shapes
   shapes = set()
   
