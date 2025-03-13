@@ -852,8 +852,8 @@ def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=Non
     bounds = m.get_bounds()
     m.fit_bounds(bounds, padding=0)
 
-    # display the map!
-    display(m)
+    # return the map!
+    return m
 
 def show_regions(regions, states, region_type, spatial_tables):
     '''
@@ -881,8 +881,8 @@ def show_regions(regions, states, region_type, spatial_tables):
     bounds = m.get_bounds()
     m.fit_bounds(bounds, padding=0)
 
-    # display the map!
-    display(m)
+    # return the map!
+    return m
     
 def dataset_filename(base, type, state, regions):
     '''
@@ -1186,5 +1186,4 @@ def polygon_map(center=(39.8282,-98.5796), zoom=5):
   }
   draw_control.on_draw(handle_draw)
   m.add_control(draw_control)
-  display(m)
-  return shapes
+  return (m, shapes)
