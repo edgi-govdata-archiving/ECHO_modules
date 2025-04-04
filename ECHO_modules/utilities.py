@@ -561,7 +561,7 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
 
     return results 
 
-def marker_text( row, no_text ):
+def marker_text( row, no_text, name_field, url_field ):
     '''
     Create a string with information about the facility or program instance.
 
@@ -581,13 +581,13 @@ def marker_text( row, no_text ):
     text = ""
     if ( no_text ):
         return text
-    if ( type( row['FAC_NAME'] == str )) :
+    if ( type( row[name_field] == str )) :
         try:
-            text = row["FAC_NAME"] + ' - '
+            text = row[name_field] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
         if 'DFR_URL' in row:
-            text += " - <p><a href='"+row["DFR_URL"]
+            text += " - <p><a href='"+row[url_field]
             text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
     return text
 
@@ -615,7 +615,8 @@ def check_bounds( row, bounds ):
     return True
 
 
-def mapper(df, bounds=None, no_text=False):
+def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_LONG', 
+           name_field='FAC_NAME', url_field='DFR_URL'):
     '''
     Display a map of the Dataframe passed in.
     Based on https://medium.com/@bobhaffner/folium-markerclusters-and-fastmarkerclusters-1e03b01cb7b1
@@ -638,8 +639,8 @@ def mapper(df, bounds=None, no_text=False):
 
     # Initialize the map
     m = folium.Map(
-        location = [df.mean(numeric_only=True)["FAC_LAT"], 
-                    df.mean(numeric_only=True)["FAC_LONG"]],
+        location = [df.mean(numeric_only=True)[lat_field], 
+                    df.mean(numeric_only=True)[long_field]],
         min_zoom=2,
         max_bounds=True
     )
@@ -654,8 +655,9 @@ def mapper(df, bounds=None, no_text=False):
             if ( not check_bounds( row, bounds )):
                 continue
         mc.add_child(folium.CircleMarker(
-            location = [row["FAC_LAT"], row["FAC_LONG"]],
-            popup = marker_text( row, no_text ),
+            location = [row[lat_field], row[long_field]],
+            popup = marker_text(row, no_text, name_field, url_field),
+
             radius = 8,
             color = "black",
             weight = 1,
