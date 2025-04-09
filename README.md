@@ -45,7 +45,7 @@ Any interpretations you make of ECHO data accessed through `ECHO_modules` should
 
 Installation & Basic Usage
 --------------------------
-For a more complete set of examples, see the Jupyter Notebook [here](https://colab.research.google.com/drive/1EqbWz1KqBqlMc1IYMcOPbI_8Equ2Jwmr?usp=sharing) or notebooks in project-specific repositories in the EDGI organization on GitHub.
+For a more complete set of examples, see the Jupyter Notebook [here](https://github.com/edgi-govdata-archiving/ECHO_modules/blob/main/ECHO_modules_Tutorials.ipynb) or notebooks in project-specific repositories in the EDGI organization on GitHub.
 
 Command line installation:
 ```
@@ -88,7 +88,7 @@ point_mapper(aggregated_results["data"], aggregated_results["aggregator"], quart
 Export the results:
 ```
 from ECHO_modules.utilities import write_dataset
-write_dataset( snohomish_cwa_violations.dataframe, "CWAViolations", snohomish_cwa_violations.region_type, snohomish_cwa_violations.state, snohomish_cwa_violations.region_value )
+write_dataset( snohomish_cwa_violations.dataframe, "SnohomishCWAViolations")
 ```
 
 Code of Conduct
@@ -111,6 +111,6 @@ A more complete list of contributors to EEW is [here](https://github.com/edgi-go
 
 License & Copyright
 --------------------------
-Copyright (C) 2019-2024 Environmental Data and Governance Initiative (EDGI)
+Copyright (C) 2019-2025 Environmental Data and Governance Initiative (EDGI)
 
 This program is free software: you can redistribute it and/or modify it under the terms of the 3-Clause BSD License. See the `LICENSE <https://github.com/edgi-govdata-archiving/wayback/blob/master/LICENSE>` file for details.

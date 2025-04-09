@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "ECHO_modules"
-version = "0.1.6"
+version = "0.1.7"
 authors = [
 	{name = "Steve Hansen", email = "steven.e.hansen@gmail.com"}, 
 	{name="Eric Nost", email="enost@uoguelph.ca" }, 
@@ -26,7 +26,7 @@ dependencies = [
 	"ipython>=7.29.0",
 	"ipywidgets>=7.6.5",
 	"matplotlib>=3.4.3",
-	"numpy==1.23.5",
+	"numpy==2.0.2",
 	"pandas>=1.3.4",
 	"requests>=2.31.0",
 	"seaborn>=0.11.2"
