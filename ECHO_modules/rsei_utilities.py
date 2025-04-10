@@ -9,7 +9,7 @@ from ECHO_modules.utilities import check_bounds, marker_text
 from IPython.display import display
 
 
-def show_rsei_pick_region_widget( type, state_widget=None, multi=False ):
+def show_rsei_pick_region_widget(type, state_widget=None, multi=False, description=None):
     '''
     Create and return a dropdown list of regions appropriate
     to the input parameters.
@@ -32,6 +32,9 @@ def show_rsei_pick_region_widget( type, state_widget=None, multi=False ):
 
     region_widget = None
     
+    description_text = f'{type}'
+    if description is not None:
+        description_text = description
     if type in ('City', 'County'):
         if ( state_widget is None ):
             print( "You must first choose a state." )
@@ -39,10 +42,10 @@ def show_rsei_pick_region_widget( type, state_widget=None, multi=False ):
         my_state = state_widget.value
         if ( isinstance( my_state, tuple )):
             my_state = my_state[0]
-    if type in ('Zip Code', 'City', 'County'):
+    if type in ('Zip Code', 'City', 'County', 'FRSID List'):
         region_widget = widgets.Text(
             value='',
-            description=f'{type}:',
+            description=description_text,
             disabled=False
         )
     if region_widget is not None:
@@ -57,6 +60,32 @@ def _filter_years(df, year_column, years):
         end_year = years[1]
         df = df[df[year_column].between(start_year, end_year)]
     return df
+
+def get_frsid_list(filename):
+    '''
+    The file must be a CSV file with one column named FRSID.
+
+    Parameters
+    ----------
+    filename : str
+
+    Returns
+    -------
+    Series of FRSID values
+    '''
+    id_series = None
+    try:
+        df = pd.read_csv(filename)
+        try:
+            df = df[pd.to_numeric(df['FRSID'], errors='coerce').notnull()]
+            id_series = df['FRSID'].dropna()
+        except:
+            print(f'Could not read a column in {filename} named FRSID')
+            return None
+    except:
+        print(f'Could not open file: {filename}')
+        return None
+    return id_series
 
 def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns='*',
                         years=None):
