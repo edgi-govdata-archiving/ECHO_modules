@@ -15,7 +15,8 @@ import urllib
 import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
-from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl
+from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster, Marker
+from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
 from ECHO_modules.get_data import get_echo_data
@@ -283,7 +284,7 @@ def show_data_set_widget( data_sets ):
     return data_set_widget
 
 
-def show_fac_widget( fac_series, top_violators ):
+def show_fac_widget( fac_series, top_violators=None ):
     '''
     Create and return a dropdown list of facilities from the 
     input Series. Pre-select the facilities identified in
@@ -302,7 +303,9 @@ def show_fac_widget( fac_series, top_violators ):
     widget
         The widget with facility names
     '''
-    selected = list(set(fac_series) & set(top_violators))
+    selected = ()
+    if top_violators is not None:
+        selected = list(set(fac_series) & set(top_violators))
     fac_list = fac_series.dropna().unique()
     fac_list.sort()
     style = {'description_width': 'initial'}
@@ -645,6 +648,8 @@ def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_
         max_bounds=True
     )
 
+    df = df.drop_duplicates(subset=[name_field, lat_field, long_field])
+
     # Create the Marker Cluster array
     #kwargs={"disableClusteringAtZoom": 10, "showCoverageOnHover": False}
     mc = FastMarkerCluster("")
@@ -671,6 +676,83 @@ def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_
 
     # Show the map
     return m
+def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_LONG', 
+           name_field='FAC_NAME', info_field='DFR_URL', zoom=8):
+    '''
+    Display a map of the Dataframe passed in.
+    Based on https://medium.com/@bobhaffner/folium-markerclusters-and-fastmarkerclusters-1e03b01cb7b1
+
+    Parameters
+    ----------
+    df : Dataframe
+        The facilities to map.  They must have latitude and longitude fields.
+    bounds : Dataframe
+        A bounding rectangle--minx, miny, maxx, maxy.  Discard points outside.
+
+    Returns
+    -------
+    ipyleaflet map
+    '''
+
+    if df.empty:
+        print("The DataFrame is empty. There is nothing to map.")
+        return None
+
+    # icon = AwesomeIcon(name='building')
+
+    base = basemap_to_tiles(basemaps.CartoDB.Positron)
+  
+    df = df.drop_duplicates(subset=[name_field, lat_field, long_field])
+    center = [df.mean(numeric_only=True)[lat_field], 
+              df.mean(numeric_only=True)[long_field]]
+    print( f'Center is {center}')
+
+    m = Map(layers=(base, ), 
+            center=center, 
+            zoom=zoom,
+            scroll_wheel_zoom=True,
+            min_zoom=2, 
+            max_bounds=True,
+            layout=Layout(height='500px')
+        )
+
+    global shapes
+    shapes = set()
+    
+    markers = []
+    marker_radius = 10
+    # Add a clickable marker for each facility
+    for index, row in df.iterrows():
+        if ( bounds is not None ):
+            if (not check_bounds( row, bounds, lat_field, long_field)):
+                continue
+        mark = Marker()
+        mark.location = (row[lat_field], row[long_field])
+        mark.radius = marker_radius
+        mark.color = "black"
+        mark.fill_color = "orange"
+        mark.opacity = 0.7
+        mark.title = row[name_field]
+        markers.append(mark)
+    marker_cluster = MarkerCluster(markers=markers)
+    m.add(marker_cluster)
+
+    draw_control = DrawControl()
+    
+    draw_control.rectangle = {
+        "shapeOptions": {
+        "fillColor": "#fca45d",
+        "color": "#fca45d",
+        "fillOpacity": .25
+    }}
+    draw_control.on_draw(handle_draw)
+    m.add_control(draw_control)
+
+    # bounds = m.get_bounds()
+    # m.fit_bounds(bounds)
+
+    # Show the map
+    return (m, shapes)
 
 def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   '''
