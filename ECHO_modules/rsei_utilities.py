@@ -312,7 +312,8 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
                     sql += f' limit {limit}'
                 else:
                     break
-            print(f'{count}) {sql}')
+            if count % 100 == 0:
+                print(f'{count}) reading {table}')
             try:
                 df = get_echo_data(sql)
                 if limit is not None:

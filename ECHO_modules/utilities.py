@@ -676,6 +676,8 @@ def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_
 
     # Show the map
     return m
+
+
 def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_LONG', 
            name_field='FAC_NAME', info_field='DFR_URL', zoom=8):
     '''
@@ -702,6 +704,7 @@ def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='F
 
     base = basemap_to_tiles(basemaps.CartoDB.Positron)
   
+    df = df.dropna(subset=[name_field, lat_field, long_field])
     df = df.drop_duplicates(subset=[name_field, lat_field, long_field])
     center = [df.mean(numeric_only=True)[lat_field], 
               df.mean(numeric_only=True)[long_field]]
@@ -753,6 +756,7 @@ def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='F
 
     # Show the map
     return (m, shapes)
+
 
 def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   '''
@@ -877,6 +881,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
 
     return m
 
+
 def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=None, 
                   region_aliases = None, points_fields=None, points_aliases=None,
                   show_marker=False):
@@ -939,6 +944,7 @@ def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=Non
     # return the map!
     return m
 
+
 def show_regions(regions, states, region_type, spatial_tables):
     '''
     show the map of just the regions (e.g. zip codes) and the selected state(s)
@@ -967,7 +973,8 @@ def show_regions(regions, states, region_type, spatial_tables):
 
     # return the map!
     return m
-    
+
+
 def dataset_filename(base, type, state, regions):
     '''
     Create a suggested filename.
@@ -1193,6 +1200,7 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
     except TypeError as te:
         print( "TypeError: {}".format( str(te) ))
         return None
+
 
 def chart (full_data, date_column, counting_column, measure, function, title, mnth_name=""):
   """
