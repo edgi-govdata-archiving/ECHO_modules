@@ -11,8 +11,8 @@ widgets.
 # In the following line, 'from DataSet' refers to the file DataSet.py
 # while 'import DataSet' refers to the DataSet class within DataSet.py.
 
-from ECHO_modules.DataSet import DataSet
-from ECHO_modules.data_set_presets import get_attribute_tables
+from ECHO_modules_delta.DataSet import DataSet
+from ECHO_modules_delta.data_set_presets import get_attribute_tables
 
 
 def make_data_sets( data_set_list = None, exclude_list = None ):

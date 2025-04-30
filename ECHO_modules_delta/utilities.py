@@ -18,8 +18,10 @@ import ipywidgets as widgets
 from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
-from ECHO_modules.get_data import get_echo_data
-from ECHO_modules.geographies import region_field, states
+from ECHO_modules_delta.get_data import get_echo_data, get_echo_data_delta
+from ECHO_modules_delta.geographies import region_field, states
+from shapely.geometry import Polygon, Point
+import geopandas as gpd
 
 # Set up some default parameters for graphing
 from matplotlib import cycler
@@ -345,7 +347,7 @@ def get_facs_in_counties( df, selected ):
     selected_counties = state_counties[state_counties['County'].isin(selected)]['FAC_COUNTY']
     return df[df['FAC_COUNTY'].isin(selected_counties)]
 
-def get_active_facilities( state, region_type, regions_selected ):
+def get_active_facilities( state, region_type, regions_selected, api=False, token=None):
     '''
     Get a Dataframe with the ECHO_EXPORTER facilities with FAC_ACTIVE_FLAG
     set to 'Y' for the region selected.
@@ -358,6 +360,8 @@ def get_active_facilities( state, region_type, regions_selected ):
         The type of region:  'State', 'Congressional District', etc.
     regions_selected : list
         The selected regions of the specified region_type
+    api : bool
+        If True, use the API to get the data.  If False, use the local delta lake connection
 
     Returns
     -------
@@ -367,45 +371,53 @@ def get_active_facilities( state, region_type, regions_selected ):
 
     try:
         if ( region_type == 'State' or region_type == 'County'):
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+            sql = 'select * from ECHO_EXPORTER where FAC_STATE = \'{}\''
+            sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( state )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
+            # df_active = get_echo_data( sql, 'REGISTRY_ID' )
+            # df_active = get_echo_data_delta( sql, 'REGISTRY_ID' )
+            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
+            
         elif ( region_type == 'Congressional District'):
             cd_str = ",".join( map( lambda x: str(x), regions_selected ))
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_STATE" = \'{}\''
-            sql += ' and "FAC_DERIVED_CD113" in ({})'
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+            sql = 'select * from ECHO_EXPORTER where FAC_STATE = \'{}\''
+            sql += ' and FAC_DERIVED_CD113 in ({})'
+            sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( state, cd_str )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
+            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
+            
         elif ( region_type == 'Zip Code' ):
             regions_selected = ''.join(regions_selected.split())
             zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_ZIP" in ({})'
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+            sql = 'select * from ECHO_EXPORTER where FAC_ZIP in ({})'
+            sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( zc_str )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
+            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
         elif ( region_type == 'Watershed' ):
             regions_selected = ''.join(regions_selected.split())
             ws_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
-            sql = 'select * from "ECHO_EXPORTER" where "FAC_DERIVED_HUC" in ({})'
-            sql += ' and "FAC_ACTIVE_FLAG" = \'Y\''
+            sql = 'select * from ECHO_EXPORTER where FAC_DERIVED_HUC in ({})'
+            sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( ws_str )
-            df_active = get_echo_data( sql, 'REGISTRY_ID' )
+            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
         elif ( region_type == 'Neighborhood' ):
             poly_str = ''
             points = regions_selected
-            for point in points:
-                poly_str += f'{point[0]} {point[1]} ,'
-            poly_str += f'{points[0][0]} {points[0][1]}'
-    
+            
+            # Get only id and coords from table
             sql = """
-                SELECT *
-                FROM "ECHO_EXPORTER"
-                WHERE "FAC_ACTIVE_FLAG" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
-                """.format(poly_str)
-    
-            df_active = get_echo_data(sql)
+                SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
+                FROM ECHO_EXPORTER 
+                WHERE FAC_ACTIVE_FLAG = 'Y'
+            """
+            df = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
+            df = filter_by_geometry(points, df)
+            
+            id_list_str = ", ".join(map(str, df["REGISTRY_ID"].tolist()))       
+        
+            # Run a second query to find rows with same IDs as filtered_points
+            sql = f"SELECT * FROM ECHO_EXPORTER WHERE REGISTRY_ID IN ({id_list_str})"
+            df_active = get_echo_data_delta(sql, api=api, token=token)
         else:
             df_active = None
         if ( region_type == 'County' ):
@@ -417,7 +429,31 @@ def get_active_facilities( state, region_type, regions_selected ):
 
     return df_active
 
-def aggregate_by_facility(records, program, other_records = False):
+def filter_by_geometry(points, df):  
+    # Bounding Box
+    min_lon = min(p[0] for p in points)
+    max_lon = max(p[0] for p in points)
+    min_lat = min(p[1] for p in points)
+    max_lat = max(p[1] for p in points)
+    
+    # Make a geopandas dataframe of all points
+    points_gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['FAC_LONG'], df['FAC_LAT']), crs="EPSG:4269")
+    
+    filtered_points = points_gdf[
+        (points_gdf.geometry.x >= min_lon) & 
+        (points_gdf.geometry.x <= max_lon) & 
+        (points_gdf.geometry.y >= min_lat) & 
+        (points_gdf.geometry.y <= max_lat)
+    ]
+    
+    # Filter more by creating a polygon using the points to get the points inside the polygon
+    polygon = Polygon(points)
+    filtered_points = filtered_points[filtered_points.geometry.intersects(polygon)]
+    
+    
+    return filtered_points
+
+def aggregate_by_facility(records, program, other_records = False, api=False, token=None):
   '''
   Aggregate a set of records by facility IDs, using sum or count operations. 
   Enables point symbol mapping. 
@@ -436,6 +472,8 @@ def aggregate_by_facility(records, program, other_records = False):
   other_records : Boolean
       When True, will retrieve other facilities in the selection 
       (e.g. facilities in Snohomish County *without* reported CWA violations)
+    api : Boolean
+        When True, will use the API to get the data.  If False, will use the local delta lake connection
   
   Returns
   -------
@@ -448,11 +486,11 @@ def aggregate_by_facility(records, program, other_records = False):
   data = records.dataframe
   diff = None
 
-  def differ(input, program):
+  def differ(input, program, api=False, token=None):
     '''
     Helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program (active)
     '''
-    active = get_active_facilities(records.state, records.region_type, records.region_value )
+    active = get_active_facilities(records.state, records.region_type, records.region_value, api=api, token=token)
 
     diff = list(
         set(active[records.dataset.echo_type + "_IDS"]) - set(input[records.dataset.idx_field])
@@ -471,7 +509,7 @@ def aggregate_by_facility(records, program, other_records = False):
     year = data["YEARQTR"].astype("str").str[0:4:1]
     data["YEARQTR"] = year
     data["sum"] = data["NUME90Q"] + data["NUMCVDT"] + data['NUMSVCD'] + data["NUMPSCH"]
-    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"])[["sum"]].sum()
+    data = data.groupby([records.dataset.idx_field, "FAC_NAME", "FAC_LAT", "FAC_LONG"]).sum()
     data = data.reset_index()
     data = data.loc[data["sum"] > 0] # only symbolize facilities with violations
     aggregator = "sum" # keep track of which field we use to aggregate data, which may differ from the preset
@@ -511,7 +549,7 @@ def aggregate_by_facility(records, program, other_records = False):
     aggregator = "count" # keep track of which field we use to aggregate data, which may differ from the preset
 
   if other_records:
-    diff = differ(data, program)
+    diff = differ(data, program, api=api, token=token)
   
   if ( len(data) > 0 ):
     #print({"data": data, "aggregator": aggregator}) # Debugging
@@ -519,6 +557,7 @@ def aggregate_by_facility(records, program, other_records = False):
   else:
     print( "There is no data for this program and region after 2000." )
 
+# IGNORE 
 def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
     '''
     Aggregate attribute data by a spatial unit, such as zip codes
@@ -530,7 +569,7 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
     agg_type : str
         How to aggregate the data (sum, mean, median)
     spatial_tables : dict
-        Import from ECHO_modules/geographies.py
+        Import from ECHO_modules_delta/geographies.py
     region_filter : list
         Optional list of regions (zips, counties, etc.) to focus on. Same as region_value from ds.store_results
 
@@ -541,11 +580,10 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
         choropleth(result, dsr.dataset.agg_col, key_id=region_field[dsr.region_type]["field"], legend_name=dsr.dataset.agg_col)
 
     '''
-    from ECHO_modules.get_data import get_spatial_data
+    from ECHO_modules_delta.get_data import get_spatial_data
 
     # Aggregate attribute data
     aggregated = dsr.dataframe.groupby(by=region_field[dsr.region_type]["field"])[[dsr.dataset.agg_col]].agg({dsr.dataset.agg_col:agg_type}) 
-    
     # Join aggregated data with spatial dataset
     ## Get spatial data
     if region_filter and dsr.region_type == "County":
@@ -558,10 +596,9 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
         idx = regions[spatial_tables[dsr.region_type]['match_field']]
     
     results = geopandas.GeoDataFrame(aggregated.join(regions[["geometry"]].set_index(idx)), geometry="geometry", crs=4269)
-
     return results 
 
-def marker_text( row, no_text, name_field, url_field ):
+def marker_text( row, no_text ):
     '''
     Create a string with information about the facility or program instance.
 
@@ -581,26 +618,26 @@ def marker_text( row, no_text, name_field, url_field ):
     text = ""
     if ( no_text ):
         return text
-    if ( type( row[name_field] == str )) :
+    if ( type( row['FAC_NAME'] == str )) :
         try:
-            text = row[name_field] + ' - '
+            text = row["FAC_NAME"] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
         if 'DFR_URL' in row:
-            text += " - <p><a href='"+row[url_field]
+            text += " - <p><a href='"+row["DFR_URL"]
             text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
     return text
 
 
-def check_bounds( row, bounds, lat_field='FAC_LAT', long_field='FAC_LONG' ):
+def check_bounds( row, bounds ):
     '''
-    See if the latitude and longitude of the row are interior to
+    See if the FAC_LAT and FAC_LONG of the row are interior to
     the minx, miny, maxx, maxy of the bounds.
 
     Parameters
     ----------
     row : Series
-	Must contain the lat_field and long_field
+	Must contain FAC_LAT and FAC_LONG
     bounds : Dataframe
 	Bounding rectangle--minx,miny,maxx,maxy
 
@@ -609,14 +646,13 @@ def check_bounds( row, bounds, lat_field='FAC_LAT', long_field='FAC_LONG' ):
     True if the row's point is in the bounds
     '''
 
-    if ( row[long_field] < bounds.minx[0] or row[lat_field] < bounds.miny[0] \
-         or row[long_field] > bounds.maxx[0] or row[lat_field] > bounds.maxy[0]):
+    if ( row['FAC_LONG'] < bounds.minx[0] or row['FAC_LAT'] < bounds.miny[0] \
+         or row['FAC_LONG'] > bounds.maxx[0] or row['FAC_LAT'] > bounds.maxy[0]):
         return False
     return True
 
 
-def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_LONG', 
-           name_field='FAC_NAME', url_field='DFR_URL'):
+def mapper(df, bounds=None, no_text=False):
     '''
     Display a map of the Dataframe passed in.
     Based on https://medium.com/@bobhaffner/folium-markerclusters-and-fastmarkerclusters-1e03b01cb7b1
@@ -624,7 +660,7 @@ def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_
     Parameters
     ----------
     df : Dataframe
-        The facilities to map.  They must have latitude and longitude fields.
+        The facilities to map.  They must have a FAC_LAT and FAC_LONG field.
     bounds : Dataframe
         A bounding rectangle--minx, miny, maxx, maxy.  Discard points outside.
 
@@ -639,10 +675,7 @@ def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_
 
     # Initialize the map
     m = folium.Map(
-        location = [df.mean(numeric_only=True)[lat_field], 
-                    df.mean(numeric_only=True)[long_field]],
-        min_zoom=2,
-        max_bounds=True
+        location = [df.mean(numeric_only=True)["FAC_LAT"], df.mean(numeric_only=True)["FAC_LONG"]]
     )
 
     # Create the Marker Cluster array
@@ -652,12 +685,11 @@ def mapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_
     # Add a clickable marker for each facility
     for index, row in df.iterrows():
         if ( bounds is not None ):
-            if (not check_bounds( row, bounds, lat_field, long_field)):
+            if ( not check_bounds( row, bounds )):
                 continue
         mc.add_child(folium.CircleMarker(
-            location = [row[lat_field], row[long_field]],
-            popup = marker_text(row, no_text, name_field, url_field),
-
+            location = [row["FAC_LAT"], row["FAC_LONG"]],
+            popup = marker_text( row, no_text ),
             radius = 8,
             color = "black",
             weight = 1,
@@ -705,8 +737,7 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   '''
   if ( df is not None ):
 
-    map_of_facilities = folium.Map(min_zoom=2,
-                                   max_bounds=True)
+    map_of_facilities = folium.Map()
    
     if quartiles == True:
       df['quantile'] = pd.qcut(df[aggcol], 4, labels=False, duplicates="drop")
@@ -770,14 +801,14 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
 
     import json
 
-    m = folium.Map(max_bounds=True, min_zoom=2)
+    m = folium.Map()
 
     polygons.reset_index(inplace=True) # Reset index
     polygons = polygons[~polygons.geometry.isna()] # Remove empty geographies we can't map   
     if attribute_table is not None: # if we have a separate attribute table that needs to be joined with the spatial data (polygons)...
         data = attribute_table
     else:
-        data = polygons
+        data = polygons    
     layer = folium.Choropleth(
         geo_data = polygons,
         data = data,
@@ -804,7 +835,7 @@ def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=Non
     bounds can be preset if necessary
     no_text errors can be managed
     '''
-    m = folium.Map(max_bounds=True, min_zoom=2)  
+    m = folium.Map()  
 
     region_popup = None
     if region_fields:
@@ -854,15 +885,15 @@ def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=Non
     bounds = m.get_bounds()
     m.fit_bounds(bounds, padding=0)
 
-    # return the map!
-    return m
+    # display the map!
+    display(m)
 
 def show_regions(regions, states, region_type, spatial_tables):
     '''
     show the map of just the regions (e.g. zip codes) and the selected state(s)
     create the map using a library called Folium (https://github.com/python-visualization/folium)
     '''
-    m = folium.Map(max_bounds=True, min_zoom=2)  
+    m = folium.Map()  
 
     # Show the state(s)
     s = folium.GeoJson(
@@ -883,8 +914,8 @@ def show_regions(regions, states, region_type, spatial_tables):
     bounds = m.get_bounds()
     m.fit_bounds(bounds, padding=0)
 
-    # return the map!
-    return m
+    # display the map!
+    display(m)
     
 def dataset_filename(base, type, state, regions):
     '''
@@ -1167,13 +1198,8 @@ def polygon_map(center=(39.8282,-98.5796), zoom=5):
   ## Heavily inspired by #https://notebook.community/rjleveque/binder_experiments/misc/ipyleaflet_polygon_selector
   watercolor = basemap_to_tiles(basemaps.CartoDB.Positron)
   
-  m = Map(layers=(watercolor, ), 
-          center=center, 
-          zoom=zoom,
-          scroll_wheel_zoom=True,
-          min_zoom=2, 
-          max_bounds=True)
-
+  m = Map(layers=(watercolor, ), center=center, zoom=zoom)
+  
   global shapes
   shapes = set()
   
@@ -1188,4 +1214,5 @@ def polygon_map(center=(39.8282,-98.5796), zoom=5):
   }
   draw_control.on_draw(handle_draw)
   m.add_control(draw_control)
-  return (m, shapes)
+  display(m)
+  return shapes
