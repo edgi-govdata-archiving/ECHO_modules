@@ -102,6 +102,9 @@ class DataSet:
         if (region_type == 'Neighborhood'):
             return self._get_nbhd_data(region_value, years)
 
+        if (region_type == 'Neighborhood'):
+            return self._get_nbhd_data(region_value, years)
+
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):

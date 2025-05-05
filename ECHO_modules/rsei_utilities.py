@@ -75,6 +75,10 @@ def show_rsei_pick_region_widget(type, state_widget=None, multi=False, descripti
         The type of region
     state_widget : widget
         The widget in which a state may have been selected
+    mullti : boolean
+        Whether multiple selections are supported
+    description : string
+        The prompt string for the widget
 
     Returns
     -------
@@ -120,11 +124,11 @@ def show_select_multiple_widget(items, label, preselected=None):
     Returns
     -------
     widget
-        The widget with items
+        The widget with items to be selected
     '''
     selected = ()
     if preselected is not None:
-        selected = list(set(items) & set(top_violators))
+        selected = list(set(items) & set(preselected))
     item_list = items.dropna().unique()
     item_list.sort()
     style = {'description_width': 'initial'}
@@ -146,32 +150,6 @@ def _filter_years(df, year_column, years):
         end_year = years[1]
         df = df[df[year_column].between(start_year, end_year)]
     return df
-
-def get_frsid_list(filename):
-    '''
-    The file must be a CSV file with one column named FRSID.
-
-    Parameters
-    ----------
-    filename : str
-
-    Returns
-    -------
-    Series of FRSID values
-    '''
-    id_series = None
-    try:
-        df = pd.read_csv(filename)
-        try:
-            df = df[pd.to_numeric(df['FRSID'], errors='coerce').notnull()]
-            id_series = df['FRSID'].dropna()
-        except:
-            print(f'Could not read a column in {filename} named FRSID')
-            return None
-    except:
-        print(f'Could not open file: {filename}')
-        return None
-    return id_series
 
 def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns='*',
                         years=None):
@@ -255,7 +233,7 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
     return df_active
 
 def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_columns='*', 
-                     years=None, year_field=None, limit=None):
+                     years=None, year_field=None, filter=None, limit=None):
     '''
     Get the records from 'this' table associated with the ids (in that_series) 
     from 'that' table.
@@ -277,6 +255,13 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
         A two-element list of the year range
     year_field : str
         The field in 'this' table to filter years
+    filter : Dictionary
+        filter_field : str
+            The field in 'this' table to filter
+        filter_list : list
+            The list of values to match in the filter_field
+        int_flag : boolean
+            True if the list of values are integers
     limit : int
         A maximum number of records to return
 
@@ -286,7 +271,9 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
         The 'this' records returned from the database query
     '''
 
-    table = f"{this_name}_data_rsei_v2312"
+    table = this_name
+    if table != 'ECHO_EXPORTER':
+        table = f"{table}_data_rsei_v2312"
     sql_base = f'select {this_columns} from "{table}"'
     df_result = None
     if that_series is not None:
@@ -296,7 +283,6 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
         count = 0
         while chunk := list(islice(iterator, 50)):
             id_string = ""
-
             for id in chunk:
                 count += 1
                 if ( not int_flag ):
@@ -307,6 +293,17 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
                 id_string +=  ","
             id_string=id_string[:-1] # removes trailing comma
             sql = sql_base + f' where "{this_key}" in ({id_string})'
+            if filter is not None:
+                filter_string = ""
+                for value in filter["filter_list"]:
+                    if ( not filter["int_flag"] ):
+                        filter_string += "'"
+                    filter_string += str(value)
+                    if ( not filter["int_flag"] ):
+                        filter_string += "'"
+                    filter_string += ","
+                filter_string = filter_string[:-1] # removes trailing comma
+                sql += f' and "{filter["filter_field"]}" in ({filter_string})'
             if limit is not None:
                 if limit > 0:
                     sql += f' limit {limit}'
@@ -315,7 +312,10 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
             if count % 100 == 0:
                 print(f'{count}) reading {table}')
             try:
+                # print(sql)
                 df = get_echo_data(sql)
+                if filter is not None:
+                    df.dropna(subset=[filter['filter_field']], inplace=True)
                 if limit is not None:
                     limit -= len(df)
                 if years is not None:
@@ -328,6 +328,13 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
                 else:
                     df_result = pd.concat([df_result, df])
     return df_result
+
+
+def get_media():
+    sql = 'select "Media", "MediaText" from "media_data_rsei_v2312"'
+    media_df = get_echo_data(sql)
+    return media_df
+
 
 def add_chemical_to_submissions(submissions, chemical_columns='*'):
     '''
