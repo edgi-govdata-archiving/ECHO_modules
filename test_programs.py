@@ -1,5 +1,8 @@
-from ECHO_modules.make_data_sets import make_data_sets
-from ECHO_modules.utilities import mapper
+from ECHO_modules_delta.make_data_sets import make_data_sets
+from ECHO_modules_delta.utilities import mapper
+from ECHO_modules_delta.get_data import get_echo_api_access_token
+
+token = get_echo_api_access_token()
 
 data_sets = make_data_sets([
     "RCRA Violations",
@@ -27,7 +30,7 @@ sdwa_data_sets = make_data_sets([
 def _run_test(program, region_type, region_value, state=None, years=None):
     program_results = program.store_results(region_type=region_type,
                                 region_value=region_value, state=state,
-                                years=years)
+                                years=years, api=True, token=token)
     program_data = None
     if ( program_results is not None ):
         program_data = program_results.dataframe.copy()
