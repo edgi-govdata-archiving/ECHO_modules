@@ -157,9 +157,9 @@ def get_frsid_list(filename):
     return id_series
 
 
-def _make_region_widget(widget_parms):
+def make_widget(widget_parms):
     '''
-    Make a widget to select regions based on input parameters
+    Make a widget to select items based on input parameters
 
     Parameters
     ----------
@@ -169,26 +169,26 @@ def _make_region_widget(widget_parms):
         'default': The default or options 
         'description: The prompt label
     '''
-    region_widget = None
+    widget = None
     if widget_parms['type'] == 'text':
-        region_widget = widgets.Text(
+        widget = widgets.Text(
             value=widget_parms['default'],
             description=widget_parms['description'],
             disabled=False
         )
     elif widget_parms['type'] == 'multi':
-        region_widget=widgets.SelectMultiple(
+        widget=widgets.SelectMultiple(
             options=widget_parms['default'],
             description=widget_parms['description'],
             disabled=False
         )
-    elif widget_parms['type'] == 'dropdown':
+    elif widget['type'] == 'dropdown':
         region_widget=widgets.Dropdown(
             options=widget_parms['default'],
             description=widget_parms['description'],
             disabled=False
         )
-    return region_widget
+    return widget
 
 
 def show_pick_region_widget( type, state_widget=None, multi=True ):
@@ -249,7 +249,7 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
             widget_parms = {'type' : 'multi', 'default' : cds, 'description' : 'Select districts:'}
         else:
             widget_parms = {'dropdown' : 'multi', 'default' : cds, 'description' : 'Select district:'}
-    region_widget = _make_region_widget(widget_parms)
+    region_widget = make_widget(widget_parms)
     if ( region_widget is not None ):
         display( region_widget )
     return region_widget
