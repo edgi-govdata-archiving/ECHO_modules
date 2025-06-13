@@ -1,6 +1,6 @@
 # ECHO Modules Delta
 
-ECHO_modules_delta is a modified version of the ECHO_modules, updated to work with the ECHO tables ingested into the Delta Lake system using PySpark. 
+ECHO_modules_delta is a modified version of the ECHO_modules, updated to work with [the ECHO-Pipeline project](https://github.com/edgi-govdata-archiving/ECHO-Pipeline) which harnesses the Delta Lake system using PySpark. 
 
 ## Background
 TBD
