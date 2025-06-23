@@ -361,13 +361,17 @@ def read_file( base, type, state, region ):
 def get_echo_data_delta(sql, index_field=None, table_name=None, api=False, token=None):
     try:
         # Use the API if the api flag is set to True
-        if api and token:
-            return get_echo_data_delta_api(sql, index_field, table_name, token=token)
-        elif api and not token:
-            raise ValueError(
-                "Authentication required\n"
-                f"Run get token cell to get token"
-            ) from None  # Cleaner traceback
+        if api:
+            if os.path.exists('token.txt'):
+                # Check for token file
+                with open('token.txt', 'r') as f:
+                    token = f.read().strip()
+                    print(f"Using api token")
+                return get_echo_data_delta_api(sql, index_field, table_name, token=token)
+            else:
+                # If token file does not exist, prompt user to get token
+                print("Token file not found. Please run the get token cell to obtain a token.")
+                return None
         
         from pyspark.sql import SparkSession
         from delta import configure_spark_with_delta_pip
@@ -519,24 +523,56 @@ def get_echo_data_delta_api(sql, index_field=None, table_name=None, token=None, 
     return pd_df
 
 def get_echo_api_access_token():
+    import time
     from IPython.display import display, HTML
     
-    display(HTML(f'<a href="{API_SERVER}/github-auth">Get Token</a>'))
-
-    # Manually paste token
-    token = input("Paste your token: ")
-
-    # Use token
-    response = requests.get(
-        f"{API_SERVER}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    print(response.json())
-    if response.status_code != 200:
-        print("Failed to authenticate. Please check your token.")
-        return None
-    return token
-
-
-def try_test():
-    print('hellooo')
+    # Display the link to get the token
+    display(HTML(f'<a href="{API_SERVER}/github-auth" target="_blank">Get Token</a>'))
+    print('Get the token by clicking the link above, then paste it inside a token.txt file in the current directory.')
+    print('Waiting for token.txt file...')
+    
+    # Wait for the token file to be created
+    token_file = 'token.txt'
+    max_wait_time = 300  # 5 minutes timeout
+    check_interval = 2   # Check every 2 seconds
+    elapsed_time = 0
+    
+    while elapsed_time < max_wait_time:
+        if os.path.exists(token_file):
+            try:
+                with open(token_file, 'r') as f:
+                    token = f.read().strip()
+                
+                if token:  # Check if token is not empty
+                    print(f"Token found! Verifying...")
+                    
+                    # Test the token
+                    response = requests.get(
+                        f"{API_SERVER}",
+                        headers={"Authorization": f"Bearer {token}"}
+                    )
+                    
+                    if response.status_code == 200:
+                        print("✅ Token verified successfully!")
+                        print("Response:", response.json())
+                        return token
+                    else:
+                        print(f"❌ Token verification failed. Status code: {response.status_code}")
+                        print("Response:", response.text)
+                        return None
+                else:
+                    print("Token file is empty. Please paste your token.")
+            
+            except Exception as e:
+                print(f"Error reading token file: {e}")
+                return None
+        
+        time.sleep(check_interval)
+        elapsed_time += check_interval
+        
+        # Show progress every 10 seconds
+        if elapsed_time % 10 == 0:
+            print(f"Still waiting... ({elapsed_time}s elapsed)")
+    
+    print("❌ Timeout: No token file found within 5 minutes.")
+    return None

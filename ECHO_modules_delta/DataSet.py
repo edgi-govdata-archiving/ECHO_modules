@@ -95,6 +95,8 @@ class DataSet:
     def get_data_delta( self, region_type, region_value, state=None, years=None, api=False, token=None ):
         print(self.base_table)
         if api:
+            with open('token.txt', 'r') as f:
+                token = f.read().strip()
             headers = {
             "Authorization": f"Bearer {token}",
             }
