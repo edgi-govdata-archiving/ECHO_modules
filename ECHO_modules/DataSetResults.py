@@ -83,7 +83,7 @@ class DataSetResults:
                       data['STATE_LOCAL_PENALTY_AMT'].fillna(0)
             d = data.groupby( pd.to_datetime( data['Date'],
                     format="%m/%d/%Y", errors='coerce')).agg({'Amount':'sum'})
-            d = d.resample('YE').sum()
+            d = d.resample('Y').sum()
             d.index = d.index.strftime('%Y')
             d = d[ d.index >= '2001' ]
             if ( len(d) > 0 ):
@@ -97,7 +97,7 @@ class DataSetResults:
             try:
                 d = data.groupby(pd.to_datetime(data[program.date_field], 
                         format=program.date_format, errors='coerce'))[[program.date_field]].count()
-                d = d.resample("YE").sum()
+                d = d.resample("Y").sum()
                 d.index = d.index.strftime('%Y')
                 d = d[ d.index > '2000' ]
     

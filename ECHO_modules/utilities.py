@@ -18,8 +18,8 @@ import ipywidgets as widgets
 from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
-from ECHO_modules_delta.get_data import get_echo_data, get_echo_data_delta
-from ECHO_modules_delta.geographies import region_field, states
+from ECHO_modules.get_data import get_echo_data, get_echo_data_delta
+from ECHO_modules.geographies import region_field, states
 from shapely.geometry import Polygon, Point
 import geopandas as gpd
 
@@ -569,7 +569,7 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
     agg_type : str
         How to aggregate the data (sum, mean, median)
     spatial_tables : dict
-        Import from ECHO_modules_delta/geographies.py
+        Import from ECHO_modules/geographies.py
     region_filter : list
         Optional list of regions (zips, counties, etc.) to focus on. Same as region_value from ds.store_results
 
@@ -580,7 +580,7 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
         choropleth(result, dsr.dataset.agg_col, key_id=region_field[dsr.region_type]["field"], legend_name=dsr.dataset.agg_col)
 
     '''
-    from ECHO_modules_delta.get_data import get_spatial_data
+    from ECHO_modules.get_data import get_spatial_data
 
     # Aggregate attribute data
     aggregated = dsr.dataframe.groupby(by=region_field[dsr.region_type]["field"])[[dsr.dataset.agg_col]].agg({dsr.dataset.agg_col:agg_type}) 
