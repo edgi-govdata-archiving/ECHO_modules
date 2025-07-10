@@ -13,50 +13,6 @@ import requests
 DELTA_TABLES_DIR = os.environ.get('DELTA_TABLES_MOUNT_PATH')
 API_SERVER = "https://portal.gss.stonybrook.edu/api"
 
-def get_echo_data( sql, index_field=None, table_name=None ):
-    '''
-    This is the global function that can run an SQL query against
-    the database and return the resulting Pandas DataFrame.
-
-    Parameters
-    ----------
-    sql : str
-        The SQL query to run
-    index_field : str
-        The field in the result set to set as the Dataframe's index
-
-    Results
-    -------
-    Dataframe
-        The results of the database query
-    '''    
-    url= 'https://portal.gss.stonybrook.edu/echoepa/?query=' #'http://apps.tlt.stonybrook.edu/echoepa/?query=' 
-    data_location=url+urllib.parse.quote_plus(sql) + '&pg'
-    # print( sql )
-    # print( data_location )
-    # pdb.set_trace()
-    if ( index_field == "REGISTRY_ID" ):
-        ds = pd.read_csv(data_location,encoding='iso-8859-1', 
-                 dtype={"REGISTRY_ID": "Int64"})
-    else:
-        ds = pd.read_csv(data_location,encoding='iso-8859-1')
-    if ( index_field is not None ):
-        try:
-            ds.set_index( index_field, inplace=True)
-        except (KeyError, pd.errors.EmptyDataError):
-            pass
-    # print( "get_data() returning {} records.".format( len(ds) ))
-    if (table_name is not None):
-        try:
-            lm_sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(table_name)
-            lm_data_location=url+urllib.parse.quote_plus(lm_sql) + '&pg'
-            lm_ds = pd.read_csv(lm_data_location,encoding='iso-8859-1')
-            last_modified = lm_ds.modified[0]
-            print("Data last updated: " + last_modified) # Print the last modified date for each file we get 
-        except:
-            print("Data last updated: Unknown")
-    
-    return ds
 
 def spatial_selector(units):
     '''
@@ -358,7 +314,7 @@ def read_file( base, type, state, region ):
 
 
 
-def get_echo_data_delta(sql, index_field=None, table_name=None, api=False, token=None):
+def get_echo_data(sql, index_field=None, table_name=None, api=False, token=None):
     try:
         # Use the API if the api flag is set to True
         if api:

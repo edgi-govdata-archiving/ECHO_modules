@@ -15,10 +15,11 @@ import urllib
 import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
-from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl
+from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster, Marker
+from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
-from ECHO_modules.get_data import get_echo_data, get_echo_data_delta
+from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.geographies import region_field, states
 from shapely.geometry import Polygon, Point
 import geopandas as gpd
@@ -131,6 +132,67 @@ def show_state_widget( multi=False ):
     return dropdown_state
 
 
+def get_frsid_list(filename):
+    '''
+    The file must be a CSV file with one column named FRSID.
+
+    Parameters
+    ----------
+    filename : str
+
+    Returns
+    -------
+    Series of FRSID values
+    '''
+    id_series = None
+    try:
+        df = pd.read_csv(filename)
+        try:
+            df = df[pd.to_numeric(df['FRSID'], errors='coerce').notnull()]
+            id_series = df['FRSID'].dropna()
+        except:
+            print(f'Could not read a column in {filename} named FRSID')
+            return None
+    except:
+        print(f'Could not open file: {filename}')
+        return None
+    return id_series
+
+
+def make_widget(widget_parms):
+    '''
+    Make a widget to select items based on input parameters
+
+    Parameters
+    ----------
+    widget_parms : Dictionary
+    Should have keys: 'type', 'default', 'description'
+        'type': The type of widget to create
+        'default': The default or options 
+        'description: The prompt label
+    '''
+    widget = None
+    if widget_parms['type'] == 'text':
+        widget = widgets.Text(
+            value=widget_parms['default'],
+            description=widget_parms['description'],
+            disabled=False
+        )
+    elif widget_parms['type'] == 'multi':
+        widget=widgets.SelectMultiple(
+            options=widget_parms['default'],
+            description=widget_parms['description'],
+            disabled=False
+        )
+    elif widget['type'] == 'dropdown':
+        region_widget=widgets.Dropdown(
+            options=widget_parms['default'],
+            description=widget_parms['description'],
+            disabled=False
+        )
+    return widget
+
+
 def show_pick_region_widget( type, state_widget=None, multi=True ):
     '''
     Create and return a dropdown list of regions appropriate
@@ -153,61 +215,43 @@ def show_pick_region_widget( type, state_widget=None, multi=True ):
     '''
 
     region_widget = None
+    widget_parms = {}
     
-    if ( type != 'Zip Code' and type != 'Watershed' ):
-        if ( state_widget is None ):
+    if not type in ('Zip Code', 'Watershed', 'FRSID List'):
+        if state_widget is None:
             print( "You must first choose a state." )
             return
         my_state = state_widget.value
-        if ( isinstance( my_state, tuple )):
+        if isinstance( my_state, tuple ):
             my_state = my_state[0]
-    if ( type == 'Zip Code' ):
-        region_widget = widgets.Text(
-            value='98225',
-            description='Zip Code:',
-            disabled=False
-        )
-    elif ( type == 'Watershed' ):
-        region_widget = widgets.Text(
-            value='17110005',
-            description='Watershed:',
-            disabled=False
-        )
-    elif ( type == 'County' ):
+    if type == 'Zip Code':
+        widget_parms = {'type' : 'text', 'default' : '98225', 'description' : 'Zip Code:'}
+    elif type == 'Watershed':
+        widget_parms = {'type' : 'text', 'default' : '7110005', 'description' : 'Watershed:'}
+    elif type == 'City':
+        widget_parms = {'type' : 'text', 'default' : '', 'description' : 'Cities:'}
+    elif type == 'FRSID List':
+        widget_parms = {'type' : 'text', 'default' : '', 'description' : 'FRSID filename:'}
+    elif type == 'County':
         url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
         url += "ECHO_modules/main/data/state_counties_corrected.csv"
         df = pd.read_csv( url )
         counties = df[df['FAC_STATE'] == my_state]['County']
         counties = counties.unique()
         if ( multi ):
-            region_widget=widgets.SelectMultiple(
-                options=counties,
-                description='County:',
-                disabled=False
-            )
+            widget_parms = {'type' : 'multi', 'default' :counties, 'description' : 'Select counties:'}
         else:
-            region_widget=widgets.Dropdown(
-                options=counties,
-                description='County:',
-                disabled=False
-            )
-    elif ( type == 'Congressional District' ):
+            widget_parms = {'dropdown' : 'multi', 'default' : counties, 'description' : 'Select county:'}
+    elif type == 'Congressional District':
         url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
         url += "ECHO_modules/main/data/state_cd.csv"
         df = pd.read_csv( url )
         cds = df[df['FAC_STATE'] == my_state]['FAC_DERIVED_CD113']
         if ( multi ):
-            region_widget=widgets.SelectMultiple(
-                options=cds.to_list(),
-                description='District:',
-                disabled=False
-            )
+            widget_parms = {'type' : 'multi', 'default' : cds, 'description' : 'Select districts:'}
         else:
-            region_widget=widgets.Dropdown(
-                options=cds.to_list(),
-                description='District:',
-                disabled=False
-            )
+            widget_parms = {'dropdown' : 'multi', 'default' : cds, 'description' : 'Select district:'}
+    region_widget = make_widget(widget_parms)
     if ( region_widget is not None ):
         display( region_widget )
     return region_widget
@@ -285,7 +329,7 @@ def show_data_set_widget( data_sets ):
     return data_set_widget
 
 
-def show_fac_widget( fac_series, top_violators ):
+def show_fac_widget( fac_series, top_violators=None ):
     '''
     Create and return a dropdown list of facilities from the 
     input Series. Pre-select the facilities identified in
@@ -304,7 +348,9 @@ def show_fac_widget( fac_series, top_violators ):
     widget
         The widget with facility names
     '''
-    selected = list(set(fac_series) & set(top_violators))
+    selected = ()
+    if top_violators is not None:
+        selected = list(set(fac_series) & set(top_violators))
     fac_list = fac_series.dropna().unique()
     fac_list.sort()
     style = {'description_width': 'initial'}
@@ -370,37 +416,33 @@ def get_active_facilities( state, region_type, regions_selected, api=False, toke
     '''
 
     try:
-        if ( region_type == 'State' or region_type == 'County'):
+        if region_type == 'State' or region_type == 'County':
             sql = 'select * from ECHO_EXPORTER where FAC_STATE = \'{}\''
             sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( state )
-            # df_active = get_echo_data( sql, 'REGISTRY_ID' )
-            # df_active = get_echo_data_delta( sql, 'REGISTRY_ID' )
-            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
-            
+            df_active = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
         elif ( region_type == 'Congressional District'):
             cd_str = ",".join( map( lambda x: str(x), regions_selected ))
             sql = 'select * from ECHO_EXPORTER where FAC_STATE = \'{}\''
             sql += ' and FAC_DERIVED_CD113 in ({})'
             sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( state, cd_str )
-            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
-            
+            df_active = get_echo_data(sql, 'REGISTRY_ID', api=api, token=token)
         elif ( region_type == 'Zip Code' ):
             regions_selected = ''.join(regions_selected.split())
             zc_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
             sql = 'select * from ECHO_EXPORTER where FAC_ZIP in ({})'
             sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( zc_str )
-            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
-        elif ( region_type == 'Watershed' ):
+            df_active = get_echo_data(sql, 'REGISTRY_ID', api=api, token=token)
+        elif region_type == 'Watershed':
             regions_selected = ''.join(regions_selected.split())
             ws_str = ",".join( map( lambda x: "\'"+str(x)+"\'", regions_selected.split(',') ))
             sql = 'select * from ECHO_EXPORTER where FAC_DERIVED_HUC in ({})'
             sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( ws_str )
-            df_active = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
-        elif ( region_type == 'Neighborhood' ):
+            df_active = get_echo_data(sql, 'REGISTRY_ID', api=api, token=token)
+        elif region_type == 'Neighborhood':
             poly_str = ''
             points = regions_selected
             
@@ -410,17 +452,17 @@ def get_active_facilities( state, region_type, regions_selected, api=False, toke
                 FROM ECHO_EXPORTER 
                 WHERE FAC_ACTIVE_FLAG = 'Y'
             """
-            df = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
+            df = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
             df = filter_by_geometry(points, df)
             
             id_list_str = ", ".join(map(str, df["REGISTRY_ID"].tolist()))       
         
             # Run a second query to find rows with same IDs as filtered_points
             sql = f"SELECT * FROM ECHO_EXPORTER WHERE REGISTRY_ID IN ({id_list_str})"
-            df_active = get_echo_data_delta(sql, api=api, token=token)
+            df_active = get_echo_data(sql, api=api, token=token)
         else:
             df_active = None
-        if ( region_type == 'County' ):
+        if region_type == 'County':
             # df_active is currently all active facilities in the state.
             # Get only those in the selected counties.
             df_active = get_facs_in_counties(df_active, regions_selected)
@@ -598,7 +640,7 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
     results = geopandas.GeoDataFrame(aggregated.join(regions[["geometry"]].set_index(idx)), geometry="geometry", crs=4269)
     return results 
 
-def marker_text( row, no_text ):
+def marker_text( row, no_text, name_field="FAC_NAME", url_field="DFR_URL"):
     '''
     Create a string with information about the facility or program instance.
 
@@ -608,6 +650,10 @@ def marker_text( row, no_text ):
         Expected to contain FAC_NAME and DFR_URL fields from ECHO_EXPORTER
     no_text : Boolean
         If True, don't put any text with the markers, which reduces chance of errors 
+    name_field : string
+        The field to use for the name in the marker
+    url_field : string
+        The field to use for the marker's URL
 
     Returns
     -------
@@ -618,13 +664,13 @@ def marker_text( row, no_text ):
     text = ""
     if ( no_text ):
         return text
-    if ( type( row['FAC_NAME'] == str )) :
+    if ( type( row[name_field] == str )) :
         try:
-            text = row["FAC_NAME"] + ' - '
+            text = row[name_field] + ' - '
         except TypeError:
             print( "A facility was found without a name. ")
-        if 'DFR_URL' in row:
-            text += " - <p><a href='"+row["DFR_URL"]
+        if url_field in row:
+            text += " - <p><a href='"+row[url_field]
             text += "' target='_blank'>Link to ECHO detailed report</a></p>" 
     return text
 
@@ -678,6 +724,8 @@ def mapper(df, bounds=None, no_text=False):
         location = [df.mean(numeric_only=True)["FAC_LAT"], df.mean(numeric_only=True)["FAC_LONG"]]
     )
 
+    df = df.drop_duplicates(subset=[name_field, lat_field, long_field])
+
     # Create the Marker Cluster array
     #kwargs={"disableClusteringAtZoom": 10, "showCoverageOnHover": False}
     mc = FastMarkerCluster("")
@@ -703,6 +751,87 @@ def mapper(df, bounds=None, no_text=False):
 
     # Show the map
     return m
+
+
+def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='FAC_LONG', 
+           name_field='FAC_NAME', info_field='DFR_URL', zoom=8):
+    '''
+    Display a map of the Dataframe passed in.
+    Based on https://medium.com/@bobhaffner/folium-markerclusters-and-fastmarkerclusters-1e03b01cb7b1
+
+    Parameters
+    ----------
+    df : Dataframe
+        The facilities to map.  They must have latitude and longitude fields.
+    bounds : Dataframe
+        A bounding rectangle--minx, miny, maxx, maxy.  Discard points outside.
+
+    Returns
+    -------
+    ipyleaflet map
+    '''
+
+    if df.empty:
+        print("The DataFrame is empty. There is nothing to map.")
+        return None
+
+    # icon = AwesomeIcon(name='building')
+
+    base = basemap_to_tiles(basemaps.CartoDB.Positron)
+  
+    df = df.dropna(subset=[name_field, lat_field, long_field])
+    df = df.drop_duplicates(subset=[name_field, lat_field, long_field])
+    center = [df.mean(numeric_only=True)[lat_field], 
+              df.mean(numeric_only=True)[long_field]]
+    print( f'Center is {center}')
+
+    m = Map(layers=(base, ), 
+            center=center, 
+            zoom=zoom,
+            scroll_wheel_zoom=True,
+            min_zoom=2, 
+            max_bounds=True,
+            layout=Layout(height='500px')
+        )
+
+    global shapes
+    shapes = set()
+    
+    markers = []
+    marker_radius = 10
+    # Add a clickable marker for each facility
+    for index, row in df.iterrows():
+        if ( bounds is not None ):
+            if (not check_bounds( row, bounds, lat_field, long_field)):
+                continue
+        mark = Marker()
+        mark.location = (row[lat_field], row[long_field])
+        mark.radius = marker_radius
+        mark.color = "black"
+        mark.fill_color = "orange"
+        mark.opacity = 0.7
+        mark.title = row[name_field]
+        markers.append(mark)
+    marker_cluster = MarkerCluster(markers=markers)
+    m.add(marker_cluster)
+
+    draw_control = DrawControl()
+    
+    draw_control.rectangle = {
+        "shapeOptions": {
+        "fillColor": "#fca45d",
+        "color": "#fca45d",
+        "fillOpacity": .25
+    }}
+    draw_control.on_draw(handle_draw)
+    m.add_control(draw_control)
+
+    # bounds = m.get_bounds()
+    # m.fit_bounds(bounds)
+
+    # Show the map
+    return (m, shapes)
+
 
 def point_mapper(df, aggcol, quartiles=False, other_fac=None):
   '''
@@ -826,6 +955,7 @@ def choropleth(polygons, attribute, key_id, attribute_table=None, legend_name=No
 
     return m
 
+
 def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=None, 
                   region_aliases = None, points_fields=None, points_aliases=None,
                   show_marker=False):
@@ -888,6 +1018,7 @@ def bivariate_map(regions, points, bounds=None, no_text=False, region_fields=Non
     # display the map!
     display(m)
 
+
 def show_regions(regions, states, region_type, spatial_tables):
     '''
     show the map of just the regions (e.g. zip codes) and the selected state(s)
@@ -914,9 +1045,10 @@ def show_regions(regions, states, region_type, spatial_tables):
     bounds = m.get_bounds()
     m.fit_bounds(bounds, padding=0)
 
-    # display the map!
-    display(m)
-    
+    # return the map!
+    return m
+
+
 def dataset_filename(base, type, state, regions):
     '''
     Create a suggested filename.
@@ -938,7 +1070,7 @@ def dataset_filename(base, type, state, regions):
         filename += '-' + state
     filename += '-' + type
 
-    if ( type != 'Neighborhood' and regions is not None ):
+    if ( type not in ('Neighborhood', 'FRSID List') and regions is not None ):
         for region in regions:
             filename += '-' + str(region)
     filename = filename.replace('\'', '').replace(',', '-')
@@ -1024,7 +1156,7 @@ def make_filename( base, type, state, region, filetype='csv' ):
     return dir + filename
 
 
-def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 ):
+def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=None ):
     '''
     Sort the dataframe and return the rows that have the most number of
     non-compliant quarters.
@@ -1044,12 +1176,13 @@ def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 
 
     Returns
     -------
-    Dataframe
+    tuple
         The top num_fac violators for the EPA program in the region
+        All violators for the EPA program in the region
 
     Examples
     --------
-    >>> df_violators = get_top_violators( df_active, 'AIR_FLAG',
+    >>> (df_top_violators, df_violators) = get_top_violators( df_active, 'AIR_FLAG',
         'CAA_3YR_COMPL_QTRS_HISTORY', 'CAA_FORMAL_ACTION_COUNT', 20 )
     '''
     df = df_active.loc[ df_active[flag] == 'Y' ]
@@ -1061,20 +1194,49 @@ def get_top_violators( df_active, flag, noncomp_field, action_field, num_fac=10 
     df_active['noncomp_count'] = noncomp_count
     df_active = df_active[['FAC_NAME', 'noncomp_count', action_field,
             'DFR_URL', 'FAC_LAT', 'FAC_LONG']]
-    df_active = df_active[df_active['noncomp_count'] > 0]
-    df_active = df_active.sort_values( by=['noncomp_count', action_field], 
-            ascending=False )
-    df_active = df_active.head( num_fac )
-    return df_active   
+    df_active_all = df_active[df_active['noncomp_count'] > 0]
+    df_active = df_active_all.sort_values(by=['noncomp_count', action_field], 
+            ascending=False)
+    if num_fac is not None:
+        df_active = df_active.head(num_fac)
+    return (df_active, df_active_all)
 
 
-def get_tri_ghg_violators(df_active, field, num_violators):
+def get_tri_ghg_violators(df_active, field, num_fac):
+    '''
+    Sort the dataframe and return the rows that have the most number of
+    non-zero records.
+
+    Parameters
+    ----------
+    df_active : Dataframe
+        Must have ECHO_EXPORTER fields
+    flag : str
+        Identifies the EPA programs of the facility (AIR_FLAG, NPDES_FLAG, etc.)
+    field : str
+        The field with the non-compliance values
+    num_fac
+        The number of facilities to include in the returned Dataframe
+
+    Returns
+    -------
+    tuple
+        The top num_fac violators for the EPA program in the region
+        All violators for the EPA program in the region
+
+    Examples
+    --------
+    >>> (df_top_violators, df_violators) = get_top_violators( df_active, 'AIR_FLAG',
+        'CAA_3YR_COMPL_QTRS_HISTORY', 'CAA_FORMAL_ACTION_COUNT', 20 )
+    '''
     df = df_active.loc[df_active[field]  > 0]
     df_a = df.copy()
     df_a = df_a[['FAC_NAME', field, 'DFR_URL', 'FAC_LAT', 'FAC_LONG']]
     df_a = df_a.sort_values(by=[field], ascending=False)
-    df_a = df_a.head(num_violators)
-    return df_a
+    df_a_all = df_a
+    if num_fac is not None:
+        df_a = df_a.head(num_fac)
+    return (df_a, df_a_all)   
 
 # def get_sdwa_violators(df_active, num_violators):
 # use SDWA_FORMAL_ACTION_COUNT ?
@@ -1090,7 +1252,8 @@ def chart_tri_ghg_violators(df, field, title, xlabel):
       g.set_title(title)
       ax.set_xlabel(xlabel)
       ax.set_ylabel('Facility')
-      ax.set_yticks(ax.get_yticks())
+      # ax.set_yticks(ax.get_yticks())
+      ax.set_yticks(range(len(df)))
       ax.set_yticklabels(df['FAC_NAME'])
     except TypeError as te:
       print("TypeError: {}".format(str(te)))
@@ -1128,20 +1291,24 @@ def chart_top_violators( ranked, state, selections, epa_pgm ):
         else:
             return "No {} facilities with non-compliant quarters in {} - {}".format(
                 epa_pgm, state, str( selections ))
-    sns.set(style='whitegrid')
+    sns.set_theme(style='whitegrid')
     fig, ax = plt.subplots(figsize=(10,10))
     try:
         g = sns.barplot(x=values, y=unit, order=list(unit), orient="h", color = colour) 
-        g.set_title('{} facilities with the most non-compliant quarters in {} - {}'.format( 
-                epa_pgm, state, str( selections )))
+        title = f'{epa_pgm} facilities with the most non-compliant quarters'
+        if len(selections) <= 3:
+            title += f' in {state} - {str(selections)}'
+        g.set_title(title)
         ax.set_xlabel("Non-compliant quarters")
         ax.set_ylabel("Facility")
-        ax.set_yticks(ax.get_yticks())
+        # ax.set_yticks(ax.get_yticks())
+        ax.set_yticks(range(len(ranked)))
         ax.set_yticklabels(ranked["FAC_NAME"])
         return ( g )
     except TypeError as te:
         print( "TypeError: {}".format( str(te) ))
         return None
+
 
 def chart (full_data, date_column, counting_column, measure, function, title, mnth_name=""):
   """
@@ -1214,5 +1381,4 @@ def polygon_map(center=(39.8282,-98.5796), zoom=5):
   }
   draw_control.on_draw(handle_draw)
   m.add_control(draw_control)
-  display(m)
-  return shapes
+  return (m, shapes)

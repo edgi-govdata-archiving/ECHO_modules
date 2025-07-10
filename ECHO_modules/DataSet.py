@@ -120,9 +120,6 @@ class DataSet:
 
         if (region_type == 'Neighborhood'):
             return self._get_nbhd_data(region_value, years, api=api, token=token) # TODO: can't continue, has geometry data
-        # print("Region value:", region_value)
-        # print("Region Type:", region_type)
-        # print("State:", state)
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):
