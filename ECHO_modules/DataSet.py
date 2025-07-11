@@ -7,7 +7,7 @@ from datetime import datetime, date
 from itertools import islice
 from . import geographies
 from .DataSetResults import DataSetResults
-from .get_data import get_echo_data_delta, get_echo_data
+from .get_data import get_echo_data
 from .utilities import get_facs_in_counties, filter_by_geometry
 import json
 import requests
@@ -129,7 +129,7 @@ class DataSet:
                 x_sql = self.sql + ' where ' + filter
             self.last_sql = x_sql
             print(self.last_sql)
-            program_data = get_echo_data_delta( x_sql, self.idx_field, self.table_name, api=api, token=token) #TODO: has get echo data
+            program_data = get_echo_data( x_sql, self.idx_field, self.table_name, api=api, token=token) #TODO: has get echo data
             print(self.idx_field)
             program_data = self._apply_date_filter(program_data, years)
         except pd.errors.EmptyDataError:
@@ -280,7 +280,7 @@ class DataSet:
                     WHERE {flag}_FLAG = 'Y'
                 """
                 self.last_sql = sql
-                df = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
+                df = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
                 registry_ids = filter_by_geometry(points, df)
                 
                 
@@ -308,7 +308,7 @@ class DataSet:
                 WHERE {echo_flag} = 'Y'
             """
             self.last_sql = sql
-            df = get_echo_data_delta( sql, 'REGISTRY_ID', api=api, token=token)
+            df = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
             registry_ids = filter_by_geometry(points, df)
             if registry_ids.index.name == 'REGISTRY_ID': # We set registry_id as index so, we can extract it right here
                 echo_ids = registry_ids.index.to_list()
@@ -341,6 +341,8 @@ class DataSet:
     
 
     def _apply_date_filter(self, program_data, years=None):
+            if program_data is None:
+                return None
             df = program_data.copy()
             if self.echo_type in ['TRI', 'GHG', 'SDWA'] or 'TRI' in self.echo_type or 'GHG' in self.echo_type:
                 if self.name == 'SDWA Site Visits' or self.name == 'SDWA Enforcements':
