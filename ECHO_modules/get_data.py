@@ -322,7 +322,7 @@ def get_echo_data(sql, index_field=None, table_name=None, api=False, token=None)
                 # Check for token file
                 with open('token.txt', 'r') as f:
                     token = f.read().strip()
-                    print(f"Using api token")
+                    # print(f"Using api token")
                 return get_echo_data_delta_api(sql, index_field, table_name, token=token)
             else:
                 # If token file does not exist, prompt user to get token
@@ -394,7 +394,7 @@ def get_echo_data_delta_api(sql, index_field=None, table_name=None, token=None, 
     if not table_name:
         table_name = "ECHO_EXPORTER"
         
-    print(table_name)
+    # print(table_name)
    
     params = {
     "sql": sql
@@ -419,7 +419,7 @@ def get_echo_data_delta_api(sql, index_field=None, table_name=None, token=None, 
                     if "filename=" in part:
                         output_file = part.split('=')[1].strip().strip('"')
             if response.status_code == 200:
-                print("200 OK: Data retrieved successfully.")
+                # print("200 OK: Data retrieved successfully.")
                 
                 chunk_size = 8192
                 total_size = int(response.headers.get('content-length', 0))
@@ -435,7 +435,7 @@ def get_echo_data_delta_api(sql, index_field=None, table_name=None, token=None, 
                         f.write(chunk)
                         bar.update(len(chunk))
     
-                print(f"✅ Downloaded to: {os.path.abspath(output_file)}")
+                # print(f"✅ Downloaded to: {os.path.abspath(output_file)}")
                 break
             elif response.status_code == 403:
                 print("403 Forbidden: You can only use SELECT statements.")
@@ -461,6 +461,7 @@ def get_echo_data_delta_api(sql, index_field=None, table_name=None, token=None, 
     # Load json string to JSON and convert it to pandas dataframe
     try:
         json_data = json.load(open(output_file))
+        os.remove(output_file)
     except json.JSONDecodeError as e:
         print(f"JSON decoding failed: {e}")
         return pd.DataFrame()
@@ -510,7 +511,7 @@ def get_echo_api_access_token():
                     
                     if response.status_code == 200:
                         print("✅ Token verified successfully!")
-                        print("Response:", response.json())
+                        # print("Response:", response.json())
                         return token
                     else:
                         print(f"❌ Token verification failed. Status code: {response.status_code}")
