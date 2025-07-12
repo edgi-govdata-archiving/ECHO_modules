@@ -152,7 +152,7 @@ def _filter_years(df, year_column, years):
     return df
 
 def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns='*',
-                        years=None):
+                        years=None, token=None):
     '''
     Get a Dataframe with the RSEI facilities
     The table identified by the rsei_type must have 
@@ -224,7 +224,7 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
                 WHERE "Latitude" BETWEEN {lat_min} AND {lat_max} AND "Longitude" BETWEEN {long_min} and {long_max}
                 """
         print(sql)
-        df_active = get_echo_data(sql)
+        df_active = get_echo_data(sql, table, api=True, token=token)
         if years is not None:
             df_active = _filter_years(df_active, 'LLYear', years)
     except pd.errors.EmptyDataError:
@@ -233,7 +233,7 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
     return df_active
 
 def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_columns='*', 
-                     years=None, year_field=None, filter=None, limit=None):
+                     years=None, year_field=None, filter=None, limit=None, token=None):
     '''
     Get the records from 'this' table associated with the ids (in that_series) 
     from 'that' table.
@@ -313,7 +313,7 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
                 print(f'{count}) reading {table}')
             try:
                 # print(sql)
-                df = get_echo_data(sql)
+                df = get_echo_data(sql, table, api=True, token=token)
                 if filter is not None:
                     df.dropna(subset=[filter['filter_field']], inplace=True)
                 if limit is not None:
@@ -330,13 +330,14 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
     return df_result
 
 
-def get_media():
-    sql = 'select "Media", "MediaText" from "media_data_rsei_v2312"'
-    media_df = get_echo_data(sql)
+def get_media(token=None):
+    table = "media_data_rsei_v2312"
+    sql = f'select "Media", "MediaText" from "{table}"'
+    media_df = get_echo_data(sql, table, api=True, token=token)
     return media_df
 
 
-def add_chemical_to_submissions(submissions, chemical_columns='*'):
+def add_chemical_to_submissions(submissions, chemical_columns='*', token=None):
     '''
     Get the chemical associated with the submissions and add them to
     submissions dataframe
@@ -364,13 +365,12 @@ def add_chemical_to_submissions(submissions, chemical_columns='*'):
             started = True
         chem_int_string += str(i)
     table = "chemical_data_rsei_v2312"
-    table = "chemical_data_rsei_v2312"
     sql = f'select {chemical_columns} from "{table}"'
     sql += f' where "ChemicalNumber" in ({chem_int_string})'
     print(sql)
     
     try:
-        chem_df = get_echo_data(sql)
+        chem_df = get_echo_data(sql, table, api=True, token=token)
     except pd.errors.EmptyDataError:
         chem_df = None
 
