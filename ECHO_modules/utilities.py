@@ -386,12 +386,15 @@ def get_facs_in_counties( df, selected ):
 
     '''
 
+    if df.empty:
+        return None
     url = "https://raw.githubusercontent.com/edgi-govdata-archiving/"
     url += "ECHO_modules/main/data/state_counties_corrected.csv"
     state_counties = pd.read_csv(url)
     # Get all of the different ECHO names for the selected counties.
     selected_counties = state_counties[state_counties['County'].isin(selected)]['FAC_COUNTY']
     return df[df['FAC_COUNTY'].isin(selected_counties)]
+
 
 def get_active_facilities( state, region_type, regions_selected, api=False, token=None):
     '''
