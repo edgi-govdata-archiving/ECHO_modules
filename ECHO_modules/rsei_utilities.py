@@ -143,11 +143,14 @@ def show_select_multiple_widget(items, label, preselected=None):
     return widget
 
 def _filter_years(df, year_column, years):
+    if df is None or df.empty:
+        return df
     start_year = 0
     end_year = 2500
     if years is not None:
         start_year = years[0]
         end_year = years[1]
+        df[year_column] = pd.to_numeric(df[year_column])
         df = df[df[year_column].between(start_year, end_year)]
     return df
 
@@ -201,15 +204,15 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
 
     try:
         if region_type == 'State':
-            sql = f'select {columns} from "{table}" where upper("State") = \'{state}\''
+            sql = f'select {columns} from {table} where upper(State) = \'{state}\''
         elif region_type == 'City':
-            sql = f'select {columns} from "{table}" where upper("State") = \'{state}\''
-            sql += f' and upper("City") in ({split_str})'
+            sql = f'select {columns} from {table} where upper(State) = \'{state}\''
+            sql += f' and upper(City) in ({split_str})'
         elif region_type == 'County':
-            sql = f'select {columns} from "{table}" where "State" = \'{state}\''
-            sql += f' and upper("County") in ({split_str})'
+            sql = f'select {columns} from {table} where State = \'{state}\''
+            sql += f' and upper(County) in ({split_str})'
         elif region_type == 'Zip Code':
-            sql = f'select {columns} from "{table}" where "ZIPCode" in ({split_str})'
+            sql = f'select {columns} from {table} where ZIPCode in ({split_str})'
         elif region_type == 'Neighborhood':
             poly_str = ''
             points = regions_selected
@@ -220,11 +223,11 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
 
             sql = f"""
                 SELECT {columns}
-                FROM "{table}"
-                WHERE "Latitude" BETWEEN {lat_min} AND {lat_max} AND "Longitude" BETWEEN {long_min} and {long_max}
+                FROM {table}
+                WHERE Latitude BETWEEN {lat_min} AND {lat_max} AND Longitude BETWEEN {long_min} and {long_max}
                 """
         print(sql)
-        df_active = get_echo_data(sql, table, api=True, token=token)
+        df_active = get_echo_data(sql, index_field='None', table_name=table, api=True, token=token)
         if years is not None:
             df_active = _filter_years(df_active, 'LLYear', years)
     except pd.errors.EmptyDataError:
@@ -274,9 +277,10 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
     table = this_name
     if table != 'ECHO_EXPORTER':
         table = f"{table}_data_rsei_v2312"
-    sql_base = f'select {this_columns} from "{table}"'
+    sql_base = f'select {this_columns} from {table}'
     df_result = None
     if that_series is not None:
+        that_series = that_series.astype(int)
         that_tuple = tuple(that_series)
 
         iterator = iter(that_tuple)
@@ -285,14 +289,14 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
             id_string = ""
             for id in chunk:
                 count += 1
-                if ( not int_flag ):
+                if not int_flag:
                     id_string += "'"
                 id_string += str(id)
-                if ( not int_flag ):
+                if not int_flag:
                     id_string += "'"
                 id_string +=  ","
             id_string=id_string[:-1] # removes trailing comma
-            sql = sql_base + f' where "{this_key}" in ({id_string})'
+            sql = sql_base + f' where {this_key} in ({id_string})'
             if filter is not None:
                 filter_string = ""
                 for value in filter["filter_list"]:
@@ -303,7 +307,7 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
                         filter_string += "'"
                     filter_string += ","
                 filter_string = filter_string[:-1] # removes trailing comma
-                sql += f' and "{filter["filter_field"]}" in ({filter_string})'
+                sql += f' and {filter["filter_field"]} in ({filter_string})'
             if limit is not None:
                 if limit > 0:
                     sql += f' limit {limit}'
@@ -313,7 +317,7 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
                 print(f'{count}) reading {table}')
             try:
                 # print(sql)
-                df = get_echo_data(sql, table, api=True, token=token)
+                df = get_echo_data(sql, index_field=None, table_name=table, api=True, token=token)
                 if filter is not None:
                     df.dropna(subset=[filter['filter_field']], inplace=True)
                 if limit is not None:
@@ -332,8 +336,8 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
 
 def get_media(token=None):
     table = "media_data_rsei_v2312"
-    sql = f'select "Media", "MediaText" from "{table}"'
-    media_df = get_echo_data(sql, table, api=True, token=token)
+    sql = f'select Media, MediaText from {table}'
+    media_df = get_echo_data(sql, index_field='None', table_name=table, api=True, token=token)
     return media_df
 
 
@@ -365,16 +369,18 @@ def add_chemical_to_submissions(submissions, chemical_columns='*', token=None):
             started = True
         chem_int_string += str(i)
     table = "chemical_data_rsei_v2312"
-    sql = f'select {chemical_columns} from "{table}"'
-    sql += f' where "ChemicalNumber" in ({chem_int_string})'
+    sql = f'select {chemical_columns} from {table}'
+    sql += f' where ChemicalNumber in ({chem_int_string})'
     print(sql)
     
     try:
-        chem_df = get_echo_data(sql, table, api=True, token=token)
+        chem_df = get_echo_data(sql, index_field='None', table_name=table, api=True, token=token)
     except pd.errors.EmptyDataError:
         chem_df = None
 
-    sub_df = pd.merge(submissions, chem_df, on='ChemicalNumber')
+    sub_df = chem_df
+    if chem_df is not None:
+        sub_df = pd.merge(submissions, chem_df, on='ChemicalNumber')
 
     return sub_df
 

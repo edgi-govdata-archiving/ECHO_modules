@@ -8,6 +8,7 @@ import urllib.parse
 import pandas as pd
 import json
 import requests
+import time
 
 
 DELTA_TABLES_DIR = os.environ.get('DELTA_TABLES_MOUNT_PATH')

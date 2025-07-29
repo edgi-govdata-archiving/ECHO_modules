@@ -701,7 +701,8 @@ def check_bounds( row, bounds ):
     return True
 
 
-def mapper(df, bounds=None, no_text=False):
+def mapper(df, bounds=None, no_text=False, name_field="FAC_NAME",
+           lat_field="FAC_LAT", long_field="FAC_LONG"):
     '''
     Display a map of the Dataframe passed in.
     Based on https://medium.com/@bobhaffner/folium-markerclusters-and-fastmarkerclusters-1e03b01cb7b1
@@ -712,6 +713,14 @@ def mapper(df, bounds=None, no_text=False):
         The facilities to map.  They must have a FAC_LAT and FAC_LONG field.
     bounds : Dataframe
         A bounding rectangle--minx, miny, maxx, maxy.  Discard points outside.
+    no_text : boolean
+        True if no text is to be shown with the markers
+    name_field : string
+        The column in df to be placed in the marker
+    lat_field : string
+        The column of df to identify latitude
+    long_field : string
+        The column of df to identify longitude
 
     Returns
     -------
@@ -724,7 +733,7 @@ def mapper(df, bounds=None, no_text=False):
 
     # Initialize the map
     m = folium.Map(
-        location = [df.mean(numeric_only=True)["FAC_LAT"], df.mean(numeric_only=True)["FAC_LONG"]]
+        location = [df.mean(numeric_only=True)[lat_field], df.mean(numeric_only=True)[long_field]]
     )
 
     df = df.drop_duplicates(subset=[name_field, lat_field, long_field])
@@ -739,8 +748,8 @@ def mapper(df, bounds=None, no_text=False):
             if ( not check_bounds( row, bounds )):
                 continue
         mc.add_child(folium.CircleMarker(
-            location = [row["FAC_LAT"], row["FAC_LONG"]],
-            popup = marker_text( row, no_text ),
+            location = [row[lat_field], row[long_field]],
+            popup = marker_text( row, no_text, name_field ),
             radius = 8,
             color = "black",
             weight = 1,

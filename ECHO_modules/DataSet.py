@@ -45,11 +45,16 @@ class DataSet:
         The SQL query to use to retrieve the data
     last_sql : str
         The last query made of the database
+    api : boolean
+        True if using the DeltaLake api, False if using a local DB
+    token : string
+        The authentication token for the api
     '''
 
     def __init__( self, name, base_table, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None,
-                 sql=None, agg_type=None, agg_col=None, unit=None):
+                 sql=None, agg_type=None, agg_col=None, unit=None,
+                 api=False, token=None):
         # the echo_type can be a single string--AIR, NPDES, RCRA, SDWA,
         # or a list of multiple strings--['GHG','TRI']
 
@@ -68,10 +73,12 @@ class DataSet:
         self.last_modified_is_set = False
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
         self.last_sql = ''
+        self.api = api 
+        self.token = token
 
     def store_results( self, region_type, region_value, state=None, years=None, api=False, token=None ):
         result = DataSetResults( self, region_type, region_value, state )
-        df = self.get_data_delta( region_type, region_value, state, years, api=api, token=token )
+        df = self.get_data_delta( region_type, region_value, state, years )
         print("got the data")
         result.store( df )
         value = region_value
@@ -92,9 +99,9 @@ class DataSet:
         for result in self.results.values():
             result.show_chart()
     
-    def get_data_delta( self, region_type, region_value, state=None, years=None, api=False, token=None ):
+    def get_data_delta( self, region_type, region_value, state=None, years=None ):
         print(self.base_table)
-        if api:
+        if self.api:
             with open('token.txt', 'r') as f:
                 token = f.read().strip()
             headers = {
@@ -119,7 +126,7 @@ class DataSet:
         # program_data = None
 
         if (region_type == 'Neighborhood'):
-            return self._get_nbhd_data(region_value, years, api=api, token=token) # TODO: can't continue, has geometry data
+            return self._get_nbhd_data(region_value, years) # TODO: can't continue, has geometry data
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):
@@ -129,7 +136,7 @@ class DataSet:
                 x_sql = self.sql + ' where ' + filter
             self.last_sql = x_sql
             print(self.last_sql)
-            program_data = get_echo_data( x_sql, self.idx_field, self.table_name, api=api, token=token) #TODO: has get echo data
+            program_data = get_echo_data( x_sql, self.idx_field, self.table_name, api=self.api, token=self.token) 
             print(self.idx_field)
             program_data = self._apply_date_filter(program_data, years)
         except pd.errors.EmptyDataError:
@@ -215,7 +222,7 @@ class DataSet:
                 x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
                                     + id_string + ')'
                 self.last_sql = x_sql
-                this_data = get_echo_data( x_sql )
+                this_data = get_echo_data( x_sql, api=self.api, token=self.token )
             except pd.errors.EmptyDataError:
                 print( "..." )
             if ( this_data is not None ):
@@ -258,7 +265,7 @@ class DataSet:
      
     # Private methods of the class
     # Spatial data function
-    def _get_nbhd_data(self, points, years=None, api=False, token=None):
+    def _get_nbhd_data(self, points, years=None):
         poly_str = ''
         for point in points:
             poly_str += f'{point[0]} {point[1]} ,'
@@ -280,7 +287,7 @@ class DataSet:
                     WHERE {flag}_FLAG = 'Y'
                 """
                 self.last_sql = sql
-                df = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
+                df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
                 registry_ids = filter_by_geometry(points, df)
                 
                 
@@ -308,7 +315,7 @@ class DataSet:
                 WHERE {echo_flag} = 'Y'
             """
             self.last_sql = sql
-            df = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
+            df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
             registry_ids = filter_by_geometry(points, df)
             if registry_ids.index.name == 'REGISTRY_ID': # We set registry_id as index so, we can extract it right here
                 echo_ids = registry_ids.index.to_list()
@@ -321,7 +328,7 @@ class DataSet:
         return self.get_data_by_ids(ids=echo_ids, use_registry_id=True, years=years)
     
 
-    def _try_get_data( self, id_list, use_registry_id=False):
+    def _try_get_data( self, id_list, use_registry_id=False ):
         # The use_registry_id flag determines whether we use the table or view's
         # defined index field or the REGISTRY_ID which is part of each MVIEW.
         this_data = None
@@ -334,7 +341,8 @@ class DataSet:
             else:
                 x_sql = self.sql + "(" + id_list + ")"
             self.last_sql = x_sql
-            this_data = get_echo_data( x_sql, self.idx_field )
+            this_data = get_echo_data( x_sql, index_field=self.idx_field, table=self.table_name, 
+                                      api=self.api, token=self.token )
         except pd.errors.EmptyDataError:
             print( "..." )
         return this_data
