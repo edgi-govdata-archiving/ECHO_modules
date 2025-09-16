@@ -10,7 +10,7 @@ Maps and charts and the like won't display, but that's ok.
 """
 Authenticate
 """
-from ECHO_modules_delta.get_data import get_echo_api_access_token
+from ECHO_modules.get_data import get_echo_api_access_token
 
 token = get_echo_api_access_token()
 
@@ -20,7 +20,7 @@ token = get_echo_api_access_token()
 In the following example, we retrieve all of the currently active facilities (according to EPA) in Erie County in New York.
 """
 
-from ECHO_modules_delta.utilities import get_active_facilities # Use the get_active_facilities function
+from ECHO_modules.utilities import get_active_facilities # Use the get_active_facilities function
 
 erie = get_active_facilities("NY", "County", ["ERIE"], api=True, token=token)
 erie
@@ -33,7 +33,7 @@ First you are able to customize the name of the file we will be creating.
 """
 
 ## You may enter a name to use for the file, or use the one provided.
-from ECHO_modules_delta.utilities import dataset_filename, write_dataset
+from ECHO_modules.utilities import dataset_filename, write_dataset
 
 filename_widget = dataset_filename(base='Facilities',
                type='County', state='NY', regions=['Erie'])
@@ -50,9 +50,9 @@ EPA provides summary data on inspections, violations, and penalties under variou
 
 # Next, we enter the dataframe of Erie County facilities into the get_top_violators() function, then use chart_top_violators to visualize the result
 # Use get_top_violators and chart_top_violators
-from ECHO_modules_delta.utilities import get_top_violators, chart_top_violators
+from ECHO_modules.utilities import get_top_violators, chart_top_violators
 
-erie_top_violators = get_top_violators( erie, flag = 'RCRA_FLAG',
+erie_top_violators, erie_violators = get_top_violators( erie, flag = 'RCRA_FLAG',
                                        noncomp_field = 'RCRA_3YR_COMPL_QTRS_HISTORY',
                                         action_field = 'RCRA_FORMAL_ACTION_COUNT',
                                         num_fac=10 )
@@ -62,9 +62,9 @@ chart_top_violators(erie_top_violators, state = 'NY', selections = "Erie County"
 """## Map these Top 10 RCRA Violators"""
 
 import geopandas # Import a Python package for creating spatial dataframes
-from ECHO_modules_delta.get_data import get_spatial_data # Module for getting spatial data from the SBU database
-from ECHO_modules_delta.geographies import spatial_tables # Variables that support spatial queries
-from ECHO_modules_delta.utilities import bivariate_map, map_style # Use this function and variable to make our map
+from ECHO_modules.get_data import get_spatial_data # Module for getting spatial data from the SBU database
+from ECHO_modules.geographies import spatial_tables # Variables that support spatial queries
+from ECHO_modules.utilities import bivariate_map, map_style # Use this function and variable to make our map
 
 # Query and return spatial data
 county, state = get_spatial_data( region_type = "County", states = ["NY"],
@@ -83,7 +83,7 @@ bivariate_map(regions = county,
 EPA not only produces summary information on environmental enforcement and compliance programs (in its ECHO_EXPORTER records), it provides access to "raw" historical records. These can be accessed through our DataSet collections. Here we will create all of the types of DataSet. These won't hold any records yet. They are just the containers for the types of data. We will populate some of these data_sets later.
 """
 
-from ECHO_modules_delta.make_data_sets import make_data_sets
+from ECHO_modules.make_data_sets import make_data_sets
 
 ## List of datasets to choose from
 data_sets = make_data_sets([
@@ -106,7 +106,7 @@ data_sets = make_data_sets([
     "SDWA Serious Violators",
     "2022 Discharge Monitoring",
     "Effluent Violations",
-])
+], api=True, token=token)
 ## These are described in more detail here: https://github.com/edgi-govdata-archiving/ECHO_modules/blob/main/ECHO_modules/data_set_presets.py
 ## and here: https://echo.epa.gov/tools/data-downloads#downloads
 
@@ -117,7 +117,7 @@ Here we will populate one of the DataSet containers, the one for "RCRA Violation
 EPA says records prior to 2001 are unreliable. First we'll let you select your years of interest...
 """
 
-from ECHO_modules_delta.utilities import show_year_range_widget
+from ECHO_modules.utilities import show_year_range_widget
 ## Slide the endpoints to the desired years
 year_range = show_year_range_widget()
 
@@ -126,7 +126,7 @@ year_range = show_year_range_widget()
 # Store results for this DataSet as a DataSetResults object
 erie_rcra_violations = data_sets["RCRA Violations"].store_results(
     region_type="County", region_value=["ERIE"], state="NY", 
-    years=year_range.value, api=True, token=token)
+    years=year_range.value)
 erie_rcra_violations.dataframe # Show the results as a dataframe
 
 """## Show RCRA Violations Over Time in a Chart"""
@@ -135,7 +135,7 @@ erie_rcra_violations.show_chart()
 
 """## Map Facilities in this County with Recorded RCRA Violations"""
 
-from ECHO_modules_delta.utilities import aggregate_by_facility, point_mapper # Import relevant modules
+from ECHO_modules.utilities import aggregate_by_facility, point_mapper # Import relevant modules
 
 erie_rcra_violations.region_value=["ERIE"] # (re)set the region_value as a list
 # Aggregate each entry using this function. In the case of RCRA violations,
@@ -160,7 +160,7 @@ Run the following cell, use the tools in the left part of the map to create a sh
 """
 
 """
-from ECHO_modules_delta.utilities import polygon_map
+from ECHO_modules.utilities import polygon_map
 area_of_interest = polygon_map()
 area_of_interest[0]
 
@@ -185,9 +185,9 @@ In the following example, we get the watersheds that intersect with a state and 
 Note: Watershed geographies do not require setting the `state` variable to retrieve data/store results.
 """
 
-from ECHO_modules_delta.get_data import get_spatial_data
-from ECHO_modules_delta.geographies import spatial_tables
-from ECHO_modules_delta.utilities import show_regions
+from ECHO_modules.get_data import get_spatial_data
+from ECHO_modules.geographies import spatial_tables
+from ECHO_modules.utilities import show_regions
 
 # We look up intersecting watersheds on a state(s) basis.
 watersheds, state = get_spatial_data(region_type = "Watershed", states = ["NY"],
@@ -197,13 +197,12 @@ show_regions(regions = watersheds, states = state, region_type = "Watershed",
              spatial_tables = spatial_tables)
 
 watershed = watersheds.loc[watersheds["name"] == "Seneca"] # Filter to the watershed we're interested in
-ds = make_data_sets(["SDWA Serious Violators"]) # Create a DataSet for handling that watershed's data
+ds = make_data_sets(["SDWA Serious Violators"], api=True, token=token) # Create a DataSet for handling that watershed's data
 # Store results for this DataSet as a DataSetResults object.
 # In some cases we have to add a "0" back on to the watershed id when it gets
 # convereted to an integer.
 seneca_sdwa = ds["SDWA Serious Violators"].store_results(
-    region_type="Watershed", region_value=[str(watershed["huc8"].iloc[0])],
-    api=True, token=token)
+    region_type="Watershed", region_value=[str(watershed["huc8"].iloc[0])])
 seneca_sdwa.dataframe
 
 """## Ways of Selecting Records on Facilities
@@ -246,14 +245,13 @@ A DataSetResults object can only store one kind of geography (e.g. ZIP codes OR 
 Notes: ZIP Code geographies do not require setting the `state` variable to retrieve data/store results. Also, unlike with counties, which we look retrieve data for using a list like `region_value = ["ERIE"]`, for ZIP codes and watersheds we provide values in a string like `region_value = '14201,14202,14203'`
 """
 
-from ECHO_modules_delta.make_data_sets import make_data_sets # Import relevant module
-from ECHO_modules_delta.utilities import aggregate_by_facility, point_mapper # Import relevant modules
+from ECHO_modules.make_data_sets import make_data_sets # Import relevant module
+from ECHO_modules.utilities import aggregate_by_facility, point_mapper # Import relevant modules
 
-ds = make_data_sets(["CWA Inspections"]) # Create a DataSet for handling the data
+ds = make_data_sets(["CWA Inspections"], api=True, token=token) # Create a DataSet for handling the data
 # Store results for this DataSet as a DataSetResults object
 buffalo_cwa_inspections = ds["CWA Inspections"].store_results(
-    region_type="Zip Code", region_value='14201,14202,14203',
-    api=True, token=token)
+    region_type="Zip Code", region_value='14201,14202,14203')
 aggregated_results = aggregate_by_facility(
     records = buffalo_cwa_inspections,
     program = buffalo_cwa_inspections.dataset.name,
@@ -271,21 +269,18 @@ Information about available programs can be found in [here](https://github.com/e
 The following produces charts that summarize inspections, violations, and penalties under the Clean Air Act for two of New York's Congressional Districts - #25 and #26.
 """
 
-from ECHO_modules_delta.make_data_sets import make_data_sets # Import relevant modules
-from ECHO_modules_delta.utilities import aggregate_by_facility, point_mapper
+from ECHO_modules.make_data_sets import make_data_sets # Import relevant modules
+from ECHO_modules.utilities import aggregate_by_facility, point_mapper
 
 ny_cds_caa_inspections = data_sets["CAA Inspections"].store_results(
     region_type="Congressional District", region_value=["25", "26"], state = "NY",
-    years=[2016,2024],
-    api=True, token=token)
+    years=[2016,2024])
 ny_cds_caa_violations = data_sets["CAA Violations"].store_results(
     region_type="Congressional District", region_value=["25", "26"], state = "NY",
-    years=[2016,2024],
-    api=True, token=token)
+    years=[2016,2024])
 ny_cds_caa_penalties = data_sets["CAA Penalties"].store_results(
     region_type="Congressional District", region_value=["25", "26"], state = "NY",
-    years=[2016,2024],
-    api=True, token=token)
+    years=[2016,2024])
 
 ny_cds_caa_inspections.show_chart()
 ny_cds_caa_violations.show_chart()
@@ -297,19 +292,17 @@ Beyond enforcement and compliance information, the ECHO database - and our copy 
 The following code returns these records for New York state. If you are interested in a specific GHG or TRI pollutant, some analysis would have to be written outside existing ECHO_modules - we haven't developed specific code to filter these tables to a pollutant(s). An example of this extra code is shown below, however - `ny_tri.dataframe.loc[ny_tri.dataframe['POLLUTANT_NAME'].str.lower().str.contains("mercury")]`
 """
 
-from ECHO_modules_delta.make_data_sets import make_data_sets # Import relevant modules
-from ECHO_modules_delta.utilities import aggregate_by_facility, point_mapper
+from ECHO_modules.make_data_sets import make_data_sets # Import relevant modules
+from ECHO_modules.utilities import aggregate_by_facility, point_mapper
 
 ny_ghg = data_sets["Greenhouse Gas Emissions"].store_results(
     region_type="State", region_value = "NY", state = "NY",
-    years=[2016,2024],
-    api=True, token=token)
+    years=[2016,2024])
 ny_ghg.show_chart() # Total reported emissions in lbs (normalized to CO2e)
 try:
     ny_tri = data_sets["Toxic Releases"].store_results(
     region_type="State", region_value = "NY", state = "NY",
-    years=[2016,2024],
-    api=True, token=token)
+    years=[2016,2024])
     ny_tri.show_chart() # Total emissions in lbs
 
     # Filter NY_TRI records to just ones where the pollutant is mercury
@@ -326,13 +319,12 @@ Facilities regulated under the Clean Water Act are required to submit monitoring
 The following code maps facilities with DMRs across two watersheds (note: watershed IDs currently have to be looked up separately. See "Watersheds" section above).
 """
 
-from ECHO_modules_delta.get_data import get_spatial_data # Module for getting spatial data from the SBU database
-from ECHO_modules_delta.geographies import spatial_tables # Variables that support spatial queries
-from ECHO_modules_delta.utilities import bivariate_map, map_style # Use this function and variable to make our map
+from ECHO_modules.get_data import get_spatial_data # Module for getting spatial data from the SBU database
+from ECHO_modules.geographies import spatial_tables # Variables that support spatial queries
+from ECHO_modules.utilities import bivariate_map, map_style # Use this function and variable to make our map
 
 dmrs = data_sets["2022 Discharge Monitoring"].store_results(region_type="Watershed",
-                                                     region_value = '04120103, 04120102',
-                                                     api=True, token=token)
+                                                     region_value = '04120103, 04120102')
 # The facilities in this watershed
 dmrs.dataframe = dmrs.dataframe.drop_duplicates(subset=["FAC_NAME"])
 # Query and return spatial data
@@ -360,9 +352,9 @@ We can symbolize inspections, violations, and so on for areas such as ZIP Codes 
 """
 
 # Function for aggregating data by spatial unit and mapping data values by that unit (e.g. ZIP code)
-from ECHO_modules_delta.utilities import aggregate_by_geography, choropleth
-from ECHO_modules_delta.get_data import get_spatial_data # Function for getting zip code boundaries
-from ECHO_modules_delta.geographies import spatial_tables # Variables that support spatial queries
+from ECHO_modules.utilities import aggregate_by_geography, choropleth
+from ECHO_modules.get_data import get_spatial_data # Function for getting zip code boundaries
+from ECHO_modules.geographies import spatial_tables # Variables that support spatial queries
 
 zips = '14201, 14202, 14203, 14204, 14205, 14206, 14207, 14208, 14209, 14210, 14211, \
 14212, 14213, 14214, 14215, 14216, 14217, 14218, 14219, 14220, 14221, 14222, \
@@ -374,14 +366,14 @@ zips_list = [str(z) for z in zips.split(", ")]
 # Get attribute data
 ny_zips_cwa_inspections = data_sets["CWA Violations"].store_results(region_type="Zip Code",
                                                              region_value=zips, state = "NY",
-                                                             years=[2020,2024],
-                                                             api=True, token=token) # Store results for this DataSet as a DataSetResults object
+                                                             years=[2020,2024]) # Store results for this DataSet as a DataSetResults object
 
 
 # Aggregate attribute data
 ny_zips_aggregated = aggregate_by_geography(ny_zips_cwa_inspections,
                                             agg_type="sum",
-                                            spatial_tables=spatial_tables)
+                                            spatial_tables=spatial_tables,
+                                            region_filter=zips_list)
 # Reset the index to make the zip codes available to the choropleth function
 ny_zips_aggregated.reset_index(inplace=True)
 

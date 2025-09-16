@@ -92,8 +92,8 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
         Import from ECHO_modules/geographies.py
     fips : dict
         Optional - Import from ECHO_modules/geographies.py for Census Tracts
-    region_filter : str
-        Optional - specify whether to return a single unit (e.g. a specific county - "Erie"). region_filter should be based on the id_field specified in spatial_tables
+    region_filter : list
+        Optional - specify whether to return specific units (e.g. a single county - ["Erie"]). region_filter should be based on the id_field specified in spatial_tables
 
     Returns
     -------
@@ -109,7 +109,6 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
     
     
     '''
-
     def get_tiger_geojson(query_string, geography_flag):
         """
         Retrieve GeoJSON data for counties in a given state using its FIPS code.
@@ -238,7 +237,7 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
       if region_filter:
         region_filter = spatial_selector(region_filter)
         query_string = "huc8 IN " + region_filter
-
+      
       geojson_data = get_watershed_geojson(query_string)
       if geojson_data:
           print("Creating a geopandas dataframe ...")
@@ -249,7 +248,7 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
       if region_filter:
         region_filter = spatial_selector(region_filter)
         query_string += " AND ZIP_CODE IN " + region_filter
-
+      print(query_string)
       geojson_data = get_zipcode_geojson(query_string)
       if geojson_data:
           print("Creating a geopandas dataframe ...")
@@ -461,7 +460,7 @@ def get_echo_data_delta_api(sql, index_field=None, table_name=None, token=None, 
     
     # Load json string to JSON and convert it to pandas dataframe
     try:
-        json_data = json.load(open(output_file))
+        json_data = json.load(open(output_file, encoding="utf-8", errors="ignore"))
         os.remove(output_file)
     except json.JSONDecodeError as e:
         print(f"JSON decoding failed: {e}")

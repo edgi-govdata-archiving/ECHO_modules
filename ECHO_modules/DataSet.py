@@ -155,7 +155,7 @@ class DataSet:
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
         # Get the data in batches of 50 ids.
-
+        
         program_data = None
         
         if ( ids is None ):
@@ -189,7 +189,7 @@ class DataSet:
             print( "{} program records were found".format( str( len( program_data ))))        
         return program_data
 
-
+    
     def get_pgm_ids( self, ee_ids, int_flag=False ):
         # ee_ids should be a list of ECHO_EXPORTER REGISTRY_IDs
         # Use the EXP_PGM table to turn the list into program ids.
@@ -219,7 +219,7 @@ class DataSet:
             id_string=id_string[:-1] # removes trailing comma
             this_data = None
             try:
-                x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
+                x_sql = 'select PGM_ID from EXP_PGM where REGISTRY_ID in (' \
                                     + id_string + ')'
                 self.last_sql = x_sql
                 this_data = get_echo_data( x_sql, api=self.api, token=self.token )
@@ -237,7 +237,7 @@ class DataSet:
         else:
             print( "{} program ids were found".format( str( len( pgm_id_df ))))        
         return pgm_id_df['PGM_ID']
-        
+      
 
     def get_echo_ids( self, echo_data ):
         if ( self.echo_type is None ):
@@ -266,10 +266,10 @@ class DataSet:
     # Private methods of the class
     # Spatial data function
     def _get_nbhd_data(self, points, years=None):
-        poly_str = ''
-        for point in points:
-            poly_str += f'{point[0]} {point[1]} ,'
-        poly_str += f'{points[0][0]} {points[0][1]}'
+        #poly_str = ''
+        #for point in points:
+        #    poly_str += f'{point[0]} {point[1]} ,'
+        #poly_str += f'{points[0][0]} {points[0][1]}'
 
         if self.echo_type == 'SDWA':
             echo_flag = 'SDWIS_FLAG'
@@ -337,11 +337,12 @@ class DataSet:
                 idx = self.idx_field
                 if use_registry_id:
                     idx = "REGISTRY_ID"
-                x_sql = f'select * from "{self.table_name}"  where "{idx}" in ({id_list})'
+                x_sql = f'select * from {self.table_name} where {idx} in ({id_list})'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
             self.last_sql = x_sql
-            this_data = get_echo_data( x_sql, index_field=self.idx_field, table=self.table_name, 
+            print(self.last_sql)
+            this_data = get_echo_data( x_sql, index_field=self.idx_field, table_name=self.table_name, 
                                       api=self.api, token=self.token )
         except pd.errors.EmptyDataError:
             print( "..." )

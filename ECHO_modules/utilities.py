@@ -1336,7 +1336,7 @@ def chart (full_data, date_column, counting_column, measure, function, title, mn
 
   # Organize the data
   this_data = full_data.groupby([date_column])[counting_column].agg(function) # For each day, count the number of inspections/enforcements/violations # Summarize inspections/enforcements/violations on a monthly basis  
-  this_data = this_data.resample('Y').sum() # Add together the two months (3 - 4) we're looking at
+  this_data = this_data.resample('YE').sum() # Add together the two months (3 - 4) we're looking at
   this_data = pd.DataFrame(this_data) # Put our data into a dataframe
   this_data = this_data.rename(columns={counting_column: measure}) # Format the data columns
   this_data.index = this_data.index.strftime('%Y') # Make the x axis (date) prettier
