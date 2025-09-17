@@ -396,7 +396,7 @@ def get_facs_in_counties( df, selected ):
     return df[df['FAC_COUNTY'].isin(selected_counties)]
 
 
-def get_active_facilities( state, region_type, regions_selected, api=False, token=None):
+def get_active_facilities( state, region_type, regions_selected, api=True, token=None):
     '''
     Get a Dataframe with the ECHO_EXPORTER facilities with FAC_ACTIVE_FLAG
     set to 'Y' for the region selected.
@@ -498,7 +498,7 @@ def filter_by_geometry(points, df):
     
     return filtered_points
 
-def aggregate_by_facility(records, program, other_records = False, api=False, token=None):
+def aggregate_by_facility(records, program, other_records = False, api=True, token=None):
   '''
   Aggregate a set of records by facility IDs, using sum or count operations. 
   Enables point symbol mapping. 
@@ -531,7 +531,7 @@ def aggregate_by_facility(records, program, other_records = False, api=False, to
   data = records.dataframe
   diff = None
 
-  def differ(input, program, api=False, token=None):
+  def differ(input, program, api=api, token=token):
     '''
     Helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program (active)
     '''

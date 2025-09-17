@@ -314,20 +314,23 @@ def read_file( base, type, state, region ):
 
 
 
-def get_echo_data(sql, index_field=None, table_name=None, api=False, token=None):
+def get_echo_data(sql, index_field=None, table_name=None, api=True, token=None):
     try:
         # Use the API if the api flag is set to True
         if api:
-            if os.path.exists('token.txt'):
-                # Check for token file
-                with open('token.txt', 'r') as f:
-                    token = f.read().strip()
-                    # print(f"Using api token")
+            if token is not None:
                 return get_echo_data_delta_api(sql, index_field, table_name, token=token)
             else:
-                # If token file does not exist, prompt user to get token
-                print("Token file not found. Please run the get token cell to obtain a token.")
-                return None
+                if os.path.exists('token.txt'):
+                    # Check for token file
+                    with open('token.txt', 'r') as f:
+                        token = f.read().strip()
+                        # print(f"Using api token")
+                    return get_echo_data_delta_api(sql, index_field, table_name, token=token)
+                else:
+                    # If token file does not exist, prompt user to get token
+                    print("Token file not found. Please run get_echo_api_access_token() or the get token cell to obtain a token.")
+                    return None
         
         from pyspark.sql import SparkSession
         from delta import configure_spark_with_delta_pip

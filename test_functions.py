@@ -10,9 +10,9 @@ Maps and charts and the like won't display, but that's ok.
 """
 Authenticate
 """
-from ECHO_modules.get_data import get_echo_api_access_token
+#from ECHO_modules.get_data import get_echo_api_access_token
 
-token = get_echo_api_access_token()
+#token = get_echo_api_access_token()
 
 """# Basic Usage
 ## Analyze Currently Active Facilities in a County
@@ -22,7 +22,7 @@ In the following example, we retrieve all of the currently active facilities (ac
 
 from ECHO_modules.utilities import get_active_facilities # Use the get_active_facilities function
 
-erie = get_active_facilities("NY", "County", ["ERIE"], api=True, token=token)
+erie = get_active_facilities("NY", "County", ["ERIE"])
 erie
 
 """## Save this Data to CSV Format
@@ -106,7 +106,7 @@ data_sets = make_data_sets([
     "SDWA Serious Violators",
     "2022 Discharge Monitoring",
     "Effluent Violations",
-], api=True, token=token)
+])
 ## These are described in more detail here: https://github.com/edgi-govdata-archiving/ECHO_modules/blob/main/ECHO_modules/data_set_presets.py
 ## and here: https://echo.epa.gov/tools/data-downloads#downloads
 
@@ -144,8 +144,7 @@ erie_rcra_violations.region_value=["ERIE"] # (re)set the region_value as a list
 # By setting other_records to True, we also get RCRA-regulated facilities in the
 # county without records of violations.
 aggregated_results = aggregate_by_facility(
-    erie_rcra_violations, erie_rcra_violations.dataset.name, other_records=True,
-    api=True, token=token
+    erie_rcra_violations, erie_rcra_violations.dataset.name, other_records=True
     )
 # Map each facility as a point, the size of which corresponds to the number of reported violations since 2001.
 point_mapper(aggregated_results["data"], aggregated_results["aggregator"],
@@ -197,7 +196,7 @@ show_regions(regions = watersheds, states = state, region_type = "Watershed",
              spatial_tables = spatial_tables)
 
 watershed = watersheds.loc[watersheds["name"] == "Seneca"] # Filter to the watershed we're interested in
-ds = make_data_sets(["SDWA Serious Violators"], api=True, token=token) # Create a DataSet for handling that watershed's data
+ds = make_data_sets(["SDWA Serious Violators"]) # Create a DataSet for handling that watershed's data
 # Store results for this DataSet as a DataSetResults object.
 # In some cases we have to add a "0" back on to the watershed id when it gets
 # convereted to an integer.
@@ -248,14 +247,14 @@ Notes: ZIP Code geographies do not require setting the `state` variable to retri
 from ECHO_modules.make_data_sets import make_data_sets # Import relevant module
 from ECHO_modules.utilities import aggregate_by_facility, point_mapper # Import relevant modules
 
-ds = make_data_sets(["CWA Inspections"], api=True, token=token) # Create a DataSet for handling the data
+ds = make_data_sets(["CWA Inspections"]) # Create a DataSet for handling the data
 # Store results for this DataSet as a DataSetResults object
 buffalo_cwa_inspections = ds["CWA Inspections"].store_results(
     region_type="Zip Code", region_value='14201,14202,14203')
 aggregated_results = aggregate_by_facility(
     records = buffalo_cwa_inspections,
     program = buffalo_cwa_inspections.dataset.name,
-    other_records=True, api=True, token=token) # Aggregate each entry using this function
+    other_records=True) # Aggregate each entry using this function
 # Map each facility as a point, the size of which corresponds to the number of reported violations since 2001.
 point_mapper(aggregated_results["data"], aggregated_results["aggregator"],
              quartiles=True, other_fac=aggregated_results["diff"])

@@ -12,7 +12,7 @@ from .utilities import get_facs_in_counties, filter_by_geometry
 import json
 import requests
 
-SCHEMA_DIR = os.environ.get('SCHEMA_DIR')
+SCHEMA_DIR = os.environ.get('SCHEMA_HOST_PATH')
 API_SERVER = "https://portal.gss.stonybrook.edu/api"
 
 class DataSet:
@@ -54,7 +54,7 @@ class DataSet:
     def __init__( self, name, base_table, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None,
                  sql=None, agg_type=None, agg_col=None, unit=None,
-                 api=False, token=None):
+                 api=True, token=None):
         # the echo_type can be a single string--AIR, NPDES, RCRA, SDWA,
         # or a list of multiple strings--['GHG','TRI']
 
@@ -76,7 +76,7 @@ class DataSet:
         self.api = api 
         self.token = token
 
-    def store_results( self, region_type, region_value, state=None, years=None, api=False, token=None ):
+    def store_results( self, region_type, region_value, state=None, years=None):
         result = DataSetResults( self, region_type, region_value, state )
         df = self.get_data_delta( region_type, region_value, state, years )
         print("got the data")
@@ -102,8 +102,17 @@ class DataSet:
     def get_data_delta( self, region_type, region_value, state=None, years=None ):
         print(self.base_table)
         if self.api:
-            with open('token.txt', 'r') as f:
-                token = f.read().strip()
+            if self.token == None:
+                try:
+                    with open('token.txt', 'r') as f:
+                        token = f.read().strip()
+                except:
+                    # If token file does not exist, prompt user to get token
+                    print("Token file not found. Please run get_echo_api_access_token() or the get token cell to obtain a token.")
+                    return None
+            else:
+                token = self.token
+                
             headers = {
             "Authorization": f"Bearer {token}",
             }
@@ -112,7 +121,7 @@ class DataSet:
             if response.status_code != 200:
                 raise Exception(f"Failed to fetch schema: {response.status_code} - {response.text}")
             
-            data = response.json()      
+            data = response.json()  
         else:
             with open(os.path.join(SCHEMA_DIR, f"{self.base_table}_schema.json")) as f: # MOVE THIS TO AN API SCHEMA, AS ENDPOINT
                 data = json.load(f)

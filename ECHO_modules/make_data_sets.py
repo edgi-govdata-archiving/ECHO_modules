@@ -15,7 +15,7 @@ from ECHO_modules.DataSet import DataSet
 from ECHO_modules.data_set_presets import get_attribute_tables
 
 
-def make_data_sets( data_set_list = None, exclude_list = None, api=False, token=None ):
+def make_data_sets( data_set_list = None, exclude_list = None, api=True, token=None ):
     """
     Create DataSet objects from a list of preset configurations. This takes a
     list of preset names and returns a dictionary where the keys are the preset

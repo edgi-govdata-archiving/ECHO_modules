@@ -3,7 +3,7 @@ from ECHO_modules.utilities import mapper
 from ECHO_modules.get_data import get_echo_api_access_token
 import time
 
-token = get_echo_api_access_token()
+#token = get_echo_api_access_token()
 
 data_sets = make_data_sets([
     "RCRA Violations",
@@ -18,7 +18,7 @@ data_sets = make_data_sets([
     "CWA Violations", # Currently won't work for Neighborhoods or ID lists
     "CWA Inspections",
     "CWA Penalties",
-], api=True, token=token)
+])
 
 sdwa_data_sets = make_data_sets([
     "SDWA Site Visits",
@@ -26,7 +26,7 @@ sdwa_data_sets = make_data_sets([
     "SDWA Public Water Systems",
     "SDWA Violations",
     "SDWA Serious Violators"
-], api=True, token=token)
+])
 
 def _run_test(program, region_type, region_value, state=None, years=None):
     time.sleep(5) # Slow down requests
@@ -95,7 +95,7 @@ bbox = (
     (-104.88480258486722, 39.83706322053561),
     (-105.00602649894498, 39.83706322053561)
     )
-for p in #[data_sets['CWA Violations'],
+for p in [#data_sets['CWA Violations'],
         data_sets['Toxic Releases'], 
         data_sets['CAA Violations'], 
         data_sets['Combined Air Emissions']
@@ -105,3 +105,21 @@ for p in #[data_sets['CWA Violations'],
     region_value = bbox
     _run_test(program=p, region_type=region_type, region_value=region_value, 
             state=None, years=years)
+
+# API false shouldn't work without local copy of schema and data
+data_sets = make_data_sets([
+    "CAA Violations",
+    "CAA Penalties",
+    "CAA Inspections",
+], api=False) 
+
+region_type = 'County'
+region_value = ['ADAMS', 'JEFFERSON']
+state = 'CO'
+years = [2013, 2023]
+
+for name, program in data_sets.items():
+    print(f'running test on {name}')
+    _run_test(program=program, region_type=region_type, region_value=region_value, 
+            state=None, years=years)
+    
