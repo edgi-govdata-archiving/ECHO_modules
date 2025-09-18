@@ -178,7 +178,7 @@ Contributors
 - `Lourdes Vera <https://github.com/lourdesvera>` (Organizer, Project Management, Events, Documentation)
 - `Sara Wylie <https://github.com/@saraannwylie>` (Organizer, Project Management, Events, Documentation)
 - `Sung-Gheel Jang <https://github.com/@sunggheel>` (Code, Database)
-- `Yemo` <> (Code, Database)
+- `Yemoe Aung <https://github.com/@yemoeaung1` (Code, Database)
 - `Paul St. Denis <https://github.com/@pstdenis>` (Code, Database)
 - `Megan Raisle <https://github.com/@mraisle>` (Code)
 - `Olivia Chang <https://github.com/@oliviachang29>` (Code)
