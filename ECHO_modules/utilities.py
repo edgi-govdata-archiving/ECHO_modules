@@ -15,8 +15,7 @@ import urllib
 import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
-from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster, Marker
-from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster
+from ipyleaflet import Map, basemaps, basemap_to_tiles, GeomanDrawControl, Marker, MarkerCluster
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
 from ECHO_modules.get_data import get_echo_data
@@ -827,8 +826,8 @@ def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='F
     marker_cluster = MarkerCluster(markers=markers)
     m.add(marker_cluster)
 
-    draw_control = DrawControl()
-    
+    draw_control = GeomanDrawControl(polyline={}, polygon={}, marker={}, circlemarker={})
+
     draw_control.rectangle = {
         "shapeOptions": {
         "fillColor": "#fca45d",
@@ -1363,13 +1362,18 @@ def chart (full_data, date_column, counting_column, measure, function, title, mn
 def handle_draw(self, action, geo_json):
   global shapes
   polygon=[]
-  for coords in geo_json['geometry']['coordinates'][0][:-1][:]:
+  display(action)
+  for coords in geo_json[0]['geometry']['coordinates'][0][:-1][:]:
     polygon.append(tuple(coords))
   polygon = tuple(polygon)
-  if action == 'created':
+  if action == 'create':
     shapes.add(polygon)
-  elif action == 'deleted':
-    shapes.discard(polygon)
+  elif action == 'remove':
+    shapes.clear()#discard(polygon)
+  elif action in ['drag','edit','rotate']:
+    shapes.clear()
+    shapes.add(polygon)
+  display(shapes)
 
 
 def polygon_map(center=(39.8282,-98.5796), zoom=5):
@@ -1382,7 +1386,7 @@ def polygon_map(center=(39.8282,-98.5796), zoom=5):
   global shapes
   shapes = set()
   
-  draw_control = DrawControl()
+  draw_control = GeomanDrawControl(polyline={}, polygon={}, marker={}, circlemarker={})
   
   draw_control.rectangle = {
       "shapeOptions": {
