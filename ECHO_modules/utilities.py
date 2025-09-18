@@ -1362,7 +1362,6 @@ def chart (full_data, date_column, counting_column, measure, function, title, mn
 def handle_draw(self, action, geo_json):
   global shapes
   polygon=[]
-  display(action)
   for coords in geo_json[0]['geometry']['coordinates'][0][:-1][:]:
     polygon.append(tuple(coords))
   polygon = tuple(polygon)
@@ -1373,7 +1372,6 @@ def handle_draw(self, action, geo_json):
   elif action in ['drag','edit','rotate']:
     shapes.clear()
     shapes.add(polygon)
-  display(shapes)
 
 
 def polygon_map(center=(39.8282,-98.5796), zoom=5):
