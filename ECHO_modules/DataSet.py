@@ -112,7 +112,7 @@ class DataSet:
                     return None
             else:
                 token = self.token
-                
+
             headers = {
             "Authorization": f"Bearer {token}",
             }
@@ -280,6 +280,11 @@ class DataSet:
         #    poly_str += f'{point[0]} {point[1]} ,'
         #poly_str += f'{points[0][0]} {points[0][1]}'
 
+        min_lon = min(p[0] for p in points)
+        max_lon = max(p[0] for p in points)
+        min_lat = min(p[1] for p in points)
+        max_lat = max(p[1] for p in points)
+
         if self.echo_type == 'SDWA':
             echo_flag = 'SDWIS_FLAG'
         elif type(self.echo_type) != list:
@@ -290,14 +295,12 @@ class DataSet:
             for flag in self.echo_type:
                 
                 # Get only id and coords from table
-                sql = f"""
-                    SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
-                    FROM ECHO_EXPORTER 
-                    WHERE {flag}_FLAG = 'Y'
-                """
+                sql = f"SELECT REGISTRY_ID, FAC_LAT, FAC_LONG FROM ECHO_EXPORTER WHERE {flag}_FLAG = 'Y' AND (FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}) AND (FAC_LONG >= NEGATIVE({abs(min_lon)}) AND FAC_LONG <= NEGATIVE({abs(max_lon)}));"
                 self.last_sql = sql
-                df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
-                registry_ids = filter_by_geometry(points, df)
+                df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
+                registry_ids = filter_by_geometry(points, df) # Clip facs to just those in actual shape  
+                #df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
+                #registry_ids = filter_by_geometry(points, df)
                 
                 
                 # sql = """
@@ -318,14 +321,10 @@ class DataSet:
             # WHERE "{}" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
             # """.format(echo_flag, poly_str)
             # Get only id and coords from table
-            sql = f"""
-                SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
-                FROM ECHO_EXPORTER 
-                WHERE {echo_flag} = 'Y'
-            """
+            sql = f"SELECT REGISTRY_ID, FAC_LAT, FAC_LONG FROM ECHO_EXPORTER WHERE {echo_flag} = 'Y' AND (FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}) AND (FAC_LONG >= NEGATIVE({abs(min_lon)}) AND FAC_LONG <= NEGATIVE({abs(max_lon)}));"
             self.last_sql = sql
-            df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
-            registry_ids = filter_by_geometry(points, df)
+            df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
+            registry_ids = filter_by_geometry(points, df) # Clip facs to just those in actual shape  
             if registry_ids.index.name == 'REGISTRY_ID': # We set registry_id as index so, we can extract it right here
                 echo_ids = registry_ids.index.to_list()
             else:
