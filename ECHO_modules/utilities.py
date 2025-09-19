@@ -15,8 +15,7 @@ import urllib
 import seaborn as sns
 from folium.plugins import FastMarkerCluster
 import ipywidgets as widgets
-from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster, Marker
-from ipyleaflet import Map, basemaps, basemap_to_tiles, DrawControl, MarkerCluster
+from ipyleaflet import Map, basemaps, basemap_to_tiles, GeomanDrawControl, Marker, MarkerCluster
 from ipywidgets import interact, interactive, fixed, interact_manual, Layout
 from IPython.display import display
 from ECHO_modules.get_data import get_echo_data
@@ -450,23 +449,26 @@ def get_active_facilities( state, region_type, regions_selected, api=True, token
             sql = sql.format( ws_str )
             df_active = get_echo_data(sql, 'REGISTRY_ID', api=api, token=token)
         elif region_type == 'Neighborhood':
-            poly_str = ''
+            #poly_str = ''
             points = regions_selected
             
+            min_lon = min(p[0] for p in points)
+            max_lon = max(p[0] for p in points)
+            min_lat = min(p[1] for p in points)
+            max_lat = max(p[1] for p in points)
+
             # Get only id and coords from table
-            sql = """
-                SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
-                FROM ECHO_EXPORTER 
-                WHERE FAC_ACTIVE_FLAG = 'Y'
-            """
-            df = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
-            df = filter_by_geometry(points, df)
+            sql = f"SELECT * FROM ECHO_EXPORTER WHERE FAC_ACTIVE_FLAG = 'Y' AND (FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}) AND (FAC_LONG >= NEGATIVE({abs(min_lon)}) AND FAC_LONG <= NEGATIVE({abs(max_lon)}));"
+            display(sql)
+            df_active = get_echo_data( sql, "REGISTRY_ID", api=api, token=token) # Get all facs within a bbox
+            df_active = filter_by_geometry(points, df_active) # Clip facs to just those in actual shape  
             
-            id_list_str = ", ".join(map(str, df["REGISTRY_ID"].tolist()))       
+            #id_list_str = ", ".join(map(str, df["REGISTRY_ID"].tolist()))       
         
             # Run a second query to find rows with same IDs as filtered_points
-            sql = f"SELECT * FROM ECHO_EXPORTER WHERE REGISTRY_ID IN ({id_list_str})"
-            df_active = get_echo_data(sql, api=api, token=token)
+            #sql = f"SELECT * FROM ECHO_EXPORTER WHERE REGISTRY_ID IN ({id_list_str})"
+            #display(sql)
+            #df_active = get_echo_data(sql, api=api, token=token)
         else:
             df_active = None
         if region_type == 'County':
@@ -478,29 +480,28 @@ def get_active_facilities( state, region_type, regions_selected, api=True, token
 
     return df_active
 
-def filter_by_geometry(points, df):  
+def filter_by_geometry(points, df): 
     # Bounding Box
     min_lon = min(p[0] for p in points)
     max_lon = max(p[0] for p in points)
     min_lat = min(p[1] for p in points)
     max_lat = max(p[1] for p in points)
     
-    # Make a geopandas dataframe of all points
-    points_gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['FAC_LONG'], df['FAC_LAT']), crs="EPSG:4269")
+    # Make a geopandas dataframe of all facilities
+    facs_gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['FAC_LONG'], df['FAC_LAT']), crs="EPSG:4269")
     
-    filtered_points = points_gdf[
-        (points_gdf.geometry.x >= min_lon) & 
-        (points_gdf.geometry.x <= max_lon) & 
-        (points_gdf.geometry.y >= min_lat) & 
-        (points_gdf.geometry.y <= max_lat)
+    filtered_facs = facs_gdf[
+        (facs_gdf.geometry.x >= min_lon) & 
+        (facs_gdf.geometry.x <= max_lon) & 
+        (facs_gdf.geometry.y >= min_lat) & 
+        (facs_gdf.geometry.y <= max_lat)
     ]
     
-    # Filter more by creating a polygon using the points to get the points inside the polygon
+    # Filter more by creating a polygon using the points to get the facilities inside the polygon
     polygon = Polygon(points)
-    filtered_points = filtered_points[filtered_points.geometry.intersects(polygon)]
+    filtered_facs = filtered_facs[filtered_facs.geometry.intersects(polygon)]
     
-    
-    return filtered_points
+    return filtered_facs
 
 def aggregate_by_facility(records, program, other_records = False, api=True, token=None):
   '''
@@ -831,8 +832,8 @@ def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='F
     marker_cluster = MarkerCluster(markers=markers)
     m.add(marker_cluster)
 
-    draw_control = DrawControl()
-    
+    draw_control = GeomanDrawControl(polyline={}, polygon={}, marker={}, circlemarker={})
+
     draw_control.rectangle = {
         "shapeOptions": {
         "fillColor": "#fca45d",
@@ -1372,13 +1373,16 @@ def chart (full_data, date_column, counting_column, measure, function, title, mn
 def handle_draw(self, action, geo_json):
   global shapes
   polygon=[]
-  for coords in geo_json['geometry']['coordinates'][0][:-1][:]:
+  for coords in geo_json[0]['geometry']['coordinates'][0][:-1][:]:
     polygon.append(tuple(coords))
   polygon = tuple(polygon)
-  if action == 'created':
+  if action == 'create':
     shapes.add(polygon)
-  elif action == 'deleted':
-    shapes.discard(polygon)
+  elif action == 'remove':
+    shapes.clear()#discard(polygon)
+  elif action in ['drag','edit','rotate']:
+    shapes.clear()
+    shapes.add(polygon)
 
 
 def polygon_map(center=(39.8282,-98.5796), zoom=5):
@@ -1391,7 +1395,7 @@ def polygon_map(center=(39.8282,-98.5796), zoom=5):
   global shapes
   shapes = set()
   
-  draw_control = DrawControl()
+  draw_control = GeomanDrawControl(polyline={}, marker={}, circlemarker={})
   
   draw_control.rectangle = {
       "shapeOptions": {

@@ -281,6 +281,11 @@ class DataSet:
     # Spatial data function
     def _get_nbhd_data(self, points, years=None):
 
+        min_lon = min(p[0] for p in points)
+        max_lon = max(p[0] for p in points)
+        min_lat = min(p[1] for p in points)
+        max_lat = max(p[1] for p in points)
+
         if self.echo_type == 'SDWA':
             echo_flag = 'SDWIS_FLAG'
         elif type(self.echo_type) != list:
@@ -299,8 +304,10 @@ class DataSet:
                     AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
                 """
                 self.last_sql = sql
-                df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
-                registry_ids = filter_by_geometry(points, df)
+                df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
+                registry_ids = filter_by_geometry(points, df) # Clip facs to just those in actual shape  
+                #df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
+                #registry_ids = filter_by_geometry(points, df)
                 
                 # sql = """
                 # SELECT "REGISTRY_ID"
@@ -328,8 +335,8 @@ class DataSet:
                 AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
             """
             self.last_sql = sql
-            df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
-            registry_ids = filter_by_geometry(points, df)
+            df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
+            registry_ids = filter_by_geometry(points, df) # Clip facs to just those in actual shape  
             if registry_ids.index.name == 'REGISTRY_ID': # We set registry_id as index so, we can extract it right here
                 echo_ids = registry_ids.index.to_list()
             else:
