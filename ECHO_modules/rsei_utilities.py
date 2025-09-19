@@ -7,59 +7,7 @@ from ipywidgets import widgets, Layout
 from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.utilities import check_bounds, marker_text
 from IPython.display import display
-
-def _get_min_max_coord(coord_set):
-    '''
-    Get the minimum and maximum values of the set of 
-    (longitude, latitude) coordinates.
-
-    Parameters
-    ----------
-    coord_set : set
-        The set of (longitude, latitude) values.
-
-    Return
-    ------
-    A tuple with the results
-    '''
-
-    min_lat = 90
-    max_lat = 0
-    min_long = 180
-    max_long = -180
-    for x in list(coord_set):
-        for coord in x:
-            lat = coord[1]
-            long = coord[0]
-            min_lat = lat if lat < min_lat else min_lat
-            max_lat = lat if lat > max_lat else max_lat
-            min_long = long if long < min_long else min_long
-            max_long = long if long > max_long else max_long
-    return (min_lat, max_lat, min_long, max_long)
-
-def get_facs_in_rect(df, lat_field, long_field, rect_set):
-    '''
-    Select the facilities whose latitude and longitude values
-    are inside the rectangle
-
-    Parameters
-    ----------
-    df : DataFrame
-        Containing the lat_field and long_field
-
-    lat_field : str
-        The name of the latitude field in the dataframe
-
-    long_field : str
-        The name of the longitude field
-
-    rect_set : set
-        The set of (longitude, latitude) values
-    '''
-    (min_lat, max_lat, min_long, max_long) = _get_min_max_coord(rect_set)
-    result_df = df.loc[((df[lat_field] >= min_lat) & (df[lat_field] <= max_lat) & \
-                        (df[long_field] >= min_long) & (df[long_field] <= max_long))]
-    return result_df
+import time
 
 def show_rsei_pick_region_widget(type, state_widget=None, multi=False, description=None):
     '''
@@ -237,10 +185,11 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
 
 def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_columns='*', 
                      years=None, year_field=None, filter=None, limit=None, token=None):
+    ids_per_request = 250
     '''
     Get the records from 'this' table associated with the ids (in that_series) 
     from 'that' table.
-    If that_series is larger than 50 ids, the ids are used in chunks of 50.
+    If that_series is larger than ids_per_request ids, the ids are used in chunks of ids_per_request.
 
     Parameters
     ----------
@@ -285,7 +234,7 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
 
         iterator = iter(that_tuple)
         count = 0
-        while chunk := list(islice(iterator, 50)):
+        while chunk := list(islice(iterator, ids_per_request)):
             id_string = ""
             for id in chunk:
                 count += 1
@@ -316,6 +265,8 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
             if count % 100 == 0:
                 print(f'{count}) reading {table}')
             try:
+                if count > ids_per_request:
+                    time.sleep(5) 
                 # print(sql)
                 df = get_echo_data(sql, index_field=None, table_name=table, api=True, token=token)
                 if filter is not None:

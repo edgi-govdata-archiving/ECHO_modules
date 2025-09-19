@@ -132,13 +132,17 @@ def show_state_widget( multi=False ):
     return dropdown_state
 
 
-def get_frsid_list(filename):
+def get_frsid_list(filename, frsid_column='FRSID'):
     '''
-    The file must be a CSV file with one column named FRSID.
+    The file must be a CSV file with one column named FRSID
+    or the alternate frsid_column.
 
     Parameters
     ----------
     filename : str
+
+    frsid_column : str
+        The column to use for FRSIDs.
 
     Returns
     -------
@@ -148,10 +152,10 @@ def get_frsid_list(filename):
     try:
         df = pd.read_csv(filename)
         try:
-            df = df[pd.to_numeric(df['FRSID'], errors='coerce').notnull()]
+            df = df[pd.to_numeric(df[frsid_column], errors='coerce').notnull()]
             id_series = df['FRSID'].dropna()
         except:
-            print(f'Could not read a column in {filename} named FRSID')
+            print(f'Could not read a column in {filename} named {frsid_column}')
             return None
     except:
         print(f'Could not open file: {filename}')
@@ -531,7 +535,7 @@ def aggregate_by_facility(records, program, other_records = False, api=True, tok
   data = records.dataframe
   diff = None
 
-  def differ(input, program, api=api, token=token):
+  def _differ(input, program, api, token):
     '''
     Helper function to sort facilities in this program (input) from the full list of faciliities regulated under the program (active)
     '''
@@ -594,7 +598,7 @@ def aggregate_by_facility(records, program, other_records = False, api=True, tok
     aggregator = "count" # keep track of which field we use to aggregate data, which may differ from the preset
 
   if other_records:
-    diff = differ(data, program, api=api, token=token)
+    diff = _differ(data, program, api=api, token=token)
   
   if ( len(data) > 0 ):
     #print({"data": data, "aggregator": aggregator}) # Debugging
@@ -845,7 +849,7 @@ def ipymapper(df, bounds=None, no_text=False, lat_field='FAC_LAT', long_field='F
     return (m, shapes)
 
 
-def point_mapper(df, aggcol, quartiles=False, other_fac=None):
+def point_mapper(df, aggcol, quartiles=False, other_fac=None, other_text_column=None):
   '''
   Display a point symbol map of the Dataframe passed in. A point symbol map represents 
   each facility as a point, with the size of the point scaled to the data value 
@@ -872,6 +876,8 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
       Other regulated facilities without violations, inspections,
       penalties, etc. - whatever the value being mapped is. This is an optional 
       variable enabling further context to the map. They must have a FAC_LAT and FAC_LONG field.
+  other_text_column : str
+      The name of the column in other_fac with text for the pop-ups.
   Returns
   -------
   folium.Map
@@ -902,9 +908,12 @@ def point_mapper(df, aggcol, quartiles=False, other_fac=None):
     
     if ( other_fac is not None ):
       for index, row in other_fac.iterrows():
+        text = "other facility"
+        if other_text_column is not None:
+            text = row[other_text_column]
         map_of_facilities.add_child(folium.CircleMarker(
             location = [row["FAC_LAT"], row["FAC_LONG"]],
-            popup = "other facility",
+            popup = text,
             radius = 4,
             color = "black",
             weight = 1,
@@ -1394,3 +1403,64 @@ def polygon_map(center=(39.8282,-98.5796), zoom=5):
   draw_control.on_draw(handle_draw)
   m.add_control(draw_control)
   return (m, shapes)
+
+def get_min_max_coord(coord_set):
+    '''
+    Get the minimum and maximum values of the set of 
+    (longitude, latitude) coordinates.
+
+    Parameters
+    ----------
+    coord_set : set
+        The set of (longitude, latitude) values.
+
+    Return
+    ------
+    A tuple with the results
+    '''
+
+    min_lat = 90
+    max_lat = 0
+    min_long = 180
+    max_long = -180
+    for x in list(coord_set):
+        lat = x[1]
+        long = x[0]
+        min_lat = lat if lat < min_lat else min_lat
+        max_lat = lat if lat > max_lat else max_lat
+        min_long = long if long < min_long else min_long
+        max_long = long if long > max_long else max_long
+        '''
+        for coord in x:
+            lat = coord[1]
+            long = coord[0]
+            min_lat = lat if lat < min_lat else min_lat
+            max_lat = lat if lat > max_lat else max_lat
+            min_long = long if long < min_long else min_long
+            max_long = long if long > max_long else max_long
+        '''
+    return (min_lat, max_lat, min_long, max_long)
+
+def get_facs_in_rect(df, lat_field, long_field, rect_set):
+    '''
+    Select the facilities whose latitude and longitude values
+    are inside the rectangle
+
+    Parameters
+    ----------
+    df : DataFrame
+        Containing the lat_field and long_field
+
+    lat_field : str
+        The name of the latitude field in the dataframe
+
+    long_field : str
+        The name of the longitude field
+
+    rect_set : set
+        The set of (longitude, latitude) values
+    '''
+    (min_lat, max_lat, min_long, max_long) = get_min_max_coord(rect_set)
+    result_df = df.loc[((df[lat_field] >= min_lat) & (df[lat_field] <= max_lat) & \
+                        (df[long_field] >= min_long) & (df[long_field] <= max_long))]
+    return result_df

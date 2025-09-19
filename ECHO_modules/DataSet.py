@@ -9,8 +9,10 @@ from . import geographies
 from .DataSetResults import DataSetResults
 from .get_data import get_echo_data
 from .utilities import get_facs_in_counties, filter_by_geometry
+from .utilities import get_min_max_coord
 import json
 import requests
+import time
 
 SCHEMA_DIR = os.environ.get('SCHEMA_HOST_PATH')
 API_SERVER = "https://portal.gss.stonybrook.edu/api"
@@ -75,8 +77,9 @@ class DataSet:
         self.last_sql = ''
         self.api = api 
         self.token = token
+        self.ids_per_request = 300
 
-    def store_results( self, region_type, region_value, state=None, years=None):
+    def store_results( self, region_type, region_value, state=None, years=None, api=False, token=None ):
         result = DataSetResults( self, region_type, region_value, state )
         df = self.get_data_delta( region_type, region_value, state, years )
         print("got the data")
@@ -108,11 +111,9 @@ class DataSet:
                         token = f.read().strip()
                 except:
                     # If token file does not exist, prompt user to get token
-                    print("Token file not found. Please run get_echo_api_access_token() or the get token cell to obtain a token.")
-                    return None
+                    print("Token file not found. Please run get_echo_api_access_token() or get the get token cell to obtain a token.")
             else:
                 token = self.token
-                
             headers = {
             "Authorization": f"Bearer {token}",
             }
@@ -121,7 +122,7 @@ class DataSet:
             if response.status_code != 200:
                 raise Exception(f"Failed to fetch schema: {response.status_code} - {response.text}")
             
-            data = response.json()  
+            data = response.json()      
         else:
             with open(os.path.join(SCHEMA_DIR, f"{self.base_table}_schema.json")) as f: # MOVE THIS TO AN API SCHEMA, AS ENDPOINT
                 data = json.load(f)
@@ -163,8 +164,8 @@ class DataSet:
     def get_data_by_ids( self, ids, use_registry_id=False, int_flag=False, years=None ):
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
-        # Get the data in batches of 50 ids.
-        
+        # Get the data in batches of ids_per_request ids.
+
         program_data = None
         
         if ( ids is None ):
@@ -172,11 +173,13 @@ class DataSet:
         else:
             ids_len = len( ids )
 
+        count = 0
         iterator = iter(ids)
-        while chunk := list(islice(iterator, 50)):
+        while chunk := list(islice(iterator, self.ids_per_request)):
             id_string = ""
 
             for id in chunk:
+                count += 1
                 if ( not int_flag ):
                     id_string += "'"
                 id_string += str(id)
@@ -184,6 +187,8 @@ class DataSet:
                     id_string += "'"
                 id_string +=  ","
             id_string=id_string[:-1] # removes trailing comma
+            if count > self.ids_per_request:
+                time.sleep(5)
             data = self._try_get_data( id_string, use_registry_id )
             if ( data is not None ):
                 if ( program_data is None ):
@@ -198,7 +203,7 @@ class DataSet:
             print( "{} program records were found".format( str( len( program_data ))))        
         return program_data
 
-    
+
     def get_pgm_ids( self, ee_ids, int_flag=False ):
         # ee_ids should be a list of ECHO_EXPORTER REGISTRY_IDs
         # Use the EXP_PGM table to turn the list into program ids.
@@ -216,7 +221,7 @@ class DataSet:
             ee_ids_len = len( ee_ids )
 
         iterator = iter(ee_ids)
-        while chunk := list(islice(iterator, 50)):
+        while chunk := list(islice(iterator, self.ids_per_request)):
             id_string = ""
             for id in chunk:
                 if ( not int_flag ):
@@ -246,7 +251,7 @@ class DataSet:
         else:
             print( "{} program ids were found".format( str( len( pgm_id_df ))))        
         return pgm_id_df['PGM_ID']
-      
+        
 
     def get_echo_ids( self, echo_data ):
         if ( self.echo_type is None ):
@@ -275,16 +280,13 @@ class DataSet:
     # Private methods of the class
     # Spatial data function
     def _get_nbhd_data(self, points, years=None):
-        #poly_str = ''
-        #for point in points:
-        #    poly_str += f'{point[0]} {point[1]} ,'
-        #poly_str += f'{points[0][0]} {points[0][1]}'
 
         if self.echo_type == 'SDWA':
             echo_flag = 'SDWIS_FLAG'
         elif type(self.echo_type) != list:
             echo_flag = self.echo_type + '_FLAG'
             
+        (min_lat, max_lat, min_long, max_long) = get_min_max_coord(points)
         echo_ids = []
         if type(self.echo_type) == list:
             for flag in self.echo_type:
@@ -294,11 +296,11 @@ class DataSet:
                     SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
                     FROM ECHO_EXPORTER 
                     WHERE {flag}_FLAG = 'Y'
+                    AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
                 """
                 self.last_sql = sql
                 df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
                 registry_ids = filter_by_geometry(points, df)
-                
                 
                 # sql = """
                 # SELECT "REGISTRY_ID"
@@ -318,10 +320,12 @@ class DataSet:
             # WHERE "{}" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
             # """.format(echo_flag, poly_str)
             # Get only id and coords from table
+
             sql = f"""
                 SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
                 FROM ECHO_EXPORTER 
                 WHERE {echo_flag} = 'Y'
+                AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
             """
             self.last_sql = sql
             df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
@@ -346,11 +350,10 @@ class DataSet:
                 idx = self.idx_field
                 if use_registry_id:
                     idx = "REGISTRY_ID"
-                x_sql = f'select * from {self.table_name} where {idx} in ({id_list})'
+                x_sql = f'select * from {self.table_name}  where {idx} in ({id_list})'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
             self.last_sql = x_sql
-            print(self.last_sql)
             this_data = get_echo_data( x_sql, index_field=self.idx_field, table_name=self.table_name, 
                                       api=self.api, token=self.token )
         except pd.errors.EmptyDataError:
