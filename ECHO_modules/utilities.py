@@ -457,18 +457,11 @@ def get_active_facilities( state, region_type, regions_selected, api=True, token
             min_lat = min(p[1] for p in points)
             max_lat = max(p[1] for p in points)
 
-            # Get only id and coords from table
             sql = f"SELECT * FROM ECHO_EXPORTER WHERE FAC_ACTIVE_FLAG = 'Y' AND (FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}) AND (FAC_LONG >= NEGATIVE({abs(min_lon)}) AND FAC_LONG <= NEGATIVE({abs(max_lon)}));"
-            display(sql)
+            # display(sql)
             df_active = get_echo_data( sql, "REGISTRY_ID", api=api, token=token) # Get all facs within a bbox
             df_active = filter_by_geometry(points, df_active) # Clip facs to just those in actual shape  
             
-            #id_list_str = ", ".join(map(str, df["REGISTRY_ID"].tolist()))       
-        
-            # Run a second query to find rows with same IDs as filtered_points
-            #sql = f"SELECT * FROM ECHO_EXPORTER WHERE REGISTRY_ID IN ({id_list_str})"
-            #display(sql)
-            #df_active = get_echo_data(sql, api=api, token=token)
         else:
             df_active = None
         if region_type == 'County':

@@ -137,6 +137,7 @@ class DataSet:
 
         if (region_type == 'Neighborhood'):
             return self._get_nbhd_data(region_value, years) # TODO: can't continue, has geometry data
+        
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):
@@ -302,6 +303,7 @@ class DataSet:
                     FROM ECHO_EXPORTER 
                     WHERE {flag}_FLAG = 'Y'
                     AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
+                    AND FAC_LONG >= NEGATIVE({abs(min_lon)} AND FAC_LONG <= NEGATIVE({abs(max_lon)})
                 """
                 self.last_sql = sql
                 df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
@@ -333,6 +335,7 @@ class DataSet:
                 FROM ECHO_EXPORTER 
                 WHERE {echo_flag} = 'Y'
                 AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
+                AND FAC_LONG >= NEGATIVE({abs(min_lon)}) AND FAC_LONG <= NEGATIVE({abs(max_lon)})
             """
             self.last_sql = sql
             df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
