@@ -1,54 +1,3 @@
-SPATIAL_TABLES = {
-    "HUC8 Watersheds": dict(
-        table_name="wbdhu8",
-        id_field="huc8"
-    ),
-
-    "HUC10 Watersheds": dict(
-        table_name="wbdhu10",
-        id_field="huc10"
-    ),
-
-    "HUC12 Watersheds": dict(
-        table_name="wbdhu12",
-        id_field="huc12"
-    ),
-
-    #"Ecoregions": dict(
-    #    table_name="eco_level3",
-    #    id_field="US_L3NAME" #e.g. Atlantic Coastal Pine Barrens 
-    #    
-    #),
-
-
-    #"Counties": dict(
-    #    table_name="tl_2019_us_county",
-    #    id_field="GEOID" # four or five digit code corresponding to two digit state number (e.g. 55) and 2-3 digit county code! 
-    #    
-    #),
-
-    "Zip Codes": dict(
-        table_name="tl_2020_us_zcta520",
-        id_field="zcta5ce20" 
-        
-    ),
-
-    "EPA Regions": dict(
-        table_name="epa_regions",
-        id_field="eparegion" # In the form of "Region 1", "Region 2", up to "Region 10"
-    ),
-
-    "States": dict(
-        table_name = "tl_2019_us_state",
-        id_field = "STUSPS" # e.g. MS, IA, AK
-    ),
-
-    "Congressional Districts": dict(
-        table_name = "tl_2019_us_cd116",
-        id_field = "GEOID" # this is the combination of the state id and the CD e.g. AR-2 = 0502
-    )
-}
-
 # The keys of this dictionary are the preset names and the values are
 # dictionaries of the constructor arguments for `DataSet` that should be used
 # when creating one based on the preset.
@@ -305,16 +254,6 @@ ATTRIBUTE_TABLES = {
     #     date_field="FISCAL_YEAR",
     #     date_format="%Y"
     # )
-}
-
-REGIONS = {
-    'States': { "field": 'FAC_STATE' },
-    'Congressional Districts': { "field": 'FAC_DERIVED_CD113' },
-    'Counties': { "field": 'FAC_COUNTY' },
-    'Zip Codes': { "field": 'FAC_ZIP' },
-    'HUC8 Watersheds': {"field": 'FAC_DERIVED_HUC'},
-    'HUC12 Watersheds': {"field": 'FAC_DERIVED_WBD'},
-    #'Census Block': {"field": 'FAC_DERIVED_CB2010'} # No spatial data available yet
 }
 
 def get_attribute_tables():
