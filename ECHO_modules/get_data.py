@@ -64,7 +64,7 @@ def state_abbr_to_fips(state_abbrs):
     fips_codes = []
     for abbr in state_abbrs:
         # Check if the abbreviation is in the data dictionary's keys
-        if abbr in data_dict:
+        if abbr in fips:
             fips_codes.append(fips[abbr]) # Append the corresponding FIPS code
         else:
             return None  # State abbreviation not found
