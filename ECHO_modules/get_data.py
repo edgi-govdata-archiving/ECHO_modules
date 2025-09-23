@@ -126,7 +126,7 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
             "f": "geojson"                     # Return format as GeoJSON
         }
         # The timeout parameter may be necessary 
-        response = requests.get(base_url[geography_flag], params=params, timeout=3)
+        response = requests.get(base_url[geography_flag], params=params, timeout=10)
         if response.status_code == 200:
             print("Success: retrieved the TIGER geojson!")
             return response.json()
@@ -173,7 +173,7 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
             "f": "geojson"                     # Return format as GeoJSON
         }
         # somehow, the timeout parameter is necessary 
-        response = requests.get(base_url, params=params, timeout=3)
+        response = requests.get(base_url, params=params, timeout=10)
         if response.status_code == 200:
             print("Success: retrieved the US Zip Code geojson!")
             return response.json()
