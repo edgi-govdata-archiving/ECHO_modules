@@ -79,7 +79,7 @@ class DataSet:
         self.token = token
         self.ids_per_request = 300
 
-    def store_results( self, region_type, region_value, state=None, years=None, api=False, token=None ):
+    def store_results( self, region_type, region_value, state=None, years=None, api=True, token=None ):
         result = DataSetResults( self, region_type, region_value, state )
         df = self.get_data_delta( region_type, region_value, state, years )
         print("got the data")
