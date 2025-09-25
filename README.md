@@ -3,7 +3,7 @@ ECHO_modules
 [![Download Latest Version from PyPI](https://img.shields.io/pypi/v/echo-modules.svg)](https://pypi.python.org/pypi/echo-modules)
 [![Code of Conduct](https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat)](https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md)
 
-*ECHO_modules* is a Python package for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) database.
+*ECHO_modules* is a Python package repository for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) amd Risk Screening Environmental Indicators (RSEI) databases.
 
 Background
 --------------------------
@@ -56,7 +56,7 @@ Authenticate with the API:
 ```
 from ECHO_modules.get_data import get_echo_api_access_token
 get_echo_api_access_token()
-# Follow the instructions and save your token in token.txt
+# Follow the instructions and save your token in token.txt in the active directory
 ```
 
 Retrieve records of reported violations of the Clean Water Act for Snohomish County in Washington state:
@@ -182,6 +182,7 @@ Contributors
 - `Paul St. Denis <https://github.com/@pstdenis>` (Code, Database)
 - `Megan Raisle <https://github.com/@mraisle>` (Code)
 - `Olivia Chang <https://github.com/@oliviachang29>` (Code)
+- `Rob Brackett <https://github.com/@Mr0grog>` (Code)
 
 A more complete list of contributors to EEW is [here](https://github.com/edgi-govdata-archiving/Environmental_Enforcement_Watch?tab=readme-ov-file#people-of-eew)	
 
