@@ -7,6 +7,12 @@ The following are lines from the ECHO_modules tutorials, but we can run them in 
 Maps and charts and the like won't display, but that's ok.
 """
 
+"""
+Authenticate
+"""
+#from ECHO_modules.get_data import get_echo_api_access_token
+
+#token = get_echo_api_access_token()
 
 """# Basic Usage
 ## Analyze Currently Active Facilities in a County
@@ -46,7 +52,7 @@ EPA provides summary data on inspections, violations, and penalties under variou
 # Use get_top_violators and chart_top_violators
 from ECHO_modules.utilities import get_top_violators, chart_top_violators
 
-erie_top_violators = get_top_violators( erie, flag = 'RCRA_FLAG',
+erie_top_violators, erie_violators = get_top_violators( erie, flag = 'RCRA_FLAG',
                                        noncomp_field = 'RCRA_3YR_COMPL_QTRS_HISTORY',
                                         action_field = 'RCRA_FORMAL_ACTION_COUNT',
                                         num_fac=10 )
@@ -119,7 +125,8 @@ year_range = show_year_range_widget()
 
 # Store results for this DataSet as a DataSetResults object
 erie_rcra_violations = data_sets["RCRA Violations"].store_results(
-    region_type="County", region_value=["ERIE"], state="NY", years=year_range.value)
+    region_type="County", region_value=["ERIE"], state="NY", 
+    years=year_range.value)
 erie_rcra_violations.dataframe # Show the results as a dataframe
 
 """## Show RCRA Violations Over Time in a Chart"""
@@ -137,7 +144,8 @@ erie_rcra_violations.region_value=["ERIE"] # (re)set the region_value as a list
 # By setting other_records to True, we also get RCRA-regulated facilities in the
 # county without records of violations.
 aggregated_results = aggregate_by_facility(
-    erie_rcra_violations, erie_rcra_violations.dataset.name, other_records=True)
+    erie_rcra_violations, erie_rcra_violations.dataset.name, other_records=True
+    )
 # Map each facility as a point, the size of which corresponds to the number of reported violations since 2001.
 point_mapper(aggregated_results["data"], aggregated_results["aggregator"],
              quartiles=True, other_fac=aggregated_results["diff"])
@@ -150,6 +158,7 @@ Administrative boundaries like counties are only so meaningful when it comes to 
 Run the following cell, use the tools in the left part of the map to create a shape, and then run the cell that follows to retrieve Clean Air Act violations for the area.
 """
 
+"""
 from ECHO_modules.utilities import polygon_map
 area_of_interest = polygon_map()
 area_of_interest[0]
@@ -158,10 +167,12 @@ area_of_interest[0]
 # Store results for this DataSet as a DataSetResults object
 try:
     aoi_caa_violations = data_sets["CAA Violations"].store_results( region_type="Neighborhood",
-                            region_value=list(area_of_interest[1])[0], years=[2020,2024] )
+                            region_value=list(area_of_interest[1])[0], years=[2020,2024],
+                            api=True, token=token )
     display(aoi_caa_violations.dataframe)
 except:
     print("There are no records in that region for this data set.")
+"""
 
 """## Watersheds
 Many people may not know the formal name of the watershed they live in (and since watersheds are nested within each other, people live in several watersheds of various sizes, each of which likely has a different name, compounding the challenge).
@@ -190,7 +201,7 @@ ds = make_data_sets(["SDWA Serious Violators"]) # Create a DataSet for handling 
 # In some cases we have to add a "0" back on to the watershed id when it gets
 # convereted to an integer.
 seneca_sdwa = ds["SDWA Serious Violators"].store_results(
-    region_type="Watershed", region_value=["0"+str(watershed["huc8"].iloc[0])])
+    region_type="Watershed", region_value=[str(watershed["huc8"].iloc[0])])
 seneca_sdwa.dataframe
 
 """## Ways of Selecting Records on Facilities
@@ -287,15 +298,18 @@ ny_ghg = data_sets["Greenhouse Gas Emissions"].store_results(
     region_type="State", region_value = "NY", state = "NY",
     years=[2016,2024])
 ny_ghg.show_chart() # Total reported emissions in lbs (normalized to CO2e)
-ny_tri = data_sets["Toxic Releases"].store_results(
+try:
+    ny_tri = data_sets["Toxic Releases"].store_results(
     region_type="State", region_value = "NY", state = "NY",
     years=[2016,2024])
-ny_tri.show_chart() # Total emissions in lbs
+    ny_tri.show_chart() # Total emissions in lbs
 
-# Filter NY_TRI records to just ones where the pollutant is mercury
-ny_tri.dataframe = ny_tri.dataframe.loc[
-    ny_tri.dataframe['POLLUTANT_NAME'].str.lower().str.contains("mercury")]
-ny_tri.show_chart() # Chart total mercury emissions in lbs
+    # Filter NY_TRI records to just ones where the pollutant is mercury
+    ny_tri.dataframe = ny_tri.dataframe.loc[
+        ny_tri.dataframe['POLLUTANT_NAME'].str.lower().str.contains("mercury")]
+    ny_tri.show_chart() # Chart total mercury emissions in lbs
+except:
+    pass # Known issue here with 'too many requests'
 
 """## Discharge Monitoring Reports (DMRs)
 
@@ -357,7 +371,8 @@ ny_zips_cwa_inspections = data_sets["CWA Violations"].store_results(region_type=
 # Aggregate attribute data
 ny_zips_aggregated = aggregate_by_geography(ny_zips_cwa_inspections,
                                             agg_type="sum",
-                                            spatial_tables=spatial_tables)
+                                            spatial_tables=spatial_tables,
+                                            region_filter=zips_list)
 # Reset the index to make the zip codes available to the choropleth function
 ny_zips_aggregated.reset_index(inplace=True)
 
@@ -376,6 +391,8 @@ For example, the following returns EJScreen information for the state of New Yor
 For more information about EJScreen, see the [documentation](https://gaftp.epa.gov/EJScreen/2021/2021_EJSCREEEN_columns-explained.xlsx) (.xlsx file).
 """
 
+
+"""
 from ECHO_modules.get_data import get_echo_data
 
 # This query selects Census Block Group records from EJScreen for the state of New York and where the % of the population defined as a racial minority is greater than 75% and the % of the population defined as low-income is greater than 50%
@@ -383,3 +400,4 @@ sql = 'SELECT * FROM "EJSCREEN_2021_USPR" WHERE "ST_ABBREV" = \'NY\' ' +\
 'AND "MINORPCT" > .75 AND "LOWINCPCT" > .5'
 results = get_echo_data(sql)
 results
+"""

@@ -8,7 +8,14 @@ from itertools import islice
 from . import geographies
 from .DataSetResults import DataSetResults
 from .get_data import get_echo_data
-from .utilities import get_facs_in_counties
+from .utilities import get_facs_in_counties, filter_by_geometry
+from .utilities import get_min_max_coord
+import json
+import requests
+import time
+
+SCHEMA_DIR = os.environ.get('SCHEMA_HOST_PATH')
+API_SERVER = "https://portal.gss.stonybrook.edu/api"
 
 class DataSet:
     '''
@@ -40,11 +47,16 @@ class DataSet:
         The SQL query to use to retrieve the data
     last_sql : str
         The last query made of the database
+    api : boolean
+        True if using the DeltaLake api, False if using a local DB
+    token : string
+        The authentication token for the api
     '''
 
     def __init__( self, name, base_table, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None,
-                 sql=None, agg_type=None, agg_col=None, unit=None):
+                 sql=None, agg_type=None, agg_col=None, unit=None,
+                 api=True, token=None):
         # the echo_type can be a single string--AIR, NPDES, RCRA, SDWA,
         # or a list of multiple strings--['GHG','TRI']
 
@@ -63,10 +75,14 @@ class DataSet:
         self.last_modified_is_set = False
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
         self.last_sql = ''
+        self.api = api 
+        self.token = token
+        self.ids_per_request = 300
 
-    def store_results( self, region_type, region_value, state=None, years=None ):
+    def store_results( self, region_type, region_value, state=None, years=None, api=True, token=None ):
         result = DataSetResults( self, region_type, region_value, state )
-        df = self.get_data( region_type, region_value, state, years )
+        df = self.get_data_delta( region_type, region_value, state, years )
+        print("got the data")
         result.store( df )
         value = region_value
         if type(value) == list:
@@ -85,32 +101,54 @@ class DataSet:
     def show_charts( self ):
         for result in self.results.values():
             result.show_chart()
-        
-    def get_data( self, region_type, region_value, state=None, years=None ):
-        
+    
+    def get_data_delta( self, region_type, region_value, state=None, years=None ):
+        print(self.base_table)
+        if self.api:
+            if self.token == None:
+                try:
+                    with open('token.txt', 'r') as f:
+                        token = f.read().strip()
+                except:
+                    # If token file does not exist, prompt user to get token
+                    print("Token file not found. Please run get_echo_api_access_token() or get the get token cell to obtain a token.")
+            else:
+                token = self.token
+            headers = {
+            "Authorization": f"Bearer {token}",
+            }
+            
+            response = requests.get(f"{API_SERVER}/echo/schema/{self.base_table}", headers=headers)
+            if response.status_code != 200:
+                raise Exception(f"Failed to fetch schema: {response.status_code} - {response.text}")
+            
+            data = response.json()      
+        else:
+            with open(os.path.join(SCHEMA_DIR, f"{self.base_table}_schema.json")) as f: # MOVE THIS TO AN API SCHEMA, AS ENDPOINT
+                data = json.load(f)
+                
         if ( not self.last_modified_is_set ):
-            sql = 'select modified from "Last-Modified" where "name" = \'{}\''.format(
-                self.base_table )
-            self.last_sql = sql
-            ds = get_echo_data( sql )
-            self.last_modified = datetime.strptime( ds.modified[0], '%Y-%m-%d' )
+            last_modified = data['last_modified']  # Now this will work
+            self.last_modified = datetime.strptime(last_modified, "%a, %d %b %Y %H:%M:%S ")
             self.last_modified_is_set = True
             print("Data last modified: " + str(self.last_modified)) # Print the last modified date for each file we get
             
-        program_data = None
+        # program_data = None
 
         if (region_type == 'Neighborhood'):
-            return self._get_nbhd_data(region_value, years)
-
+            return self._get_nbhd_data(region_value, years) # TODO: can't continue, has geometry data
+        
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):
-                x_sql = 'select * from "' + self.table_name + '" where ' \
+                x_sql = 'select * from ' + self.table_name + ' where ' \
                             + filter
             else:
                 x_sql = self.sql + ' where ' + filter
             self.last_sql = x_sql
-            program_data = get_echo_data( x_sql, self.idx_field )
+            print(self.last_sql)
+            program_data = get_echo_data( x_sql, self.idx_field, self.table_name, api=self.api, token=self.token) 
+            print(self.idx_field)
             program_data = self._apply_date_filter(program_data, years)
         except pd.errors.EmptyDataError:
             print( "No program records were found.")
@@ -127,7 +165,7 @@ class DataSet:
     def get_data_by_ids( self, ids, use_registry_id=False, int_flag=False, years=None ):
         # The id_string can get very long for a state or even a county.
         # That can result in an error from too big URI.
-        # Get the data in batches of 50 ids.
+        # Get the data in batches of ids_per_request ids.
 
         program_data = None
         
@@ -136,11 +174,13 @@ class DataSet:
         else:
             ids_len = len( ids )
 
+        count = 0
         iterator = iter(ids)
-        while chunk := list(islice(iterator, 50)):
+        while chunk := list(islice(iterator, self.ids_per_request)):
             id_string = ""
 
             for id in chunk:
+                count += 1
                 if ( not int_flag ):
                     id_string += "'"
                 id_string += str(id)
@@ -148,6 +188,8 @@ class DataSet:
                     id_string += "'"
                 id_string +=  ","
             id_string=id_string[:-1] # removes trailing comma
+            if count > self.ids_per_request:
+                time.sleep(5)
             data = self._try_get_data( id_string, use_registry_id )
             if ( data is not None ):
                 if ( program_data is None ):
@@ -180,7 +222,7 @@ class DataSet:
             ee_ids_len = len( ee_ids )
 
         iterator = iter(ee_ids)
-        while chunk := list(islice(iterator, 50)):
+        while chunk := list(islice(iterator, self.ids_per_request)):
             id_string = ""
             for id in chunk:
                 if ( not int_flag ):
@@ -192,10 +234,10 @@ class DataSet:
             id_string=id_string[:-1] # removes trailing comma
             this_data = None
             try:
-                x_sql = 'select "PGM_ID" from "EXP_PGM" where "REGISTRY_ID" in (' \
+                x_sql = 'select PGM_ID from EXP_PGM where REGISTRY_ID in (' \
                                     + id_string + ')'
                 self.last_sql = x_sql
-                this_data = get_echo_data( x_sql )
+                this_data = get_echo_data( x_sql, api=self.api, token=self.token )
             except pd.errors.EmptyDataError:
                 print( "..." )
             if ( this_data is not None ):
@@ -237,42 +279,79 @@ class DataSet:
         return False
      
     # Private methods of the class
-   
+    # Spatial data function
     def _get_nbhd_data(self, points, years=None):
-        poly_str = ''
-        for point in points:
-            poly_str += f'{point[0]} {point[1]} ,'
-        poly_str += f'{points[0][0]} {points[0][1]}'
+
+        min_lon = min(p[0] for p in points)
+        max_lon = max(p[0] for p in points)
+        min_lat = min(p[1] for p in points)
+        max_lat = max(p[1] for p in points)
 
         if self.echo_type == 'SDWA':
             echo_flag = 'SDWIS_FLAG'
         elif type(self.echo_type) != list:
             echo_flag = self.echo_type + '_FLAG'
             
+        (min_lat, max_lat, min_long, max_long) = get_min_max_coord(points)
         echo_ids = []
         if type(self.echo_type) == list:
             for flag in self.echo_type:
-                sql = """
-                SELECT "REGISTRY_ID"
-                FROM "ECHO_EXPORTER"
-                WHERE "{}_FLAG" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
-                """.format(flag, poly_str)
+                
+                # Get only id and coords from table
+                sql = f"""
+                    SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
+                    FROM ECHO_EXPORTER 
+                    WHERE {flag}_FLAG = 'Y'
+                    AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
+                    AND FAC_LONG >= NEGATIVE({abs(min_lon)} AND FAC_LONG <= NEGATIVE({abs(max_lon)})
+                """
                 self.last_sql = sql
-                registry_ids = get_echo_data(sql)
-                echo_ids.extend(registry_ids["REGISTRY_ID"].to_list())
+                df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
+                registry_ids = filter_by_geometry(points, df) # Clip facs to just those in actual shape  
+                #df = get_echo_data( sql, 'REGISTRY_ID', api=self.api, token=self.token)
+                #registry_ids = filter_by_geometry(points, df)
+                
+                # sql = """
+                # SELECT "REGISTRY_ID"
+                # FROM "ECHO_EXPORTER"
+                # WHERE "{}_FLAG" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
+                # """.format(flag, poly_str)
+                # self.last_sql = sql
+                # registry_ids = get_echo_data(sql)
+                if registry_ids.index.name == 'REGISTRY_ID':
+                    echo_ids.extend(registry_ids.index.to_list())
+                else:
+                    echo_ids.extend(registry_ids["REGISTRY_ID"].to_list())
         else:
-            sql = """
-            SELECT "REGISTRY_ID"
-            FROM "ECHO_EXPORTER"
-            WHERE "{}" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
-            """.format(echo_flag, poly_str)
+            # sql = """
+            # SELECT "REGISTRY_ID"
+            # FROM "ECHO_EXPORTER"
+            # WHERE "{}" = 'Y' AND ST_WITHIN("wkb_geometry", ST_GeomFromText('POLYGON(({}))', 4269) );
+            # """.format(echo_flag, poly_str)
+            # Get only id and coords from table
 
-        self.last_sql = sql
-        registry_ids = get_echo_data(sql)
-        echo_ids = registry_ids["REGISTRY_ID"].to_list()
+            sql = f"""
+                SELECT REGISTRY_ID, FAC_LAT, FAC_LONG
+                FROM ECHO_EXPORTER 
+                WHERE {echo_flag} = 'Y'
+                AND FAC_LAT >= {min_lat} AND FAC_LAT <= {max_lat}
+                AND FAC_LONG >= NEGATIVE({abs(min_lon)}) AND FAC_LONG <= NEGATIVE({abs(max_lon)})
+            """
+            self.last_sql = sql
+            df = get_echo_data( sql, "REGISTRY_ID", api=self.api, token=self.token) # Get all facs within a bbox
+            registry_ids = filter_by_geometry(points, df) # Clip facs to just those in actual shape  
+            if registry_ids.index.name == 'REGISTRY_ID': # We set registry_id as index so, we can extract it right here
+                echo_ids = registry_ids.index.to_list()
+            else:
+                echo_ids = registry_ids["REGISTRY_ID"].to_list()
+
+        # self.last_sql = sql
+        # registry_ids = get_echo_data(sql)
+        # echo_ids = registry_ids["REGISTRY_ID"].to_list()
         return self.get_data_by_ids(ids=echo_ids, use_registry_id=True, years=years)
+    
 
-    def _try_get_data( self, id_list, use_registry_id=False):
+    def _try_get_data( self, id_list, use_registry_id=False ):
         # The use_registry_id flag determines whether we use the table or view's
         # defined index field or the REGISTRY_ID which is part of each MVIEW.
         this_data = None
@@ -281,17 +360,20 @@ class DataSet:
                 idx = self.idx_field
                 if use_registry_id:
                     idx = "REGISTRY_ID"
-                x_sql = f'select * from "{self.table_name}"  where "{idx}" in ({id_list})'
+                x_sql = f'select * from {self.table_name}  where {idx} in ({id_list})'
             else:
                 x_sql = self.sql + "(" + id_list + ")"
             self.last_sql = x_sql
-            this_data = get_echo_data( x_sql, self.idx_field )
+            this_data = get_echo_data( x_sql, index_field=self.idx_field, table_name=self.table_name, 
+                                      api=self.api, token=self.token )
         except pd.errors.EmptyDataError:
             print( "..." )
         return this_data
     
 
     def _apply_date_filter(self, program_data, years=None):
+            if program_data is None:
+                return None
             df = program_data.copy()
             if self.echo_type in ['TRI', 'GHG', 'SDWA'] or 'TRI' in self.echo_type or 'GHG' in self.echo_type:
                 if self.name == 'SDWA Site Visits' or self.name == 'SDWA Enforcements':
@@ -300,6 +382,7 @@ class DataSet:
                 else:
                     df['year'] = df[self.date_field].astype(int)
             elif self.name == 'CWA Violations':
+                df[self.date_field] = df[self.date_field].astype(int)
                 df['year'] = df[self.date_field]/10
                 df['year'] = df['year'].astype(int)
             else:
@@ -336,17 +419,20 @@ class DataSet:
         return len( my_echo_data ) > 0
 
     def _set_facility_filter( self, region_type, region_value=None, state=None ):
+        print(region_type)
+        print(region_value)
+        print(state)
         if ( region_type == 'State' ):
             region_value = state
         if ( region_type == 'County' or region_type == 'State' ):
-            filter = '"' + geographies.region_field['State']['field'] + '"'
+            filter = '' + geographies.region_field['State']['field'] + ''
             filter += ' = \'' + state + '\''
         else:
-            filter = '"' + geographies.region_field[region_type]['field'] + '"'
+            filter = '' + geographies.region_field[region_type]['field'] + ''
             # region_value will be an list of values
             id_string = ""
             value_type = type(region_value)
-            if ( value_type == list or value_type == tuple ):
+            if ( value_type == list or value_type == tuple ): # <- Question for tmr: Would this ever be a list because you are taking state, CD by pairs? Region value is currently an int.
                 for region in region_value:
                     if ( region_type == 'Congressional District' ):
                         id_string += str( region ) + ','
@@ -359,6 +445,6 @@ class DataSet:
                 region_value = ",".join(map(lambda x: "\'" + str(x) + "\'", region_value.split(',')))
                 filter += ' in (' + region_value + ')'
             if ( region_type == 'Congressional District' ):
-                filter += ' and "' + geographies.region_field['State']['field']
-                filter += '" = \'' + state + '\''
+                filter += ' and ' + geographies.region_field['State']['field']
+                filter += ' = \'' + state + '\''
         return filter

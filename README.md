@@ -3,7 +3,7 @@ ECHO_modules
 [![Download Latest Version from PyPI](https://img.shields.io/pypi/v/echo-modules.svg)](https://pypi.python.org/pypi/echo-modules)
 [![Code of Conduct](https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat)](https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md)
 
-*ECHO_modules* is a Python package for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) database.
+*ECHO_modules* is a Python package repository for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) amd Risk Screening Environmental Indicators (RSEI) databases.
 
 Background
 --------------------------
@@ -43,13 +43,20 @@ Even when violations are flagged, it is important to keep in mind that these rep
 
 Any interpretations you make of ECHO data accessed through `ECHO_modules` should keep all the above in mind. For instance, EEW prefers to use language such as "reported violations" and "estimated emissions" when discussing findings. 
 
-Installation & Basic Usage
+Basic Usage
 --------------------------
 For a more complete set of examples, see the Jupyter Notebook [here](https://github.com/edgi-govdata-archiving/ECHO_modules/blob/main/ECHO_modules_Tutorials.ipynb) or notebooks in project-specific repositories in the EDGI organization on GitHub.
 
 Command line installation:
 ```
 pip install ECHO_modules
+```
+
+Authenticate with the API:
+```
+from ECHO_modules.get_data import get_echo_api_access_token
+get_echo_api_access_token()
+# Follow the instructions and save your token in token.txt in the active directory
 ```
 
 Retrieve records of reported violations of the Clean Water Act for Snohomish County in Washington state:
@@ -91,9 +98,77 @@ from ECHO_modules.utilities import write_dataset
 write_dataset( snohomish_cwa_violations.dataframe, "SnohomishCWAViolations")
 ```
 
-Code of Conduct
+Installation
 --------------------------
-This repository falls under EDGI’s `Code of Conduct <https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md>`. Please take a moment to review it before commenting on or creating issues and pull requests.
+### Using the ECHO tables in a local Delta Lake system
+ECHO_modules has been updated to work with [the ECHO-Pipeline project](https://github.com/edgi-govdata-archiving/ECHO-Pipeline), which harnesses the Delta Lake system using PySpark. The following instructions are for when you have Delta Lake set up on your local machine and want to use it without relying on API services.
+
+1. Copy the example environment file:
+    ```bash
+    cp .env.example .env
+    ```
+
+2. Set up your `.env` file by updating the required paths. Refer to the environment variables section below.
+
+3. Build the Docker container:
+   ```bash
+   docker compose build
+   ```
+4. Start the container:
+    ```bash
+    docker compose up
+    ```
+
+This will start the services defined in the **echo-delta-compose.yaml** file which is the ECHO Modules app and any dependencies (e.g., Spark, Delta Lake, etc.). A bash script `startup.sh` runs on start of container which sets up the Spark Session for use. A Jupyter Notebook server will also be launched, allowing you to run notebooks that utilize the ECHO_modules.
+
+5. (Optional) To enter the container's shell:
+    ```bash
+    docker exec -it echo-modules bash
+    ```
+6. Environment Variables
+
+    Add the following variables to a `.env` file for the application to run:
+
+    Variable | Description | Example
+    ---------|-------------|--------
+    | `DELTA_TABLES_HOST_PATH` | (Optional) Path to the Delta tables on your host machine. Only required if **not** using the API. | `/home/user/epa-data/delta-tables`    |
+    | `SCHEMA_HOST_PATH`       | (Optional) Path to the schema directory on your host. Only required if **not** using the API.       | `/home/user/epa-data/schema`          |
+    | `WORK_DIR_HOST_PATH`     | Path to your working directory on the host machine. Used for accessing notebooks locally within the container. | `/home/user/ECHO_Modules_delta`       |
+
+**Notes:**
+- `DELTA_TABLES_HOST_PATH` and `SCHEMA_HOST_PATH` are unnecessary if you're using the API to access data.
+- `WORK_DIR_HOST_PATH` is used to mount your local working directory (e.g., for Jupyter notebooks) into the container environment for development.
+- Ensure that all specified paths in your `.env` file exist and are correctly mounted in your Docker setup.
+
+### Using the ECHO tables in the ECHO API server
+If you do not use a local Delta Lake docker container, you can still access the ECHO tables from the ECHO API server using ECHO_modules_delta.
+
+
+1. Create a Python virtual environment:
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+2. Install the ECHO_modules package: 
+    ```bash
+    pip install ECHO_modules
+    ```
+
+3. Start Jupyter Lab:
+    ```bash
+    jupyter lab
+    ```
+    Ensure Jupyter Lab is installed in the virtual environment so you can access the notebook interface.
+
+4. Generate an access token:
+
+    Use the `get_echo_api_access_token` function to generate an access token from the ECHO API server to authenticate your requests.
+
+    - Follow the API server's authentication instructions to obtain your token.
+
+5. Save the access token in `token.txt` in your notebook directory. You should now be able to use the API server to request data. 
+
 
 Contributors
 --------------------------
@@ -103,11 +178,17 @@ Contributors
 - `Lourdes Vera <https://github.com/lourdesvera>` (Organizer, Project Management, Events, Documentation)
 - `Sara Wylie <https://github.com/@saraannwylie>` (Organizer, Project Management, Events, Documentation)
 - `Sung-Gheel Jang <https://github.com/@sunggheel>` (Code, Database)
+- `Yemoe Aung <https://github.com/@yemoeaung1` (Code, Database)
 - `Paul St. Denis <https://github.com/@pstdenis>` (Code, Database)
 - `Megan Raisle <https://github.com/@mraisle>` (Code)
 - `Olivia Chang <https://github.com/@oliviachang29>` (Code)
+- `Rob Brackett <https://github.com/@Mr0grog>` (Code)
 
 A more complete list of contributors to EEW is [here](https://github.com/edgi-govdata-archiving/Environmental_Enforcement_Watch?tab=readme-ov-file#people-of-eew)	
+
+Code of Conduct
+--------------------------
+This repository falls under EDGI’s `Code of Conduct <https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md>`. Please take a moment to review it before commenting on or creating issues and pull requests.
 
 License & Copyright
 --------------------------

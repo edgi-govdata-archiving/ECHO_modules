@@ -8,4 +8,4 @@ Untitled.ipynb
 .cache
 .DS_Store
 *.pyc
-requirements.txt
+token.txt

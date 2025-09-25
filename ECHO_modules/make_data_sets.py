@@ -15,7 +15,7 @@ from ECHO_modules.DataSet import DataSet
 from ECHO_modules.data_set_presets import get_attribute_tables
 
 
-def make_data_sets( data_set_list = None, exclude_list = None ):
+def make_data_sets( data_set_list = None, exclude_list = None, api=True, token=None ):
     """
     Create DataSet objects from a list of preset configurations. This takes a
     list of preset names and returns a dictionary where the keys are the preset
@@ -36,6 +36,12 @@ def make_data_sets( data_set_list = None, exclude_list = None ):
 
     exclude_list : list of str
         Configuration names to be excluded
+
+    api : boolean
+        True if using the DeltaLake api, False if using a local DB
+    
+    token : string
+        The authentication token for the api
 
     Returns
     -------
@@ -64,5 +70,5 @@ def make_data_sets( data_set_list = None, exclude_list = None ):
 
     """
     presets = get_attribute_tables()
-    return {name: DataSet(name=name, **presets[name])
+    return {name: DataSet(name=name, **presets[name], api=api, token=token)
             for name in data_set_list or presets.keys()}

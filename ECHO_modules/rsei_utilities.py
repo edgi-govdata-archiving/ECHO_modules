@@ -3,13 +3,13 @@ import numpy as np
 import folium
 from folium.plugins import FastMarkerCluster
 from itertools import islice
-from ipywidgets import widgets
+from ipywidgets import widgets, Layout
 from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.utilities import check_bounds, marker_text
 from IPython.display import display
+import time
 
-
-def show_rsei_pick_region_widget( type, state_widget=None, multi=False ):
+def show_rsei_pick_region_widget(type, state_widget=None, multi=False, description=None):
     '''
     Create and return a dropdown list of regions appropriate
     to the input parameters.
@@ -23,6 +23,10 @@ def show_rsei_pick_region_widget( type, state_widget=None, multi=False ):
         The type of region
     state_widget : widget
         The widget in which a state may have been selected
+    mullti : boolean
+        Whether multiple selections are supported
+    description : string
+        The prompt string for the widget
 
     Returns
     -------
@@ -32,6 +36,9 @@ def show_rsei_pick_region_widget( type, state_widget=None, multi=False ):
 
     region_widget = None
     
+    description_text = f'{type}'
+    if description is not None:
+        description_text = description
     if type in ('City', 'County'):
         if ( state_widget is None ):
             print( "You must first choose a state." )
@@ -39,27 +46,64 @@ def show_rsei_pick_region_widget( type, state_widget=None, multi=False ):
         my_state = state_widget.value
         if ( isinstance( my_state, tuple )):
             my_state = my_state[0]
-    if type in ('Zip Code', 'City', 'County'):
+    if type in ('Zip Code', 'City', 'County', 'FRSID List'):
         region_widget = widgets.Text(
             value='',
-            description=f'{type}:',
+            description=description_text,
             disabled=False
         )
     if region_widget is not None:
         display( region_widget )
     return region_widget
 
+def show_select_multiple_widget(items, label, preselected=None):
+    '''
+    Create and return a dropdown list of the items from the 
+    input Series.
+
+    Parameters
+    ----------
+    items : Series
+        The items to be shown.  It may have duplicates.
+
+    preselected : list
+        The items to be pre-selected.
+
+    Returns
+    -------
+    widget
+        The widget with items to be selected
+    '''
+    selected = ()
+    if preselected is not None:
+        selected = list(set(items) & set(preselected))
+    item_list = items.dropna().unique()
+    item_list.sort()
+    style = {'description_width': 'initial'}
+    widget=widgets.SelectMultiple(
+        options=item_list,
+        value=selected,
+        style=style,
+        layout=Layout(width='70%'),
+        description=label,
+        disabled=False,
+    )
+    return widget
+
 def _filter_years(df, year_column, years):
+    if df is None or df.empty:
+        return df
     start_year = 0
     end_year = 2500
     if years is not None:
         start_year = years[0]
         end_year = years[1]
+        df[year_column] = pd.to_numeric(df[year_column])
         df = df[df[year_column].between(start_year, end_year)]
     return df
 
 def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns='*',
-                        years=None):
+                        years=None, token=None):
     '''
     Get a Dataframe with the RSEI facilities
     The table identified by the rsei_type must have 
@@ -108,15 +152,15 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
 
     try:
         if region_type == 'State':
-            sql = f'select {columns} from "{table}") = \'{state}\''
+            sql = f'select {columns} from {table} where upper(State) = \'{state}\''
         elif region_type == 'City':
-            sql = f'select {columns} from "{table}" where upper("State") = \'{state}\''
-            sql += f' and upper("City") in ({split_str})'
+            sql = f'select {columns} from {table} where upper(State) = \'{state}\''
+            sql += f' and upper(City) in ({split_str})'
         elif region_type == 'County':
-            sql = f'select {columns} from "{table}" where "State" = \'{state}\''
-            sql += f' and upper("County") in ({split_str})'
+            sql = f'select {columns} from {table} where State = \'{state}\''
+            sql += f' and upper(County) in ({split_str})'
         elif region_type == 'Zip Code':
-            sql = f'select {columns} from "{table}" where "ZIPCode" in ({split_str})'
+            sql = f'select {columns} from {table} where ZIPCode in ({split_str})'
         elif region_type == 'Neighborhood':
             poly_str = ''
             points = regions_selected
@@ -127,11 +171,11 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
 
             sql = f"""
                 SELECT {columns}
-                FROM "{table}"
-                WHERE "Latitude" BETWEEN {lat_min} AND {lat_max} AND "Longitude" BETWEEN {long_min} and {long_max}
+                FROM {table}
+                WHERE Latitude BETWEEN {lat_min} AND {lat_max} AND Longitude BETWEEN {long_min} and {long_max}
                 """
         print(sql)
-        df_active = get_echo_data(sql)
+        df_active = get_echo_data(sql, index_field='None', table_name=table, api=True, token=token)
         if years is not None:
             df_active = _filter_years(df_active, 'LLYear', years)
     except pd.errors.EmptyDataError:
@@ -140,11 +184,12 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
     return df_active
 
 def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_columns='*', 
-                     years=None, year_field=None, limit=None):
+                     years=None, year_field=None, filter=None, limit=None, token=None):
+    ids_per_request = 250
     '''
     Get the records from 'this' table associated with the ids (in that_series) 
     from 'that' table.
-    If that_series is larger than 50 ids, the ids are used in chunks of 50.
+    If that_series is larger than ids_per_request ids, the ids are used in chunks of ids_per_request.
 
     Parameters
     ----------
@@ -162,6 +207,13 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
         A two-element list of the year range
     year_field : str
         The field in 'this' table to filter years
+    filter : Dictionary
+        filter_field : str
+            The field in 'this' table to filter
+        filter_list : list
+            The list of values to match in the filter_field
+        int_flag : boolean
+            True if the list of values are integers
     limit : int
         A maximum number of records to return
 
@@ -171,35 +223,54 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
         The 'this' records returned from the database query
     '''
 
-    table = f"{this_name}_data_rsei_v2312"
-    sql_base = f'select {this_columns} from "{table}"'
+    table = this_name
+    if table != 'ECHO_EXPORTER':
+        table = f"{table}_data_rsei_v2312"
+    sql_base = f'select {this_columns} from {table}'
     df_result = None
     if that_series is not None:
+        that_series = that_series.astype(int)
         that_tuple = tuple(that_series)
 
         iterator = iter(that_tuple)
         count = 0
-        while chunk := list(islice(iterator, 50)):
+        while chunk := list(islice(iterator, ids_per_request)):
             id_string = ""
-
             for id in chunk:
                 count += 1
-                if ( not int_flag ):
+                if not int_flag:
                     id_string += "'"
                 id_string += str(id)
-                if ( not int_flag ):
+                if not int_flag:
                     id_string += "'"
                 id_string +=  ","
             id_string=id_string[:-1] # removes trailing comma
-            sql = sql_base + f' where "{this_key}" in ({id_string})'
+            sql = sql_base + f' where {this_key} in ({id_string})'
+            if filter is not None:
+                filter_string = ""
+                for value in filter["filter_list"]:
+                    if ( not filter["int_flag"] ):
+                        filter_string += "'"
+                    filter_string += str(value)
+                    if ( not filter["int_flag"] ):
+                        filter_string += "'"
+                    filter_string += ","
+                filter_string = filter_string[:-1] # removes trailing comma
+                sql += f' and {filter["filter_field"]} in ({filter_string})'
             if limit is not None:
                 if limit > 0:
                     sql += f' limit {limit}'
                 else:
                     break
-            print(sql)
+            if count % 100 == 0:
+                print(f'{count}) reading {table}')
             try:
-                df = get_echo_data(sql)
+                if count > ids_per_request:
+                    time.sleep(5) 
+                # print(sql)
+                df = get_echo_data(sql, index_field=None, table_name=table, api=True, token=token)
+                if filter is not None:
+                    df.dropna(subset=[filter['filter_field']], inplace=True)
                 if limit is not None:
                     limit -= len(df)
                 if years is not None:
@@ -213,7 +284,15 @@ def get_this_by_that(this_name, that_series, this_key, int_flag=True, this_colum
                     df_result = pd.concat([df_result, df])
     return df_result
 
-def add_chemical_to_submissions(submissions, chemical_columns='*'):
+
+def get_media(token=None):
+    table = "media_data_rsei_v2312"
+    sql = f'select Media, MediaText from {table}'
+    media_df = get_echo_data(sql, index_field='None', table_name=table, api=True, token=token)
+    return media_df
+
+
+def add_chemical_to_submissions(submissions, chemical_columns='*', token=None):
     '''
     Get the chemical associated with the submissions and add them to
     submissions dataframe
@@ -241,17 +320,18 @@ def add_chemical_to_submissions(submissions, chemical_columns='*'):
             started = True
         chem_int_string += str(i)
     table = "chemical_data_rsei_v2312"
-    table = "chemical_data_rsei_v2312"
-    sql = f'select {chemical_columns} from "{table}"'
-    sql += f' where "ChemicalNumber" in ({chem_int_string})'
+    sql = f'select {chemical_columns} from {table}'
+    sql += f' where ChemicalNumber in ({chem_int_string})'
     print(sql)
     
     try:
-        chem_df = get_echo_data(sql)
+        chem_df = get_echo_data(sql, index_field='None', table_name=table, api=True, token=token)
     except pd.errors.EmptyDataError:
         chem_df = None
 
-    sub_df = pd.merge(submissions, chem_df, on='ChemicalNumber')
+    sub_df = chem_df
+    if chem_df is not None:
+        sub_df = pd.merge(submissions, chem_df, on='ChemicalNumber')
 
     return sub_df
 
@@ -284,7 +364,7 @@ def mapper2(df_dicts, link_df=None, bounds=None, no_text=False):
             - facility name - 'name_field' in the dataframe 
             - latitude field - 'lat_field'
             - longitude field - 'long_field'
-            - URL field - 'url_field'
+            - info field - 'info_field'
 
     link_df : DataFrame
         An optional dataframe with two pair of latitude/longitude coordinates
@@ -316,7 +396,9 @@ def mapper2(df_dicts, link_df=None, bounds=None, no_text=False):
 
     # Add a clickable marker for each facility
     for dict in df_dicts:
-        df = dict['DataFrame'].drop_duplicates(subset=[dict['name_field']])
+        df = dict['DataFrame'].drop_duplicates(subset=[dict['name_field'],
+                                                       dict['lat_field'],
+                                                       dict['long_field']])
         if df.empty:
             print("The DataFrame is empty. There is nothing to map.")
             break
@@ -326,7 +408,7 @@ def mapper2(df_dicts, link_df=None, bounds=None, no_text=False):
                     continue
             mc.add_child(folium.CircleMarker(
                 location = [row[dict['lat_field']], row[dict['long_field']]],
-                popup = marker_text(row, no_text, dict['name_field'], dict['url_field']),
+                popup = marker_text(row, no_text, dict['name_field'], dict['info_field']),
     
                 radius = 8,
                 color = dict['marker_color'],

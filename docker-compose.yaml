@@ -1,0 +1,17 @@
+services:
+  echo-modules:
+    build:
+        context: .
+    environment:
+      - DELTA_TABLES_MOUNT_PATH=/opt/spark/data/delta-tables
+      - SCHEMA_DIR=/opt/spark/data/schema
+      - PYTHONDONTWRITEBYTECODE=1  # Prevent Python from writing .pyc files
+      - PYTHONUNBUFFERED=1         # Ensure output is logged immediately
+    container_name: echo-modules-delta
+    volumes:
+      - ${DELTA_TABLES_HOST_PATH}:/opt/spark/data/delta-tables
+      - ${SCHEMA_HOST_PATH}:/opt/spark/data/schema
+      - ${WORK_DIR_HOST_PATH}:/opt/spark/work-dir
+    tty: true
+    ports:
+      - "8888:8888"  # Jupyter Notebook port

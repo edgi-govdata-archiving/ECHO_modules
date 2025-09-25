@@ -4,15 +4,17 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "ECHO_modules"
-version = "0.1.7"
+version = "0.2.0"
 authors = [
 	{name = "Steve Hansen", email = "steven.e.hansen@gmail.com"}, 
 	{name="Eric Nost", email="enost@uoguelph.ca" }, 
-	{name="Kelsey Breseman", email="ifoundthemeaningoflife@gmail.com" }, 
+	{name="Sung-Gheel Jang", email="sunggheel.jang@stonybrook.edu" }, 
+	{name="Yemoe Aung", email="enost@uoguelph.ca" }, 
+	{name="Kelsey Breseman", email="ye.m.aung@stonybrook.edu" }, 
 	{name = "EDGI", email = "contact@envirodatagov.org"}
 ]
 readme = "README.md"
-description = "Python package for analyzing the US Environmental Protection Agency's Enforcement and Compliance History Online database"
+description = "Python package for analyzing the US Environmental Protection Agency's Enforcement and Compliance History Online and Risk Screening Environmental Indicator databases"
 license = {file = "LICENSE"}
 classifiers = [
     "Programming Language :: Python :: 3",
