@@ -11,7 +11,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="count", 
         agg_col="", 
-        unit=""
+        unit="",
+        meta="https://echo.epa.gov/system/files/echo_exporter_columns_7-16-2025_0.xlsx"
     ),
 
     "RCRA Violations": dict(
@@ -23,7 +24,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="count", 
         agg_col="VIOL_DETERMINED_BY_AGENCY", 
-        unit="violations"
+        unit="violations",
+        meta="https://echo.epa.gov/tools/data-downloads/rcrainfo-download-summary#violations_file"
     ),
 
     "RCRA Inspections": dict(
@@ -35,7 +37,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y", 
         agg_type="count",
         agg_col="EVALUATION_AGENCY", 
-        unit="inspections"
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/rcrainfo-download-summary#evaluations_file"
     ),
 
     "RCRA Penalties": dict(
@@ -47,7 +50,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y", 
         agg_type="sum",
         agg_col="FMP_AMOUNT",
-        unit="dollars"
+        unit="dollars",
+        meta="https://echo.epa.gov/tools/data-downloads/rcrainfo-download-summary#enforcement_file"
     ),
 
     "ICIS EPA Inspections": dict(
@@ -59,7 +63,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y", 
         agg_type="count",
         agg_col="ACTIVITY_TYPE_DESC", 
-        unit="inspections"
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "CAA Violations": dict(
@@ -71,7 +76,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m-%d-%Y", 
         agg_type="count",
         agg_col="AGENCY_TYPE_DESC", 
-        unit="violations"
+        unit="violations",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "CAA Penalties": dict(
@@ -83,7 +89,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y", 
         agg_type="sum",
         agg_col="PENALTY_AMOUNT",
-        unit="dollars"
+        unit="dollars",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "CAA Inspections": dict(
@@ -95,7 +102,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m-%d-%Y", 
         agg_type="count",
         agg_col="STATE_EPA_FLAG", 
-        unit="inspections"
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "Combined Air Emissions": dict(
@@ -104,7 +112,8 @@ ATTRIBUTE_TABLES = {
         table_name="COMBINED_AIR_EMISSIONS_MVIEW", 
         idx_field="REGISTRY_ID",
         date_field="REPORTING_YEAR", 
-        date_format="%Y"
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/air-emissions-download-summary"
     ),
 
     "Greenhouse Gas Emissions": dict(
@@ -116,7 +125,8 @@ ATTRIBUTE_TABLES = {
         date_format="%Y", 
         agg_type="sum",
         agg_col="ANNUAL_EMISSION", 
-        unit="metric tons of CO2 equivalent"
+        unit="metric tons of CO2 equivalent,
+        meta="https://echo.epa.gov/tools/data-downloads/air-emissions-download-summary""
     ),
 
     "Toxic Releases": dict(
@@ -128,7 +138,8 @@ ATTRIBUTE_TABLES = {
         date_format="%Y",
         agg_type="sum",
         agg_col="ANNUAL_EMISSION", 
-        unit="pounds"
+        unit="pounds",
+        meta="https://echo.epa.gov/tools/data-downloads/air-emissions-download-summary"
     ),
 
     "CWA Violations": dict(
@@ -140,7 +151,8 @@ ATTRIBUTE_TABLES = {
         date_format="%Y", 
         agg_type="sum",
         agg_col="NUME90Q", 
-        unit="effluent violations"
+        unit="effluent violations,
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary""
     ),
 
     "CWA Inspections": dict(
@@ -152,7 +164,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="count", 
         agg_col="STATE_EPA_FLAG",
-        unit="inspections"
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary"
     ),
 
     "CWA Penalties": dict(
@@ -164,7 +177,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="sum", 
         agg_col="FED_PENALTY_ASSESSED_AMT",
-        unit="dollars"
+        unit="dollars",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary"
     ),
 
     "SDWA Site Visits": dict(
@@ -173,7 +187,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_SITE_VISITS_MVIEW",
         idx_field="PWSID",
         date_field="SITE_VISIT_DATE",
-        date_format="%m/%d/%Y"
+        date_format="%m/%d/%Y,
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary""
     ),
 
     "SDWA Enforcements": dict(
@@ -182,7 +197,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_ENFORCEMENTS_MVIEW",
         idx_field="PWSID",
         date_field="ENFORCEMENT_DATE",
-        date_format="%m/%d/%Y"
+        date_format="%m/%d/%Y,
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary""
     ),
 
     "SDWA Public Water Systems": dict(
@@ -191,7 +207,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_PUBLIC_WATER_SYSTEMS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
-        date_format="%Y"
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
 
     "SDWA Violations": dict(
@@ -200,7 +217,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_VIOLATIONS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
-        date_format="%Y"
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
 
     "SDWA Serious Violators": dict(
@@ -209,7 +227,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_SERIOUS_VIOLATORS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
-        date_format="%Y"
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
     
     "2020 Discharge Monitoring": dict(
@@ -221,7 +240,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="count", 
         agg_col = "VIOLATION_CODE",
-        unit = "discharge monitoring reports"
+        unit = "discharge monitoring reports,
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-dmr-summary""
     ),
 
     "2022 Discharge Monitoring": dict(
@@ -233,7 +253,8 @@ ATTRIBUTE_TABLES = {
         date_format="%m/%d/%Y",
         agg_type="count", 
         agg_col = "VIOLATION_CODE",
-        unit = "discharge monitoring reports"
+        unit = "discharge monitoring reports,
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-dmr-summary""
     ),
 
     "Effluent Violations": dict(
@@ -244,7 +265,8 @@ ATTRIBUTE_TABLES = {
         date_field="MONITORING_PERIOD_END_DATE",
         date_format="%Y-%m-%d",
         agg_type="count", 
-        agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
+        agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing.,
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary"..
     )
 
     # "SDWA Return to Compliance": dict(
