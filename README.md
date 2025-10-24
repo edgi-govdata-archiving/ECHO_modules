@@ -112,14 +112,14 @@ ECHO_modules has been updated to work with [the ECHO-Pipeline project](https://g
 
 3. Build the Docker container:
    ```bash
-   docker compose build
+   docker compose -f docker-compose.yaml build
    ```
 4. Start the container:
     ```bash
-    docker compose up
+    docker compose -f docker-compose.yaml up
     ```
 
-This will start the services defined in the **echo-delta-compose.yaml** file which is the ECHO Modules app and any dependencies (e.g., Spark, Delta Lake, etc.). A bash script `startup.sh` runs on start of container which sets up the Spark Session for use. A Jupyter Notebook server will also be launched, allowing you to run notebooks that utilize the ECHO_modules.
+This will start the services defined in the **delta-compose.yaml** file which is the ECHO Modules app and any dependencies (e.g., Spark, Delta Lake, etc.). A bash script `startup.sh` runs on start of container which sets up the Spark Session for use. A Jupyter Notebook server will also be launched, allowing you to run notebooks that utilize the ECHO_modules.
 
 5. (Optional) To enter the container's shell:
     ```bash
