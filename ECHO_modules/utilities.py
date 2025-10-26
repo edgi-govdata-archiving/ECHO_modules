@@ -422,7 +422,11 @@ def get_active_facilities( state, region_type, regions_selected, api=True, token
     '''
 
     try:
-        if region_type == 'State' or region_type == 'County':
+        if ( region_type == 'Nationwide' ):
+            sql = 'select * from ECHO_EXPORTER where FAC_ACTIVE_FLAG = \'Y\''
+            sql = sql.format( state )
+            df_active = get_echo_data( sql, 'REGISTRY_ID', api=api, token=token)
+        elif region_type == 'State' or region_type == 'County':
             sql = 'select * from ECHO_EXPORTER where FAC_STATE = \'{}\''
             sql += ' and FAC_ACTIVE_FLAG = \'Y\''
             sql = sql.format( state )

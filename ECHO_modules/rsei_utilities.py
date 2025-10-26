@@ -151,7 +151,9 @@ def get_rsei_facilities(state, region_type, regions_selected, rsei_type, columns
             split_str += "\'" + s.strip() + "\'"
 
     try:
-        if region_type == 'State':
+        if region_type == 'Nationwide':
+            sql = f'select {columns} from {table}'
+        elif region_type == 'State':
             sql = f'select {columns} from {table} where upper(State) = \'{state}\''
         elif region_type == 'City':
             sql = f'select {columns} from {table} where upper(State) = \'{state}\''
