@@ -141,7 +141,10 @@ class DataSet:
         filter = self._set_facility_filter( region_type, region_value, state )
         try:
             if ( self.sql is None ):
-                x_sql = 'select * from ' + self.table_name + ' where ' \
+                if region_type == 'Nationwide':
+                    x_sql = 'select * from ' + self.table_name
+                else:
+                    x_sql = 'select * from ' + self.table_name + ' where ' \
                             + filter
             else:
                 x_sql = self.sql + ' where ' + filter
@@ -422,9 +425,11 @@ class DataSet:
         print(region_type)
         print(region_value)
         print(state)
-        if ( region_type == 'State' ):
+        if region_type == 'Nationwide':
+            return None
+        elif region_type == 'State':
             region_value = state
-        if ( region_type == 'County' or region_type == 'State' ):
+        if region_type == 'County' or region_type == 'State':
             filter = '' + geographies.region_field['State']['field'] + ''
             filter += ' = \'' + state + '\''
         else:
@@ -432,19 +437,19 @@ class DataSet:
             # region_value will be an list of values
             id_string = ""
             value_type = type(region_value)
-            if ( value_type == list or value_type == tuple ): # <- Question for tmr: Would this ever be a list because you are taking state, CD by pairs? Region value is currently an int.
+            if value_type == list or value_type == tuple: # <- Question for tmr: Would this ever be a list because you are taking state, CD by pairs? Region value is currently an int.
                 for region in region_value:
-                    if ( region_type == 'Congressional District' ):
+                    if region_type == 'Congressional District':
                         id_string += str( region ) + ','
                     else:
                         id_string += '\'' + str( region ) + '\','
                 # Remove trailing comma from id_string
                 filter += ' in (' + id_string[:-1] + ')'
-            elif ( type(region_value) == str ):
+            elif type(region_value) == str:
                 region_value = ''.join(region_value.split())
                 region_value = ",".join(map(lambda x: "\'" + str(x) + "\'", region_value.split(',')))
                 filter += ' in (' + region_value + ')'
-            if ( region_type == 'Congressional District' ):
+            if region_type == 'Congressional District':
                 filter += ' and ' + geographies.region_field['State']['field']
                 filter += ' = \'' + state + '\''
         return filter
