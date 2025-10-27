@@ -1,77 +1,84 @@
 # The keys of this dictionary are the preset names and the values are
 # dictionaries of the constructor arguments for `DataSet` that should be used
 # when creating one based on the preset.
+
 ATTRIBUTE_TABLES = {
     "Facilities": dict(
-        idx_field="REGISTRY_ID", 
+        idx_field="REGISTRY_ID",
         base_table="ECHO_EXPORTER",
         table_name="ECHO_EXPORTER",
         echo_type="",
         date_field="",
         date_format="%m/%d/%Y",
-        agg_type="count", 
-        agg_col="", 
-        unit=""
+        agg_type="count",
+        agg_col="",
+        unit="",
+        meta="https://echo.epa.gov/system/files/echo_exporter_columns_7-16-2025_0.xlsx"
     ),
 
     "RCRA Violations": dict(
-        idx_field="ID_NUMBER", 
+        idx_field="ID_NUMBER",
         base_table="RCRA_VIOLATIONS",
         table_name="RCRA_VIOLATIONS_MVIEW",
         echo_type="RCRA",
         date_field="DATE_VIOLATION_DETERMINED",
         date_format="%m/%d/%Y",
-        agg_type="count", 
-        agg_col="VIOL_DETERMINED_BY_AGENCY", 
-        unit="violations"
+        agg_type="count",
+        agg_col="VIOL_DETERMINED_BY_AGENCY",
+        unit="violations",
+        meta="https://echo.epa.gov/tools/data-downloads/rcrainfo-download-summary#violations_file"
     ),
 
     "RCRA Inspections": dict(
-        idx_field="ID_NUMBER", 
+        idx_field="ID_NUMBER",
         base_table="RCRA_EVALUATIONS",
         table_name="RCRA_EVALUATIONS_MVIEW",
         echo_type="RCRA",
         date_field="EVALUATION_START_DATE",
-        date_format="%m/%d/%Y", 
+        date_format="%m/%d/%Y",
         agg_type="count",
-        agg_col="EVALUATION_AGENCY", 
-        unit="inspections"
+        agg_col="EVALUATION_AGENCY",
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/rcrainfo-download-summary#evaluations_file"
     ),
 
     "RCRA Penalties": dict(
         echo_type="RCRA",
         base_table="RCRA_ENFORCEMENTS",
         table_name="RCRA_ENFORCEMENTS_MVIEW",
-        idx_field="ID_NUMBER", 
+        idx_field="ID_NUMBER",
         date_field="ENFORCEMENT_ACTION_DATE",
-        date_format="%m/%d/%Y", 
+        date_format="%m/%d/%Y",
         agg_type="sum",
         agg_col="FMP_AMOUNT",
-        unit="dollars"
+        unit="dollars",
+        meta="https://echo.epa.gov/tools/data-downloads/rcrainfo-download-summary#enforcement_file"
     ),
 
     "ICIS EPA Inspections": dict(
         echo_type="AIR",
         base_table="ICIS_FEC_EPA_INSPECTIONS",
         table_name="AIR_INSPECTIONS_MVIEW",
-        idx_field="REGISTRY_ID", 
+        idx_field="REGISTRY_ID",
         date_field="ACTUAL_END_DATE",
-        date_format="%m/%d/%Y", 
+        date_format="%m/%d/%Y",
         agg_type="count",
-        agg_col="ACTIVITY_TYPE_DESC", 
-        unit="inspections"
+        agg_col="ACTIVITY_TYPE_DESC",
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "CAA Violations": dict(
         echo_type="AIR",
         base_table="ICIS-AIR_VIOLATION_HISTORY",
         table_name="AIR_VIOLATIONS_MVIEW",
-        idx_field="PGM_SYS_ID", 
+        idx_field="PGM_SYS_ID",
         date_field="EARLIEST_FRV_DETERM_DATE",
-        date_format="%m-%d-%Y", 
+        date_format="%m-%d-%Y",
         agg_type="count",
-        agg_col="AGENCY_TYPE_DESC", 
-        unit="violations"
+        agg_col="AGENCY_TYPE_DESC",
+        unit="violations",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "CAA Penalties": dict(
@@ -80,10 +87,11 @@ ATTRIBUTE_TABLES = {
         table_name="AIR_FORMAL_ACTIONS_MVIEW",
         idx_field="PGM_SYS_ID",
         date_field="SETTLEMENT_ENTERED_DATE",
-        date_format="%m/%d/%Y", 
+        date_format="%m/%d/%Y",
         agg_type="sum",
         agg_col="PENALTY_AMOUNT",
-        unit="dollars"
+        unit="dollars",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "CAA Inspections": dict(
@@ -92,19 +100,21 @@ ATTRIBUTE_TABLES = {
         table_name="AIR_COMPLIANCE_MVIEW",
         idx_field="PGM_SYS_ID",
         date_field="ACTUAL_END_DATE",
-        date_format="%m-%d-%Y", 
+        date_format="%m-%d-%Y",
         agg_type="count",
-        agg_col="STATE_EPA_FLAG", 
-        unit="inspections"
+        agg_col="STATE_EPA_FLAG",
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-air-download-summary"
     ),
 
     "Combined Air Emissions": dict(
-        echo_type=["GHG","TRI"],
+        echo_type=["GHG", "TRI"],
         base_table="POLL_RPT_COMBINED_EMISSIONS",
-        table_name="COMBINED_AIR_EMISSIONS_MVIEW", 
+        table_name="COMBINED_AIR_EMISSIONS_MVIEW",
         idx_field="REGISTRY_ID",
-        date_field="REPORTING_YEAR", 
-        date_format="%Y"
+        date_field="REPORTING_YEAR",
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/air-emissions-download-summary"
     ),
 
     "Greenhouse Gas Emissions": dict(
@@ -113,10 +123,11 @@ ATTRIBUTE_TABLES = {
         table_name="GREENHOUSE_GASES_MVIEW",
         idx_field="REGISTRY_ID",
         date_field="REPORTING_YEAR",
-        date_format="%Y", 
+        date_format="%Y",
         agg_type="sum",
-        agg_col="ANNUAL_EMISSION", 
-        unit="metric tons of CO2 equivalent"
+        agg_col="ANNUAL_EMISSION",
+        unit="metric tons of CO2 equivalent",
+        meta="https://echo.epa.gov/tools/data-downloads/air-emissions-download-summary"
     ),
 
     "Toxic Releases": dict(
@@ -127,44 +138,48 @@ ATTRIBUTE_TABLES = {
         date_field="REPORTING_YEAR",
         date_format="%Y",
         agg_type="sum",
-        agg_col="ANNUAL_EMISSION", 
-        unit="pounds"
+        agg_col="ANNUAL_EMISSION",
+        unit="pounds",
+        meta="https://echo.epa.gov/tools/data-downloads/air-emissions-download-summary"
     ),
 
     "CWA Violations": dict(
         echo_type="NPDES",
         base_table="NPDES_QNCR_HISTORY",
-        table_name="WATER_QUARTERLY_VIOLATIONS_MVIEW", 
+        table_name="WATER_QUARTERLY_VIOLATIONS_MVIEW",
         idx_field="NPDES_ID",
         date_field="YEARQTR",
-        date_format="%Y", 
+        date_format="%Y",
         agg_type="sum",
-        agg_col="NUME90Q", 
-        unit="effluent violations"
+        agg_col="NUME90Q",
+        unit="effluent violations",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary"
     ),
 
     "CWA Inspections": dict(
         echo_type="NPDES",
         base_table="NPDES_INSPECTIONS",
-        table_name="CLEAN_WATER_INSPECTIONS_MVIEW", 
+        table_name="CLEAN_WATER_INSPECTIONS_MVIEW",
         idx_field="NPDES_ID",
-        date_field="ACTUAL_END_DATE", 
+        date_field="ACTUAL_END_DATE",
         date_format="%m/%d/%Y",
-        agg_type="count", 
+        agg_type="count",
         agg_col="STATE_EPA_FLAG",
-        unit="inspections"
+        unit="inspections",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary"
     ),
 
     "CWA Penalties": dict(
         echo_type="NPDES",
         base_table="NPDES_FORMAL_ENFORCEMENT_ACTIONS",
-        table_name="CLEAN_WATER_ENFORCEMENT_ACTIONS_MVIEW", 
+        table_name="CLEAN_WATER_ENFORCEMENT_ACTIONS_MVIEW",
         idx_field="NPDES_ID",
-        date_field="SETTLEMENT_ENTERED_DATE", 
+        date_field="SETTLEMENT_ENTERED_DATE",
         date_format="%m/%d/%Y",
-        agg_type="sum", 
+        agg_type="sum",
         agg_col="FED_PENALTY_ASSESSED_AMT",
-        unit="dollars"
+        unit="dollars",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary"
     ),
 
     "SDWA Site Visits": dict(
@@ -173,7 +188,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_SITE_VISITS_MVIEW",
         idx_field="PWSID",
         date_field="SITE_VISIT_DATE",
-        date_format="%m/%d/%Y"
+        date_format="%m/%d/%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
 
     "SDWA Enforcements": dict(
@@ -182,7 +198,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_ENFORCEMENTS_MVIEW",
         idx_field="PWSID",
         date_field="ENFORCEMENT_DATE",
-        date_format="%m/%d/%Y"
+        date_format="%m/%d/%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
 
     "SDWA Public Water Systems": dict(
@@ -191,7 +208,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_PUBLIC_WATER_SYSTEMS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
-        date_format="%Y"
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
 
     "SDWA Violations": dict(
@@ -200,7 +218,8 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_VIOLATIONS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
-        date_format="%Y"
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
 
     "SDWA Serious Violators": dict(
@@ -209,9 +228,10 @@ ATTRIBUTE_TABLES = {
         table_name="SDWA_SERIOUS_VIOLATORS_MVIEW",
         idx_field="PWSID",
         date_field="FISCAL_YEAR",
-        date_format="%Y"
+        date_format="%Y",
+        meta="https://echo.epa.gov/tools/data-downloads/sdwa-download-summary"
     ),
-    
+
     "2020 Discharge Monitoring": dict(
         echo_type="NPDES",
         base_table="NPDES_DMRS_FY2020",
@@ -219,9 +239,10 @@ ATTRIBUTE_TABLES = {
         idx_field="EXTERNAL_PERMIT_NMBR",
         date_field="LIMIT_BEGIN_DATE",
         date_format="%m/%d/%Y",
-        agg_type="count", 
-        agg_col = "VIOLATION_CODE",
-        unit = "discharge monitoring reports"
+        agg_type="count",
+        agg_col="VIOLATION_CODE",
+        unit="discharge monitoring reports",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-dmr-summary"
     ),
 
     "2022 Discharge Monitoring": dict(
@@ -231,30 +252,25 @@ ATTRIBUTE_TABLES = {
         idx_field="EXTERNAL_PERMIT_NMBR",
         date_field="LIMIT_BEGIN_DATE",
         date_format="%m/%d/%Y",
-        agg_type="count", 
-        agg_col = "VIOLATION_CODE",
-        unit = "discharge monitoring reports"
+        agg_type="count",
+        agg_col="VIOLATION_CODE",
+        unit="discharge monitoring reports",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-dmr-summary"
     ),
 
     "Effluent Violations": dict(
-        echo_type = "NPDES",
-        base_table = "NPDES_EFF_VIOLATIONS",
+        echo_type="NPDES",
+        base_table="NPDES_EFF_VIOLATIONS",
         table_name="EFF_VIOLATIONS_MVIEW",
         idx_field="NPDES_ID",
         date_field="MONITORING_PERIOD_END_DATE",
         date_format="%Y-%m-%d",
-        agg_type="count", 
-        agg_col="VIOLATION_CODE", # What should the default be? Can modify in post-processing...
-    )
-
-    # "SDWA Return to Compliance": dict(
-    #     echo_type="SDWA",
-    #     table_name="SDWA_RETURN_TO_COMPLIANCE",
-    #     idx_field="PWSID",
-    #     date_field="FISCAL_YEAR",
-    #     date_format="%Y"
-    # )
+        agg_type="count",
+        agg_col="VIOLATION_CODE",
+        meta="https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary"
+    ),
 }
+
 
 def get_attribute_tables():
     return ATTRIBUTE_TABLES
