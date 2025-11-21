@@ -518,8 +518,8 @@ def get_ejscreen(regions, region_type, state=None, buffer=0, scale="blockgroup",
   '''
   Gets EJScreen values for a defined region(s) using the API to EJAM. See here: https://github.com/edgi-govdata-archiving/EJAM-API
 
-  regions : DataSet.region_value, GeoJSON (shape), array of lat/lon (sites), or string or list of FIPS codes (fips)
-  region_type : str - DataSet.region_type ("State", "County", "Watershed", "Zip Code"), "shape", "sites", "fips"
+  regions : ECHO table/dataframe with FAC_LAT and FAC_LONG (sites), DataSet.region_value ("State", "County", "Watershed", "Zip Code"), GeoJSON (shape), array of lat/lon (sites), or string or list of FIPS codes (fips)
+  region_type : str - ECHO table ("sites"), DataSet.region_type ("State", "County", "Watershed", "Zip Code"), "shape", "sites", "fips"
   state : for Zip/Watershed/County region_type, provide a state abbreviation e.g. "NY"
   scale : string - either 'blockgroup' or 'county', representing the level at which to return results
   buffer : integer - miles around the search. Required for "sites" region_type
@@ -531,6 +531,11 @@ def get_ejscreen(regions, region_type, state=None, buffer=0, scale="blockgroup",
   if region_type == "shape":
     q["shape"]=regions
   elif region_type == "sites":
+    if isinstance(regions, pd.DataFrame):
+      try:
+        regions = [{"lat": fac[0], "lon": fac[1]} for fac in zip(regions["FAC_LAT"], regions["FAC_LONG"])]
+      except:
+        print("ECHO table must contain FAC_LAT and FAC_LONG coordinates")
     q["sites"]=regions
     if buffer==0:
       print("For sites (lat/long coordinates), buffer must be >0")
