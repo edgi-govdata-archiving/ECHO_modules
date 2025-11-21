@@ -21,7 +21,6 @@ from IPython.display import display
 from ECHO_modules.get_data import get_echo_data
 from ECHO_modules.geographies import region_field, states
 from shapely.geometry import Polygon, Point
-import geopandas as gpd
 
 # Set up some default parameters for graphing
 from matplotlib import cycler
@@ -481,7 +480,7 @@ def filter_by_geometry(points, df):
     max_lat = max(p[1] for p in points)
     
     # Make a geopandas dataframe of all facilities
-    facs_gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['FAC_LONG'], df['FAC_LAT']), crs="EPSG:4269")
+    facs_gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df['FAC_LONG'], df['FAC_LAT']), crs="EPSG:4269")
     
     filtered_facs = facs_gdf[
         (facs_gdf.geometry.x >= min_lon) & 
@@ -600,7 +599,6 @@ def aggregate_by_facility(records, program, other_records = False, api=True, tok
   else:
     print( "There is no data for this program and region after 2000." )
 
-# IGNORE 
 def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
     '''
     Aggregate attribute data by a spatial unit, such as zip codes
@@ -631,7 +629,7 @@ def aggregate_by_geography(dsr, agg_type, spatial_tables, region_filter=None):
     ## Get spatial data
     if region_filter and dsr.region_type == "County":
         region_filter = [c.title() for c in region_filter]
-    regions, states = get_spatial_data(dsr.region_type, dsr.state, spatial_tables, region_filter=region_filter)
+    regions, states = get_spatial_data(dsr.region_type, dsr.state, region_filter=region_filter)
     ## Join
     if dsr.region_type == "County":
         idx = regions[spatial_tables[dsr.region_type]['match_field']].str.upper()
