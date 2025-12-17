@@ -1,7 +1,4 @@
-import pdb
-
 import os
-import urllib.parse
 import pandas as pd
 from datetime import datetime, date
 from itertools import islice
@@ -55,7 +52,7 @@ class DataSet:
 
     def __init__( self, name, base_table, table_name, echo_type=None,
                  idx_field=None, date_field=None, date_format=None,
-                 sql=None, agg_type=None, agg_col=None, unit=None,
+                 sql=None, agg_type=None, agg_col=None, unit=None, meta=None,
                  api=True, token=None):
         # the echo_type can be a single string--AIR, NPDES, RCRA, SDWA,
         # or a list of multiple strings--['GHG','TRI']
@@ -72,6 +69,7 @@ class DataSet:
         self.unit = unit                    #Unit of measure
         self.sql = sql                      #The SQL query to retrieve the data 
         self.results = {}                   #Dictionary of DataSetResults objects
+        self.meta = meta                    #Link to EPA metadata
         self.last_modified_is_set = False
         self.last_modified = datetime.strptime( '01/01/1970', '%m/%d/%Y')
         self.last_sql = ''

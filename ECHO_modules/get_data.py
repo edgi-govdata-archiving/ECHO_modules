@@ -1,10 +1,5 @@
-# from dotenv import load_dotenv
-# load_dotenv()
-
-import pdb
 import geopandas
 import os
-import urllib.parse
 import pandas as pd
 import json
 import requests
@@ -70,7 +65,7 @@ def state_abbr_to_fips(state_abbrs):
             return None  # State abbreviation not found
     return fips_codes
 
-def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filter=None):
+def get_spatial_data(region_type, states, fips=None, region_filter=None):
     '''
     Returns spatial data from the database utilizing an intersection query 
 
@@ -80,12 +75,10 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
         The spatial unit to return e.g. "Congressional District" # from cell 3 region_type_widget
     states : list
         The extent across which to get the spatial data e.g. ["AL"]
-    spatial_tables : dict
-        Import from ECHO_modules/geographies.py
     fips : dict
         Optional - Import from ECHO_modules/geographies.py for Census Tracts
     region_filter : list
-        Optional - specify whether to return specific units (e.g. a single county - ["Erie"]). region_filter should be based on the id_field specified in spatial_tables
+        Optional - specify whether to return specific units (e.g. a single county - ["Erie"]). region_filter should be based on the id_field specified in ECHO_modules/geographies.py spatial_tables
 
     Returns
     -------
@@ -93,12 +86,6 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
         GeoDataFrame of the spatial units
     states_gdf
         GeoDataFrame of the state(s) across which the units are selected
-    
-    '''
-    '''
-
-    spatial_tables is from ECHO_modules/geographies.py
-    
     
     '''
     def get_tiger_geojson(query_string, geography_flag):
@@ -126,6 +113,7 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
             "f": "geojson"                     # Return format as GeoJSON
         }
         # The timeout parameter may be necessary 
+        print(base_url[geography_flag], params)
         response = requests.get(base_url[geography_flag], params=params, timeout=10)
         if response.status_code == 200:
             print("Success: retrieved the TIGER geojson!")
@@ -207,7 +195,7 @@ def get_spatial_data(region_type, states, spatial_tables, fips=None, region_filt
       r = requests.get(url)
       z = zipfile.ZipFile(io.BytesIO(r.content))
       z.extractall("/content")
-      regions_gdf = geopandas.read_file("/content/tl_2010_"+f+"_tract10.shp")
+      regions_gdf = geopandas.read_file("/content/tl_2010_"+f+"_tract10.shp") # Mask for region_filter?
       regions_gdf.columns = regions_gdf.columns.str.lower() #convert columns to lowercase for consistency
 
     elif (region_type == "County"):
@@ -378,9 +366,6 @@ def get_echo_data(sql, index_field=None, table_name=None, api=True, token=None):
         print(f"Error: {e}")
         return None
 
-# import requests
-# from tqdm import tqdm
-
 def get_echo_data_delta_api(sql, index_field=None, table_name=None, token=None, backoff_factor=2, retries=5):
     import requests
     from tqdm import tqdm
@@ -528,3 +513,57 @@ def get_echo_api_access_token():
     
     print("❌ Timeout: No token file found within 5 minutes.")
     return None
+
+def get_ejscreen(regions, region_type, state=None, buffer=0, scale="blockgroup", geometries=False):
+  '''
+  Gets EJScreen values for a defined region(s) using the API to EJAM. See here: https://github.com/edgi-govdata-archiving/EJAM-API
+
+  regions : ECHO table/dataframe with FAC_LAT and FAC_LONG (sites), DataSet.region_value ("State", "County", "Watershed", "Zip Code"), GeoJSON (shape), array of lat/lon (sites), or string or list of FIPS codes (fips)
+  region_type : str - ECHO table ("sites"), DataSet.region_type ("State", "County", "Watershed", "Zip Code"), "shape", "sites", "fips"
+  state : for Zip/Watershed/County region_type, provide a state abbreviation e.g. "NY"
+  scale : string - either 'blockgroup' or 'county', representing the level at which to return results
+  buffer : integer - miles around the search. Required for "sites" region_type
+  geometries : Boolean - whether to return the shape data for the blockgroups or counties in the search
+
+  Returns a dataframe with EJAM/EJSCREEN results if geometries=False, else a geodataframe with results
+  '''
+  q = {"buffer": buffer, "scale":scale, "geometries":geometries}
+  if region_type == "shape":
+    q["shape"]=regions
+  elif region_type == "sites":
+    if isinstance(regions, pd.DataFrame):
+      try:
+        regions = [{"lat": fac[0], "lon": fac[1]} for fac in zip(regions["FAC_LAT"], regions["FAC_LONG"])]
+      except:
+        print("ECHO table must contain FAC_LAT and FAC_LONG coordinates")
+    q["sites"]=regions
+    if buffer==0:
+      print("For sites (lat/long coordinates), buffer must be >0")
+      return
+  elif (region_type == "fips") or (region_type == "State"):
+    q["fips"]=regions
+  elif region_type in ["Zip Code", "Watershed", "County"]:
+    if type(regions)==list:
+      region_filter = [r.title() for r in regions]
+    elif type(regions)==str:
+      region_filter = regions.title()
+    if state is None:
+      print("Please provide a state like 'NY'")
+                    
+    shapes, stateshape = get_spatial_data(region_type=region_type, region_filter=region_filter, states=[state])
+    q["shape"]=shapes.to_json()
+
+  # Execute data queries
+  import requests, pandas
+  url = "https://ejamapi-84652557241.us-central1.run.app/data"
+  response = requests.post(url, json=q)
+  
+  # Load response
+  df = pandas.DataFrame.from_dict(response.json())
+  
+  # If geometries, load as gdf
+  if geometries:
+    from shapely.geometry import shape
+    df = geopandas.GeoDataFrame(df, geometry=df.pop("geometry").apply(shape), crs=4326)
+
+  return df
