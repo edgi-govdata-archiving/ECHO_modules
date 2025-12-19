@@ -3,7 +3,7 @@ ECHO_modules
 [![Download Latest Version from PyPI](https://img.shields.io/pypi/v/echo-modules.svg)](https://pypi.python.org/pypi/echo-modules)
 [![Code of Conduct](https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg?style=flat)](https://github.com/edgi-govdata-archiving/overview/blob/main/CONDUCT.md)
 
-*ECHO_modules* is a Python package repository for analyzing a copy of the US Environmental Protection Agency's (EPA) Enforcement and Compliance History Online (ECHO) amd Risk Screening Environmental Indicators (RSEI) databases.
+*ECHO_modules* is a Python package for analyzing US Environmental Protection Agency datasets including Enforcement and Compliance History Online (ECHO), Risk Screening Environmental Indicators (RSEI), and EJSCREEN.
 
 Background
 --------------------------
@@ -11,9 +11,9 @@ The US EPA collects a wide variety of data concerning environmental pollution an
 
 Unfortunately, both the web portal for ECHO (echo.epa.gov) and its API have a number of limitations. First, EPA generally only makes the past 3-5 years worth of data available through these services. Second, EPA typically does not allow aggregating information into meaningful views, such as reports of inspections by Census tract or ZIP code. Instead, searches on echo.epa.gov are usually facility-oriented. This makes it hard to understand the state of environmental enforcement and compliance across an entire geography, company, or industry sector. 
 
-In response, we make regular copies of the full set of historical records in ECHO by scraping echo.epa.gov [here](https://echo.epa.gov/files/echodownloads/). We load a number of specific tables into a [Postgresql database](https://github.com/sunggheel/edgipgdb) hosted at Stony Brook University (SBU). These tables are then linked with one another through various lookups and materialized views. For instance, the table that contains summary information about facilities (ECHO_EXPORTER) is linked to the table with detailed records on Clean Water Act violations through the `NPDES_ID` key. 
+In response, we make regular copies of the full set of historical records in ECHO by scraping echo.epa.gov [here](https://echo.epa.gov/files/echodownloads/). We load a number of specific tables into a [Postgresql database](https://github.com/edgi-govdata-archiving/ECHO-Pipeline) hosted at Stony Brook University (SBU). These tables are then linked with one another through various lookups and materialized views. For instance, the table that contains summary information about facilities (ECHO_EXPORTER) is linked to the table with detailed records on Clean Water Act violations through the `NPDES_ID` key. 
 
-`ECHO_modules` provides convenient dataset definitions and pre-defined queries that enable users to retrieve information from the SBU database and to visualize it as tables, maps, and charts. It also supports user-defined queries. With `ECHO_modules`, users can easily access summaries of EPA's records for specific geographies (e.g. a set of ZIP codes) and examine these records in relation to EPA's measures of environmental inequalities (from EJScreen).
+`ECHO_modules` provides convenient dataset definitions and pre-defined queries that enable users to retrieve information from the SBU database and to visualize it as tables, maps, and charts. It also supports user-defined queries. With `ECHO_modules`, users can access summaries of EPA's records for specific geographies (e.g. a set of ZIP codes) and examine these records in relation to EPA's measures of environmental inequalities (from EJScreen).
 
 Learn more about the SBU copy of ECHO and how it is used by ECHO_modules [here](https://github.com/edgi-govdata-archiving/ECHO_modules/blob/main/SBU-db.md). EDGI's Environmental Enforcement Watch (EEW) works with `ECHO_modules` extensively. For more on the EEW project, visit [here](https://environmentalenforcementwatch.org/) or check out project-specific repositories in the EDGI organization on GitHub.
 
@@ -98,7 +98,7 @@ from ECHO_modules.utilities import write_dataset
 write_dataset( snohomish_cwa_violations.dataframe, "SnohomishCWAViolations")
 ```
 
-Installation
+Local Installation
 --------------------------
 ### Using the ECHO tables in a local Delta Lake system
 ECHO_modules has been updated to work with [the ECHO-Pipeline project](https://github.com/edgi-govdata-archiving/ECHO-Pipeline), which harnesses the Delta Lake system using PySpark. The following instructions are for when you have Delta Lake set up on your local machine and want to use it without relying on API services.
@@ -139,36 +139,6 @@ This will start the services defined in the **echo-delta-compose.yaml** file whi
 - `DELTA_TABLES_HOST_PATH` and `SCHEMA_HOST_PATH` are unnecessary if you're using the API to access data.
 - `WORK_DIR_HOST_PATH` is used to mount your local working directory (e.g., for Jupyter notebooks) into the container environment for development.
 - Ensure that all specified paths in your `.env` file exist and are correctly mounted in your Docker setup.
-
-### Using the ECHO tables in the ECHO API server
-If you do not use a local Delta Lake docker container, you can still access the ECHO tables from the ECHO API server using ECHO_modules_delta.
-
-
-1. Create a Python virtual environment:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
-
-2. Install the ECHO_modules package: 
-    ```bash
-    pip install ECHO_modules
-    ```
-
-3. Start Jupyter Lab:
-    ```bash
-    jupyter lab
-    ```
-    Ensure Jupyter Lab is installed in the virtual environment so you can access the notebook interface.
-
-4. Generate an access token:
-
-    Use the `get_echo_api_access_token` function to generate an access token from the ECHO API server to authenticate your requests.
-
-    - Follow the API server's authentication instructions to obtain your token.
-
-5. Save the access token in `token.txt` in your notebook directory. You should now be able to use the API server to request data. 
-
 
 Contributors
 --------------------------

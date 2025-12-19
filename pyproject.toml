@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "ECHO_modules"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
 	{name = "Steve Hansen", email = "steven.e.hansen@gmail.com"}, 
 	{name="Eric Nost", email="enost@uoguelph.ca" }, 
@@ -14,7 +14,7 @@ authors = [
 	{name = "EDGI", email = "contact@envirodatagov.org"}
 ]
 readme = "README.md"
-description = "Python package for analyzing the US Environmental Protection Agency's Enforcement and Compliance History Online and Risk Screening Environmental Indicator databases"
+description = "Python package for analyzing US Environmental Protection Agency datasets including Enforcement and Compliance History Online (ECHO), Risk Screening Environmental Indicators (RSEI), and EJSCREEN"
 license = {file = "LICENSE"}
 classifiers = [
     "Programming Language :: Python :: 3",
