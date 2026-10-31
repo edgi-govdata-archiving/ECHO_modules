@@ -164,4 +164,8 @@ License & Copyright
 --------------------------
 Copyright (C) 2019-2025 Environmental Data and Governance Initiative (EDGI)
 
-This program is free software: you can redistribute it and/or modify it under the terms of the 3-Clause BSD License. See the `LICENSE <https://github.com/edgi-govdata-archiving/wayback/blob/master/LICENSE>` file for details.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.0.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the [`LICENSE`](https://github.com/edgi-govdata-archiving/ECHO_modules/blob/main/LICENSE) file for details.
